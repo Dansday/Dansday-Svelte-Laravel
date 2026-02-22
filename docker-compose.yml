@@ -17,6 +17,14 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:alpine
+    container_name: dansday-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
   admin:
     build:
       context: ./admin
@@ -32,12 +40,19 @@ services:
       DB_DATABASE: dansday_admin
       DB_USERNAME: dansday_admin
       DB_PASSWORD: password
+      REDIS_CLIENT: phpredis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
     volumes:
       - ./admin:/app
       - admin_vendor:/app/vendor
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_started
 
   main:
     build:
@@ -58,5 +73,6 @@ services:
 
 volumes:
   mysql_data:
+  redis_data:
   admin_vendor:
   main_node_modules:
