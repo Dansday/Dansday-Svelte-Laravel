@@ -1,5 +1,6 @@
 # Dependencies
 main/node_modules/
+admin/node_modules/
 admin/vendor/
 
 # Build / output
@@ -30,6 +31,10 @@ vite.config.ts.timestamp-*
 
 # OS
 .DS_Store
+
+# Uploads
+admin/public/uploads/**/*
+!admin/public/uploads/img/image_default.png
 
 # References
 references/
