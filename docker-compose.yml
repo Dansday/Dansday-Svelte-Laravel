@@ -4,8 +4,8 @@ services:
     container_name: dansday-mysql
     environment:
       MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: dansday_main
-      MYSQL_USER: dansday_main
+      MYSQL_DATABASE: dansday_admin
+      MYSQL_USER: dansday_admin
       MYSQL_PASSWORD: password
     ports:
       - "3306:3306"
@@ -29,8 +29,8 @@ services:
       DB_CONNECTION: mysql
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_DATABASE: dansday_main
-      DB_USERNAME: dansday_main
+      DB_DATABASE: dansday_admin
+      DB_USERNAME: dansday_admin
       DB_PASSWORD: password
     volumes:
       - ./admin:/app
