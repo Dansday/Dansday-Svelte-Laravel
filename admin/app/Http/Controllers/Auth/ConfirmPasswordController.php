@@ -9,7 +9,7 @@ class ConfirmPasswordController extends Controller
 {
     use ConfirmsPasswords;
 
-    protected $redirectTo = '/admin';
+    protected $redirectTo = '/admin/home';
 
     public function __construct()
     {

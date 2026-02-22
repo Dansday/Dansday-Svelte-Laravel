@@ -11,13 +11,13 @@ $hasUser = fn () => \App\Models\User::count() > 0;
 
 Route::get('/', function () use ($hasUser) {
     if (Auth::check()) {
-        return redirect('/admin/general');
+        return redirect('/admin/home');
     }
     return $hasUser() ? redirect('/login') : redirect('/register');
 })->name('home');
 Route::get('admin', function () use ($hasUser) {
     if (Auth::check()) {
-        return redirect('/admin/general');
+        return redirect('/admin/home');
     }
     return $hasUser() ? redirect('/login') : redirect('/register');
 })->name('admin');

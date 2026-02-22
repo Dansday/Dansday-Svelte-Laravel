@@ -6,6 +6,7 @@ use App\Models\General;
 use App\Models\User;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class GeneralController extends Controller
@@ -14,7 +15,14 @@ class GeneralController extends Controller
     {
         $general = General::find(1);
         if (! $general) {
-            return redirect()->route('login')->with('message', 'Initial data not found. Please run: php artisan db:seed');
+            if (! auth()->check()) {
+                return redirect()->route('login')->with('message', 'Initial data not found. Please run: php artisan db:seed');
+            }
+            Log::error('Initial data not found (General). Please run: php artisan db:seed', [
+                'user_id' => auth()->id(),
+                'path' => request()->path(),
+            ]);
+            abort(500, 'Initial data not found. Please run: php artisan db:seed');
         }
         $user = User::find(1);
         $social_icons = config('social_icons', []);

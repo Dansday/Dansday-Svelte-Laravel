@@ -8,7 +8,6 @@ use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
@@ -16,7 +15,7 @@ class RegisterController extends Controller
 {
     use RegistersUsers;
 
-    protected $redirectTo = '/admin';
+    protected $redirectTo = '/admin/home';
 
     public function __construct()
     {
@@ -44,13 +43,6 @@ class RegisterController extends Controller
         return $request->wantsJson()
             ? new JsonResponse([], 201)
             : redirect($this->redirectPath());
-    }
-
-    protected function registered(Request $request, User $user)
-    {
-        if (User::count() === 1) {
-            Artisan::call('db:seed');
-        }
     }
 
     protected function validator(array $data)

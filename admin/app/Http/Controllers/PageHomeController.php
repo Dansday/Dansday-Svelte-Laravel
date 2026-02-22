@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Home;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class PageHomeController extends Controller
@@ -13,7 +14,14 @@ class PageHomeController extends Controller
     {
         $home = Home::find(1);
         if (! $home) {
-            return redirect()->route('login')->with('message', 'Initial data not found. Please run: php artisan db:seed');
+            if (! auth()->check()) {
+                return redirect()->route('login')->with('message', 'Initial data not found. Please run: php artisan db:seed');
+            }
+            Log::error('Initial data not found (Home). Please run: php artisan db:seed', [
+                'user_id' => auth()->id(),
+                'path' => request()->path(),
+            ]);
+            abort(500, 'Initial data not found. Please run: php artisan db:seed');
         }
         $user = User::find(1);
         return view('admin.pages.home')
