@@ -1,10 +1,7 @@
 <ul class="navbar-nav bg-gradient-dark sidebar sidebar-dark accordion" id="accordionSidebar">
 
-    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ url('/admin/general') }}">
-        <div class="sidebar-brand-icon">
-            <img src="{{ asset('assets/admin/img/sidebar_logo_min.png') }}" class="img-fluid" />
-        </div>
-        <img src="{{ asset('assets/admin/img/sidebar_logo.png') }}" class="img-fluid sidebar-brand-text mx-3" />
+    <a class="sidebar-brand d-flex align-items-center justify-content-center py-3" href="{{ url('/admin/general') }}">
+        <span class="sidebar-brand-text text-white">Admin</span>
     </a>
 
     <hr class="sidebar-divider">

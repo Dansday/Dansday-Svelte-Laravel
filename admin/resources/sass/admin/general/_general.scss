@@ -1,13 +1,66 @@
+@use 'variables' as v;
+
+#wrapper {
+    background: v.$ash-100;
+}
+
+body {
+    color: v.$ash-700;
+    background: v.$ash-100;
+}
+
+.sidebar.sidebar-dark {
+    background: linear-gradient(180deg, v.$ash-800 0%, v.$ash-700 100%) !important;
+    .sidebar-brand-text,
+    .nav-link span,
+    .sidebar-heading {
+        color: v.$ash-300 !important;
+    }
+    .nav-link {
+        color: v.$ash-300 !important;
+        &:hover {
+            color: v.$ash-100 !important;
+        }
+    }
+    .nav-item.active .nav-link {
+        color: v.$ash-100 !important;
+        background: v.$ash-600 !important;
+    }
+    .sidebar-divider {
+        border-color: v.$ash-600 !important;
+    }
+}
+
+.topbar.navbar-light {
+    background: v.$ash-50 !important;
+    border-color: v.$ash-200 !important;
+    .nav-link,
+    .text-gray-600 {
+        color: v.$ash-700 !important;
+    }
+    .nav-link:hover {
+        color: v.$ash-900 !important;
+    }
+}
+
+#content-wrapper {
+    background: v.$ash-100;
+}
+
+#content {
+    background: v.$ash-100;
+}
+
 a,
 button,
 .css3animate {
     transition: all .3s;
-    color: #000;
+    color: v.$ash-700;
 }
 
 a {
     transition: all .3s;
-    color: #000;
+    color: v.$ash-700;
     &.small {
         font-size: 1em;
         font-weight: 400;
@@ -16,18 +69,57 @@ a {
     &:focus,
     &:active {
         text-decoration: none;
+        color: v.$ash-900;
     }
     &.accent {
-        color: #5e3aee;
+        color: v.$cyan;
         &:hover {
-            color: #4a28d2;
+            color: v.$cyan-hover;
         }
     }
 }
 
 .bg-login-image {
-    background: url('../../../../assets/admin/img/admin_back.jpg');
-    background-position: center center !important;
+    background: transparent;
+}
+
+.btn-primary {
+    background-color: v.$ash-600 !important;
+    border-color: v.$ash-600 !important;
+    &:hover {
+        background-color: v.$ash-700 !important;
+        border-color: v.$ash-700 !important;
+    }
+}
+
+.btn-dark {
+    background-color: v.$ash-700 !important;
+    border-color: v.$ash-700 !important;
+    &:hover {
+        background-color: v.$ash-800 !important;
+        border-color: v.$ash-800 !important;
+    }
+}
+
+.dropdown-menu .dropdown-item:hover {
+    color: v.$ash-900 !important;
+}
+
+.topbar.navbar-light .navbar-nav .nav-item .nav-link:hover {
+    color: v.$ash-900 !important;
+}
+
+.card {
+    border-color: v.$ash-200;
+}
+
+.form-control,
+.form-select {
+    border-color: v.$ash-300;
+    &:focus {
+        border-color: v.$ash-500;
+        box-shadow: 0 0 0 0.2rem rgba(99, 99, 92, 0.15);
+    }
 }
 
 .navbar {
@@ -193,9 +285,6 @@ a {
 }
 
 
-/************************
-* MEDIA QUERIES
-*************************/
 
 @media (min-width: 768px) {
     .sidebar .nav-item .nav-link.padding-sm {
