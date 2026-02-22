@@ -96,7 +96,12 @@
                                 </div>
                                 <div class="col-md-6 mb-2">
                                     <div class="form-group">
-                                        <label for="image" class="form-label">{{ __('content.image') }}</label>
+                                        <label for="image" class="form-label d-flex justify-content-between">
+                                            {{ __('content.image') }}
+                                            @if($post->image != '')
+                                            <span class="fw-normal fst-italic remove-image text-primary" data-target="image" data-url="{{ asset('/') }}"><i class="fas fa-times mr-1"></i>{{ __('content.remove_image') }}</span>
+                                            @endif
+                                        </label>
                                         <div class="d-flex p-3 mb-2 bg-gray-200 justify-content-center">
                                             @php
                                                 if ($post->image != ''):

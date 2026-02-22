@@ -166,6 +166,12 @@ class ArticleController extends Controller
             $random = mt_rand(10, 9999);
             $route_image = $directory . '/post_image_' . $random . '.' . $data['image']->guessExtension();
             $data['image']->move($dirFull, basename($route_image));
+        } elseif ($route_image_current == '' || $route_image_current === null) {
+            $post = Article::find($id);
+            if ($post && $post->image != '' && File::exists(public_path($post->image))) {
+                unlink(public_path($post->image));
+            }
+            $route_image = '';
         }
 
         $tempFull = public_path('uploads/img/temp');

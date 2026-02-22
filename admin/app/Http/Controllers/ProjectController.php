@@ -156,6 +156,12 @@ class ProjectController extends Controller
             $random = mt_rand(10, 9999);
             $route_image = $directory . '/project_image_' . $random . '.' . $data['image']->guessExtension();
             $data['image']->move($dirFull, basename($route_image));
+        } elseif ($data['image_current'] == '' || $data['image_current'] === null) {
+            $project = Project::find($id);
+            if ($project && $project->image != '' && File::exists(public_path($project->image))) {
+                unlink(public_path($project->image));
+            }
+            $route_image = '';
         }
 
         $tempFull = public_path('uploads/img/temp');
