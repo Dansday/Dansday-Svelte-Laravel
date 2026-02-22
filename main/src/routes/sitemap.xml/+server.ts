@@ -58,17 +58,16 @@ export const GET: RequestHandler = async () => {
 		{ slug: 'testimonial' as const, enableKey: 'testimonial_enable' }
 	] as const;
 	const aboutsUrlData: Array<{ loc: string; changefreq: string; priority: number; lastmod: string }> = [];
-	if (notDisabled(section.about_enable)) {
-		aboutsUrlData.push({ loc: `${BASE_URL}/abouts`, changefreq: 'daily', priority: 0.5, lastmod: new Date().toISOString() });
-		for (const { slug, enableKey } of ABOUTS_CHILDREN) {
-			if (notDisabled(section[enableKey])) {
-				aboutsUrlData.push({
-					loc: `${BASE_URL}/abouts/${slug}`,
-					changefreq: 'daily',
-					priority: 0.5,
-					lastmod: new Date().toISOString()
-				});
-			}
+	const aboutOn = notDisabled(section.about_enable);
+	const enabledAboutsChildren = ABOUTS_CHILDREN.filter((c) => notDisabled(section[c.enableKey]));
+	if (aboutOn && enabledAboutsChildren.length > 0) {
+		for (const { slug } of enabledAboutsChildren) {
+			aboutsUrlData.push({
+				loc: `${BASE_URL}/abouts/${slug}`,
+				changefreq: 'daily',
+				priority: 0.5,
+				lastmod: new Date().toISOString()
+			});
 		}
 	}
 

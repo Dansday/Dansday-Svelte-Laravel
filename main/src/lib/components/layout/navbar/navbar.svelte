@@ -10,6 +10,10 @@
 
 	interface SectionFlags {
 		about_enable?: number | boolean;
+		experience_enable?: number | boolean;
+		services_enable?: number | boolean;
+		skills_enable?: number | boolean;
+		testimonial_enable?: number | boolean;
 		projects_enable?: number | boolean;
 		articles_enable?: number | boolean;
 	}
@@ -24,10 +28,17 @@
 
 	const notDisabled = (v: unknown) => v !== 0 && v !== false;
 
+	const hasAboutsChildren = $derived(
+		notDisabled((section as SectionFlags).experience_enable) ||
+		notDisabled((section as SectionFlags).services_enable) ||
+		notDisabled((section as SectionFlags).skills_enable) ||
+		notDisabled((section as SectionFlags).testimonial_enable)
+	);
 	const visibleMenu = $derived(
 		navbarMenu.filter((item) => {
 			if (item.href === '/') return true;
-			if (item.href === '/abouts') return notDisabled((section as SectionFlags).about_enable);
+			if (item.href === '/abouts')
+				return notDisabled((section as SectionFlags).about_enable) && hasAboutsChildren;
 			if (item.href === '/projects') return notDisabled((section as SectionFlags).projects_enable);
 			if (item.href === '/articles') return notDisabled((section as SectionFlags).articles_enable);
 			return true;

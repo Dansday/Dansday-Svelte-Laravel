@@ -5,7 +5,6 @@ export const GET: RequestHandler = async () => {
 	return new Response(
 		`User-Agent: *
 Allow: /
-Disallow: /api
 
 Host: ${BASE_URL}
 Sitemap: ${BASE_URL}/sitemap.xml`,
