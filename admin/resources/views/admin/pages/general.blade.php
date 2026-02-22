@@ -48,7 +48,7 @@
                                         </label>
                                         @php $imgFaviconUrl = ($general->image_favicon != '') ? $general->image_favicon : 'uploads/img/image_default.png'; @endphp
                                         <div class="d-flex p-3 mb-3 bg-gray-200 justify-content-center">
-                                            <img src="{{ asset('/') }}{{ $imgFaviconUrl }}" class="img-fluid img-maxsize-200 previewImage_image_favicon" />
+                                            <img src="{{ asset($imgFaviconUrl) }}" class="img-fluid img-maxsize-200 previewImage_image_favicon" />
                                         </div>
                                         <input class="form-control previewImage @error('image_favicon') is-invalid @enderror" type="file" name="image_favicon" value="" />
                                         <input type="hidden" name="image_favicon_current" value="{{ $general->image_favicon }}" />

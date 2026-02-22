@@ -91,7 +91,7 @@
                                     <div class="form-group">
                                         <label for="image" class="form-label">{{ __('content.image') }}</label>
                                         <div class="d-flex p-3 mb-2 bg-gray-200 justify-content-center">
-                                            <img src="{{asset('/')}}/uploads/img/image_default.png" class="img-fluid img-maxsize-200 previewImage_image" />
+                                            <img src="{{ asset('uploads/img/image_default.png') }}" class="img-fluid img-maxsize-200 previewImage_image" />
                                         </div>
                                         <input class="form-control previewImage @error('image') is-invalid @enderror" type="file" name="image" value="" required />
                                         <div class="form-text d-flex justify-content-between">

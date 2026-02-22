@@ -36,8 +36,8 @@
                                         <tr>
                                             <th scope="row">{{ $i++ }}</th>
                                             <td>
-                                                <a href="{{ asset('/') }}/{{ $gallery_image->image }}" class="css3animate popup-content popup-image text-center text-gray-800 d-flex justify-content-between align-items-center popup-image-big">
-                                                    <img src="{{ asset('/') }}/{{ $gallery_image->image }}" class="img-fluid img-size-200" />
+<a href="{{ asset($gallery_image->image) }}" class="css3animate popup-content popup-image text-center text-gray-800 d-flex justify-content-between align-items-center popup-image-big">
+                                                <img src="{{ asset($gallery_image->image) }}" class="img-fluid img-size-200" />
                                                     <div class="popup-content-hover css3animate">
                                                         <i class="fas fa-eye text-gray-100 css3animate"></i>
                                                     </div>

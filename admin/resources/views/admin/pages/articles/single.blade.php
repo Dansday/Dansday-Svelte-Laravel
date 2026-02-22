@@ -105,7 +105,7 @@
                                                     $image_link = 'uploads/img/image_default.png';
                                                 endif;
                                             @endphp
-                                            <img src="{{asset('/')}}{{$image_link}}" class="img-fluid img-maxsize-200 previewImage_image" />
+                                            <img src="{{ asset($image_link) }}" class="img-fluid img-maxsize-200 previewImage_image" />
                                         </div>
                                         <input class="form-control previewImage @error('image') is-invalid @enderror" type="file" name="image" value="" />
                                         <input type="hidden" name="image_current" value="{{$post->image}}" />

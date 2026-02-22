@@ -28,11 +28,11 @@
 			aria-label={`View details for project: ${project.title}`}
 			data-sveltekit-preload-code="eager"
 		>
-			<figure class="group relative aspect-video">
+			<figure class="group relative aspect-video overflow-hidden">
 				<img
 					src={resolveImageUrl(project.poster, baseUrl)}
 					alt={project.title}
-					class="aspect-video object-cover object-center grayscale-50 transition-all duration-500 group-hover:grayscale-0"
+					class="size-full object-cover object-center grayscale-50 transition-all duration-500 group-hover:grayscale-0"
 					loading="lazy"
 				/>
 				<div class="absolute top-0 left-0 grid h-full w-full place-items-center bg-[#080808]/90 transition-opacity duration-500 group-hover:opacity-0">
