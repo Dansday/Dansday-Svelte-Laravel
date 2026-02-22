@@ -1,4 +1,4 @@
-import { fetchProjects } from '$lib/server/api';
+import { fetchProjects } from '$lib/server/data';
 import type { LayoutServerLoad } from './$types';
 
 function slug(name: string): string {

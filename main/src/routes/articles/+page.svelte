@@ -3,11 +3,12 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
-	const pageTitle = data.siteName ? `Articles | ${data.siteName}` : '';
-	const description = (data.articlesListMeta?.description as string) ?? '';
+	const pageTitle = $derived(data.siteName ? `Articles | ${data.siteName}` : '');
+	const description = $derived((data.articlesListMeta?.description as string) ?? '');
+	const defaultOgImage = $derived(data.defaultOgImage);
 </script>
 
-<Metadata title={pageTitle} {description} image={data.defaultOgImage} />
+<Metadata title={pageTitle} {description} image={defaultOgImage} />
 
 <h1 class="sr-only">{pageTitle}</h1>
 

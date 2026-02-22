@@ -1,5 +1,5 @@
 import figlet from 'figlet';
-import { fetchGeneral, fetchHome, fetchSection, fetchAbouts } from '$lib/server/api';
+import { fetchGeneral, fetchHome, fetchSection, fetchAbouts } from '$lib/server/data';
 import { env } from '$env/dynamic/private';
 import type { LayoutServerLoad } from './$types';
 
@@ -21,9 +21,7 @@ function resolveUrl(url: string | null | undefined, base: string): string {
 
 export const load: LayoutServerLoad = async () => {
 	try {
-		const apiBase = env.ADMIN_API_URL?.replace(/\/$/, '') ?? '';
-		if (!apiBase) throw new Error('ADMIN_API_URL is not set');
-		const publicBase = env.ADMIN_PUBLIC_URL?.replace(/\/$/, '') || apiBase;
+		const publicBase = env.ADMIN_PUBLIC_URL?.replace(/\/$/, '') ?? '';
 		const [generalData, home, sectionData, aboutsData] = await Promise.all([
 			fetchGeneral(),
 			fetchHome(),
@@ -72,8 +70,7 @@ export const load: LayoutServerLoad = async () => {
 			projectsListMeta
 		};
 	} catch {
-		const apiBase = env.ADMIN_API_URL?.replace(/\/$/, '') ?? '';
-		const publicBase = env.ADMIN_PUBLIC_URL?.replace(/\/$/, '') || apiBase;
+		const publicBase = env.ADMIN_PUBLIC_URL?.replace(/\/$/, '') ?? '';
 		return {
 			siteName: '',
 			adminBaseUrl: publicBase,

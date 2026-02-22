@@ -1,5 +1,5 @@
 import { BASE_URL } from '$env/static/private';
-import { fetchSection, fetchArticles, fetchProjects } from '$lib/server/api';
+import { fetchSection, fetchArticles, fetchProjects } from '$lib/server/data';
 import type { RequestHandler } from './$types';
 
 function escapeXml(unsafe: string): string {

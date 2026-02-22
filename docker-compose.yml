@@ -4,8 +4,8 @@ services:
     container_name: dansday-mysql
     environment:
       MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: dansday_admin
-      MYSQL_USER: dansday_admin
+      MYSQL_DATABASE: dansday_main
+      MYSQL_USER: dansday_main
       MYSQL_PASSWORD: password
     ports:
       - "3306:3306"
@@ -37,8 +37,8 @@ services:
       DB_CONNECTION: mysql
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_DATABASE: dansday_admin
-      DB_USERNAME: dansday_admin
+      DB_DATABASE: dansday_main
+      DB_USERNAME: dansday_main
       DB_PASSWORD: password
       REDIS_CLIENT: phpredis
       REDIS_HOST: redis
@@ -62,14 +62,23 @@ services:
     ports:
       - "80:3000"
     environment:
-      ADMIN_API_URL: http://admin:8080
+      BASE_URL: http://localhost:80
+      ADMIN_PUBLIC_URL: http://localhost:8080
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_DATABASE: dansday_main
+      DB_USERNAME: dansday_main
+      DB_PASSWORD: password
       NODE_ENV: development
     volumes:
       - ./main:/app
       - main_node_modules:/app/node_modules
     command: sh -c "npm install && npm run dev"
     depends_on:
-      - admin
+      mysql:
+        condition: service_healthy
+      admin:
+        condition: service_started
 
 volumes:
   mysql_data:

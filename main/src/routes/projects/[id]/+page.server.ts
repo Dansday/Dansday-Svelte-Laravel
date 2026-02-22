@@ -1,4 +1,4 @@
-import { fetchProject } from '$lib/server/api';
+import { fetchProject } from '$lib/server/data';
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 

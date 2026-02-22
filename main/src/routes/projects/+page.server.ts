@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { fetchProjects } from '$lib/server/api';
+import { fetchProjects } from '$lib/server/data';
 import type { PageServerLoad } from './$types';
 
 function slug(name: string): string {
