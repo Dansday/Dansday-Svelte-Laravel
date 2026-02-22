@@ -1,0 +1,7 @@
+# Development image: mount source at /app and run npm run dev
+FROM node:alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+EXPOSE 3000
+CMD ["npm", "run", "dev"]

@@ -1,0 +1,62 @@
+services:
+  mysql:
+    image: mysql:latest
+    container_name: dansday-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: dansday_main
+      MYSQL_USER: dansday_main
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ppassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    container_name: dansday-admin
+    ports:
+      - "8080:8080"
+    environment:
+      APP_URL: http://localhost:8080
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: dansday_main
+      DB_USERNAME: dansday_main
+      DB_PASSWORD: password
+    volumes:
+      - ./admin:/app
+      - admin_vendor:/app/vendor
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  main:
+    build:
+      context: ./main
+      dockerfile: Dockerfile.dev
+    container_name: dansday-main
+    ports:
+      - "80:3000"
+    environment:
+      ADMIN_API_URL: http://admin:8080
+      NODE_ENV: development
+    volumes:
+      - ./main:/app
+      - main_node_modules:/app/node_modules
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - admin
+
+volumes:
+  mysql_data:
+  admin_vendor:
+  main_node_modules:

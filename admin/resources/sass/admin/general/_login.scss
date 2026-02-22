@@ -1,0 +1,53 @@
+@use '../../fronted/base/mixins' as m;
+.login-resistration-area {
+    .main-login-area {
+        height: 100vh;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        -webkit-box-pack: center;
+        -ms-flex-pack: center;
+        justify-content: center;
+        &::before {
+            position: absolute;
+            content: "";
+            background-image: url("../../../../assets/admin/img/admin_back.jpg");
+            height: 100%;
+            width: 0%;
+            bottom: 0;
+            left: 0;
+            bottom: 0;
+            left: 0;
+            background-repeat: no-repeat;
+            z-index: -1;
+            background-size: cover;
+            background-position: center;
+            @include m.desktop {
+                width: 30%;
+            }
+            @include m.xdesktop {
+                width: 40%;
+            }
+        }
+        .main-content {
+            text-align: center;
+            @include m.desktop {
+                text-align: left;
+            }
+            .custom-control {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            button {
+                width: 100%;
+                @include m.desktop {
+                    width: auto;
+                }
+            }
+        }
+    }
+}

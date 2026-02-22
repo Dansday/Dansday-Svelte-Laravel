@@ -1,0 +1,422 @@
+a,
+button,
+.css3animate {
+  transition: all 0.3s;
+  color: #000;
+}
+
+a {
+  transition: all 0.3s;
+  color: #000;
+}
+a.small {
+  font-size: 1em;
+  font-weight: 400;
+}
+a:hover, a:focus, a:active {
+  text-decoration: none;
+}
+a.accent {
+  color: #5e3aee;
+}
+a.accent:hover {
+  color: #4a28d2;
+}
+
+.bg-login-image {
+  background: url("../../../../assets/admin/img/admin_back.jpg");
+  background-position: center center !important;
+}
+
+.navbar .navbar-nav .nav-item-user .nav-link img {
+  width: 35px;
+  height: 35px;
+}
+.navbar .navbar-nav .nav-item-user .dropdown-menu .user-info img {
+  width: 50px;
+  height: 50px;
+}
+.navbar .navbar-nav .nav-item-user .dropdown-menu .user-info i {
+  font-size: 3em;
+}
+
+.bg-dansday:after {
+  content: "";
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  opacity: 0.65;
+  z-index: 10;
+}
+
+.center-elements {
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+}
+
+.topbar.navbar-light .navbar-nav .nav-item .nav-link:hover {
+  color: #000 !important;
+}
+
+.z-11 {
+  z-index: 11;
+}
+
+.dropdown-menu .dropdown-item {
+  background: transparent !important;
+  padding: 0.25rem;
+}
+.dropdown-menu .dropdown-item:hover {
+  color: #000 !important;
+}
+
+.success {
+  color: #1cc88a;
+}
+
+.error,
+.wrong {
+  color: #e74a3b;
+}
+
+.sidebar .sidebar-heading {
+  padding: 0.5rem 1rem;
+}
+
+.line-breaks {
+  white-space: pre-line;
+}
+
+.custom-width-25 {
+  width: 25px;
+}
+
+.custom-width-50 {
+  width: 50px;
+}
+
+.custom-width-150 {
+  width: 150px;
+}
+
+.min-w-150 {
+  min-width: 150px;
+}
+
+.max-w-150 {
+  max-width: 150px;
+}
+
+.img-size-120 {
+  width: 120px;
+  height: auto;
+}
+
+.img-size-120 {
+  width: 120px;
+  height: auto;
+}
+
+.img-maxsize-200 {
+  max-width: 200px;
+  height: auto;
+}
+
+.datatable .h4 {
+  font-weight: 900 !important;
+}
+
+.text-black-25 {
+  color: rgba(0, 0, 0, 0.25);
+}
+
+.remove-image {
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.invalid-feedback {
+  display: block !important;
+}
+.invalid-feedback.d-none {
+  display: none !important;
+}
+
+.post-quote {
+  font-size: 0.85em;
+}
+
+.form-password {
+  position: relative;
+}
+.form-password .password-option {
+  position: absolute;
+  z-index: 100;
+  top: 50%;
+  margin-top: -8px;
+  right: 30px;
+  visibility: hidden;
+  opacity: 0;
+  cursor: pointer;
+}
+.form-password:hover .password-option {
+  visibility: visible;
+  opacity: 0.75;
+}
+
+.topbar .dropdown .dropdown-menu {
+  min-width: 300px;
+}
+
+.selectpicker-loader {
+  width: 30px;
+  opacity: 0.5;
+}
+
+/************************
+* MEDIA QUERIES
+*************************/
+@media (min-width: 768px) {
+  .sidebar .nav-item .nav-link.padding-sm {
+    padding: 0.5rem 1rem;
+  }
+}
+@media (min-width: 576px) {
+  .modal-dialog.modal.lg {
+    max-width: 750px;
+  }
+  .topbar .dropdown .dropdown-menu {
+    left: inherit;
+  }
+}
+table > :not(:last-child) > :last-child > * {
+  border-bottom-color: inherit;
+}
+table thead th {
+  vertical-align: top;
+}
+table.dataTable > thead .sorting:before,
+table.dataTable > thead .sorting:after,
+table.dataTable > thead .sorting_asc:before,
+table.dataTable > thead .sorting_asc:after,
+table.dataTable > thead .sorting_desc:before,
+table.dataTable > thead .sorting_desc:after,
+table.dataTable > thead .sorting_asc_disabled:before,
+table.dataTable > thead .sorting_asc_disabled:after,
+table.dataTable > thead .sorting_desc_disabled:before,
+table.dataTable > thead .sorting_desc_disabled:after {
+  top: 0.9em;
+}
+table.dataTable td a.popup-content {
+  width: 120px;
+  height: 80px;
+  line-height: 1.2em;
+  background: #e3e6f0;
+  position: relative;
+  overflow: hidden;
+}
+table.dataTable td a.popup-content.popup-image-big {
+  width: 200px;
+  height: 130px;
+}
+table.dataTable td a.popup-content p {
+  width: 100%;
+}
+table.dataTable td a.popup-content .popup-content-hover {
+  position: absolute;
+  z-index: 10;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+}
+table.dataTable td a.popup-content .popup-content-hover i {
+  position: absolute;
+  font-size: 1.5em;
+  top: 50%;
+  margin-top: -24px;
+  left: 50%;
+  margin-left: -12px;
+}
+table.dataTable td a.popup-content:hover .popup-content-hover {
+  opacity: 1;
+  visibility: visible;
+}
+table.dataTable td a.popup-content:hover .popup-content-hover i {
+  margin-top: -12px;
+}
+
+.table-elements td {
+  vertical-align: middle;
+}
+.table-elements button.deleteInfo {
+  width: 32px;
+  height: 32px;
+  text-align: center;
+  padding: 0px;
+  line-height: 32px;
+}
+
+select,
+input[type=checkbox]:hover {
+  cursor: pointer;
+}
+
+.form-label {
+  font-weight: 700;
+}
+
+form.info-list-form .table-info-list tr:first-child td {
+  border-top: 0px;
+}
+form.info-list-form .table-info-list tr:last-child td {
+  border-bottom: 0px;
+}
+form.info-list-form .table-info-list tr td {
+  vertical-align: middle;
+}
+form .note-editing-area .blockquote {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-style: italic;
+}
+
+.form-control-color {
+  width: 3rem;
+  height: auto;
+  padding: 0.375rem;
+}
+
+button .spinner {
+  display: none;
+}
+
+.btn.btn-primary .small {
+  font-weight: 900;
+}
+
+.btn-group > .btn-group:not(:last-child) > .btn, .btn-group > .btn:not(:last-child):not(.dropdown-toggle) {
+  border-top-right-radius: 0.2rem;
+  border-bottom-right-radius: 0.2rem;
+}
+.btn-group.bootstrap-select {
+  width: 100%;
+}
+.btn-group.bootstrap-select button {
+  border: 1px solid #d1d3e2;
+}
+.btn-group.bootstrap-select button:hover {
+  border: 1px solid #858796;
+}
+.btn-group.bootstrap-select button.dropdown-toggle::after {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  margin-top: -2.4px;
+}
+.btn-group.bootstrap-select .dropdown-menu {
+  max-height: 400px !important;
+  overflow-y: auto !important;
+  padding: 0px;
+  margin: 0px;
+  width: 100% !important;
+}
+.btn-group.bootstrap-select .dropdown-menu ul {
+  padding: 0px;
+  margin: 0px;
+  width: 100% !important;
+  list-style: none;
+}
+.btn-group.bootstrap-select .dropdown-menu ul li {
+  padding: 0px;
+  font-size: 1.2em;
+  cursor: pointer;
+}
+.btn-group.bootstrap-select .dropdown-menu ul li:hover {
+  background: #4e73df;
+}
+.btn-group.bootstrap-select .dropdown-menu ul li:hover a {
+  color: #fff;
+}
+.btn-group.bootstrap-select .dropdown-menu ul li a {
+  padding: 0.5rem 1rem 0.5rem 30px !important;
+  position: relative;
+  display: block;
+}
+.btn-group.bootstrap-select .dropdown-menu ul li a span:first-child {
+  position: absolute;
+  width: 30px;
+  top: 50%;
+  left: 0px;
+  text-align: center;
+  -webkit-transform: translateY(-50%);
+  -ms-transform: translateY(-50%);
+  transform: translateY(-50%);
+}
+
+.login-resistration-area .main-login-area {
+  height: 100vh;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+}
+.login-resistration-area .main-login-area::before {
+  position: absolute;
+  content: "";
+  background-image: url("../../../../assets/admin/img/admin_back.jpg");
+  height: 100%;
+  width: 0%;
+  bottom: 0;
+  left: 0;
+  bottom: 0;
+  left: 0;
+  background-repeat: no-repeat;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+}
+@media (min-width: 992px) {
+  .login-resistration-area .main-login-area::before {
+    width: 30%;
+  }
+}
+@media (min-width: 1200px) {
+  .login-resistration-area .main-login-area::before {
+    width: 40%;
+  }
+}
+.login-resistration-area .main-login-area .main-content {
+  text-align: center;
+}
+@media (min-width: 992px) {
+  .login-resistration-area .main-login-area .main-content {
+    text-align: left;
+  }
+}
+.login-resistration-area .main-login-area .main-content .custom-control {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.login-resistration-area .main-login-area .main-content button {
+  width: 100%;
+}
+@media (min-width: 992px) {
+  .login-resistration-area .main-login-area .main-content button {
+    width: auto;
+  }
+}

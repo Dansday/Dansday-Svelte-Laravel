@@ -1,0 +1,35 @@
+# Dependencies
+main/node_modules/
+admin/vendor/
+
+# Build / output
+main/.svelte-kit/
+main/.pnpm-store/
+pnpm-lock.yaml
+package-lock.json
+composer.lock
+
+# Env
+.env
+
+# Logs & cache
+*.log
+admin/storage/logs/*
+admin/storage/framework/cache/*
+admin/storage/framework/sessions/*
+admin/storage/framework/views/*
+admin/bootstrap/cache/*
+
+# Laravel / PHP
+admin/.phpunit.result.cache
+admin/.phpunit.cache
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# OS
+.DS_Store
+
+# References
+references/

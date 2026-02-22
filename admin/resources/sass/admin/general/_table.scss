@@ -1,0 +1,82 @@
+table {
+    &>:not(:last-child)>:last-child>* {
+        border-bottom-color: inherit;
+    }
+    thead th {
+        vertical-align: top;
+    }
+    &.dataTable>thead {
+        .sorting:before,
+        .sorting:after,
+        .sorting_asc:before,
+        .sorting_asc:after,
+        .sorting_desc:before,
+        .sorting_desc:after,
+        .sorting_asc_disabled:before,
+        .sorting_asc_disabled:after,
+        .sorting_desc_disabled:before,
+        .sorting_desc_disabled:after {
+            top: .9em;
+        }
+    }
+    &.dataTable {
+        td {
+            a {
+                &.popup-content {
+                    width: 120px;
+                    height: 80px;
+                    line-height: 1.2em;
+                    background: #e3e6f0;
+                    position: relative;
+                    overflow: hidden;
+                    &.popup-image-big {
+                        width: 200px;
+                        height: 130px;
+                    }
+                    p {
+                        width: 100%;
+                    }
+                    .popup-content-hover {
+                        position: absolute;
+                        z-index: 10;
+                        top: 0px;
+                        left: 0px;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, .5);
+                        opacity: 0;
+                        visibility: hidden;
+                        i {
+                            position: absolute;
+                            font-size: 1.5em;
+                            top: 50%;
+                            margin-top: -24px;
+                            left: 50%;
+                            margin-left: -12px;
+                        }
+                    }
+                    &:hover .popup-content-hover {
+                        opacity: 1;
+                        visibility: visible;
+                        i {
+                            margin-top: -12px;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+.table-elements {
+    td {
+        vertical-align: middle;
+    }
+    button.deleteInfo {
+        width: 32px;
+        height: 32px;
+        text-align: center;
+        padding: 0px;
+        line-height: 32px;
+    }
+}

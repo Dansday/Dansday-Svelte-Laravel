@@ -1,0 +1,105 @@
+:root {
+    --white: #fff;
+    --black: #000000;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Raleway', sans-serif;
+    color: var(--black);
+    font-size: 1em;
+}
+
+h1,
+h2,
+button {
+    font-family: 'Montserrat', sans-serif;
+}
+
+ul {
+    list-style-type: none;
+    padding-inline-start: 35px;
+}
+
+svg {
+    width: 100%;
+    visibility: hidden;
+}
+
+h1 {
+    font-size: 7.5em;
+    margin: 15px 0px;
+    font-weight: bold;
+}
+
+h2 {
+    font-weight: bold;
+}
+
+.error-text {
+    margin-bottom: 1.5rem;
+}
+
+.btn {
+    cursor: pointer;
+    font-size: 1em;
+    letter-spacing: 2px;
+    transition: 0.2s ease;
+    font-weight: bold;
+    border: 1px solid #ddd;
+    display: inline-block;
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 12px 25px;
+    margin-right: 20px;
+}
+
+
+/*
+.btn.green {
+    border: 4px solid var(--black);
+    color: var(--black);
+}
+
+.btn:before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0%;
+    height: 100%;
+    background: var(--black);
+    z-index: -1;
+    transition: 0.2s ease;
+}*/
+
+.btn:hover {
+    color: var(--white);
+    background: var(--black);
+    transition: 0.2s ease;
+    border: 1px solid var(--black);
+    ;
+}
+
+
+/*
+.btn:hover:before {
+    width: 100%;
+}*/
+
+@media screen and (max-width:768px) {
+    body {
+        display: block;
+    }
+    .container {
+        margin-top: 70px;
+        margin-bottom: 70px;
+    }
+}
