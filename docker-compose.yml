@@ -42,7 +42,7 @@ services:
   main:
     build:
       context: ./main
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     container_name: dansday-main
     ports:
       - "80:3000"
