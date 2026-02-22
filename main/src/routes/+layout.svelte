@@ -4,10 +4,17 @@
 	import '../app.css';
 	import Header from '$lib/components/layout/header/header.svelte';
 	import Navbar from '$lib/components/layout/navbar/navbar.svelte';
+	import GoogleAnalytics from '$lib/components/GoogleAnalytics.svelte';
 
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
+
+	const trackingId = $derived(
+		typeof data.general?.analytics_code === 'string' && data.general.analytics_code.trim()
+			? data.general.analytics_code.trim()
+			: ''
+	);
 
 	let dragging = $state(false);
 	let isFullscreen = $state(false);
@@ -64,6 +71,10 @@
 		<link rel="icon" href={data.defaultFavicon} />
 	{/if}
 </svelte:head>
+
+{#if trackingId}
+	<GoogleAnalytics id={trackingId} />
+{/if}
 
 <main
 	bind:this={containerElement}
