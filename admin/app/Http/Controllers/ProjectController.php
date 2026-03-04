@@ -10,6 +10,7 @@ use App\Models\ProjectGallery;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ProjectController extends Controller
 {
@@ -66,19 +67,16 @@ class ProjectController extends Controller
                 ->withInput();
         }
 
-        $directory = 'uploads/img/projects';
-        $dirFull = public_path($directory);
-        File::ensureDirectoryExists($dirFull);
-        $random = mt_rand(10, 9999);
-        $route_image = $directory . '/project_image_' . $random . '.' . $data['image']->guessExtension();
-        $data['image']->move($dirFull, basename($route_image));
+        $disk = Storage::disk('public');
+        $route_image = $data['image']->storeAs('uploads/img/projects', 'project_image_' . mt_rand(10, 9999) . '.' . $data['image']->guessExtension(), 'public');
 
-        $tempFull = public_path('uploads/img/temp');
-        foreach (glob($tempFull . '/*') ?: [] as $file) {
-            $name = basename($file);
-            copy($file, $dirFull . '/' . $name);
-            if (File::exists($file)) {
-                unlink($file);
+        $tempFiles = $disk->files('uploads/img/temp');
+        foreach ($tempFiles as $tempPath) {
+            $name = basename($tempPath);
+            $destPath = 'uploads/img/projects/' . $name;
+            if ($disk->exists($tempPath)) {
+                $disk->put($destPath, $disk->get($tempPath));
+                $disk->delete($tempPath);
             }
         }
 
@@ -87,7 +85,7 @@ class ProjectController extends Controller
         $project->title = $data['title'];
         $project->short_desc = $data['short_desc'];
         $project->images_code = $data['images_code'];
-        $project->description = str_replace('uploads/img/temp', 'uploads/img/projects', $data['description']);
+        $project->description = str_replace([$disk->url('uploads/img/temp'), 'uploads/img/temp'], [$disk->url('uploads/img/projects'), 'uploads/img/projects'], $data['description']);
         $project->image = $route_image;
         $project->order = $data['order'];
         $project->category_id = $data['category'];
@@ -145,32 +143,28 @@ class ProjectController extends Controller
             }
         }
 
+        $disk = Storage::disk('public');
         $route_image = $data['image_current'];
         if ($data['image'] != '') {
-            if ($data['image_current'] != '' && File::exists(public_path($data['image_current']))) {
-                unlink(public_path($data['image_current']));
+            if ($data['image_current'] != '' && $disk->exists($data['image_current'])) {
+                $disk->delete($data['image_current']);
             }
-            $directory = 'uploads/img/projects';
-            $dirFull = public_path($directory);
-            File::ensureDirectoryExists($dirFull);
-            $random = mt_rand(10, 9999);
-            $route_image = $directory . '/project_image_' . $random . '.' . $data['image']->guessExtension();
-            $data['image']->move($dirFull, basename($route_image));
+            $route_image = $data['image']->storeAs('uploads/img/projects', 'project_image_' . mt_rand(10, 9999) . '.' . $data['image']->guessExtension(), 'public');
         } elseif ($data['image_current'] == '' || $data['image_current'] === null) {
-            $project = Project::find($id);
-            if ($project && $project->image != '' && File::exists(public_path($project->image))) {
-                unlink(public_path($project->image));
+            $proj = Project::find($id);
+            if ($proj && $proj->image != '' && $disk->exists($proj->image)) {
+                $disk->delete($proj->image);
             }
             $route_image = '';
         }
 
-        $tempFull = public_path('uploads/img/temp');
-        $dirFull = public_path('uploads/img/projects');
-        foreach (glob($tempFull . '/*') ?: [] as $file) {
-            $name = basename($file);
-            copy($file, $dirFull . '/' . $name);
-            if (File::exists($file)) {
-                unlink($file);
+        $tempFiles = $disk->files('uploads/img/temp');
+        foreach ($tempFiles as $tempPath) {
+            $name = basename($tempPath);
+            $destPath = 'uploads/img/projects/' . $name;
+            if ($disk->exists($tempPath)) {
+                $disk->put($destPath, $disk->get($tempPath));
+                $disk->delete($tempPath);
             }
         }
 
@@ -209,26 +203,26 @@ class ProjectController extends Controller
 
     public function destroy($id, Request $request)
     {
-        $validate = Project::where('id', $id)->get();
+        $validate = Project::where("id", $id)->get();
         if (! empty($validate)) {
-            $globDirs = [public_path('uploads/img/projects'), public_path('uploads/img/work')];
-            foreach ($globDirs as $dir) {
-                foreach (glob($dir . '/*') ?: [] as $file) {
-                    $pos = strpos($file, $validate[0]['images_code']);
-                    if ($pos !== false && File::exists($file)) {
-                        unlink($file);
+            $disk = Storage::disk('public');
+            $dirs = ['uploads/img/projects', 'uploads/img/work'];
+            foreach ($dirs as $dir) {
+                $files = $disk->files($dir);
+                foreach ($files as $file) {
+                    if (str_contains($file, $validate[0]['images_code']) && $disk->exists($file)) {
+                        $disk->delete($file);
                     }
                 }
             }
-            $imgPath = $validate[0]['image'] ? public_path($validate[0]['image']) : null;
-            if ($imgPath && File::exists($imgPath)) {
-                unlink($imgPath);
+            if (! empty($validate[0]['image']) && $disk->exists($validate[0]['image'])) {
+                $disk->delete($validate[0]['image']);
             }
-            Project::where('id', $validate[0]['id'])->delete();
+            Project::where("id", $validate[0]['id'])->delete();
             $projects = DB::table('project')->orderBy('order', 'asc')->get();
             $i = 1;
             foreach ($projects as $project) {
-                Project::where('id', $project->id)->update(['order' => $i]);
+                Project::where("id", $project->id)->update(['order' => $i]);
                 $i++;
             }
             return redirect('/admin/projects/projects')->with('ok-delete', '');

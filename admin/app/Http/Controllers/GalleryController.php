@@ -6,8 +6,8 @@ use App\Models\Gallery;
 use App\Models\Article;
 use Illuminate\Http\Request;
 use App\Models\User;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 class GalleryController extends Controller
 {
@@ -39,30 +39,25 @@ class GalleryController extends Controller
             if($validate->fails()){
                 return redirect('/admin/articles/posts') -> with('error-validation-image', '');
             }else{
-                $directory = "uploads/img/articles";
-                $dirFull = public_path($directory);
-                File::ensureDirectoryExists($dirFull);
-                $random = mt_rand(100,9999);
-                $route_image = $directory."/gallery_image_".$random.".".$data["image"]->guessExtension();
-                $data["image"]->move($dirFull, basename($route_image));
+                $route_image = $data["image"]->storeAs('uploads/img/articles', 'gallery_image_'.mt_rand(100,9999).'.'.$data["image"]->guessExtension(), 'public');
                 $gallery = new Gallery();
                 $gallery->image = $route_image;
                 $gallery->article_id = $data['article_id'];
-                $gallery->save();    
+                $gallery->save();
                 return redirect('/admin/articles/posts') -> with('ok-add', '');
             }
         }else{
             return redirect('/admin/articles/posts') -> with('error-validation', '');
-        } 
+        }
     }
 
     public function destroy($id, Request $request){
         $validate = Gallery::where("id", $id)->get();
         $article_id = $request->input("post_id");
         if(!empty($validate)){
-            $imgPath = public_path($validate[0]['image']);
-            if (File::exists($imgPath)) {
-                unlink($imgPath);
+            $disk = Storage::disk('public');
+            if ($disk->exists($validate[0]['image'])) {
+                $disk->delete($validate[0]['image']);
             }
             Gallery::where("id", $id)->delete();
             return redirect('/admin/articles/gallery/'.$article_id) -> with('ok-delete', '');
@@ -70,5 +65,4 @@ class GalleryController extends Controller
             return redirect('/admin/articles/gallery/'.$article_id) -> with('no-delete', '');
         }
     }
-
 }

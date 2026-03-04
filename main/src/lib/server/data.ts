@@ -37,15 +37,14 @@ export async function fetchAbouts(): Promise<{
 	testimonials: Row[];
 	services: Row[];
 }> {
-	const [design_skills, dev_skills, edu_experiences, emp_experiences, testimonials, services] =
-		await Promise.all([
-			query<Row>("SELECT * FROM skill WHERE type = 'design' ORDER BY `order` ASC"),
-			query<Row>("SELECT * FROM skill WHERE type = 'development' ORDER BY `order` ASC"),
-			query<Row>("SELECT * FROM experience WHERE type = 'education' ORDER BY `order` ASC"),
-			query<Row>("SELECT * FROM experience WHERE type = 'employment' ORDER BY `order` ASC"),
-			query<Row>('SELECT * FROM testimonial ORDER BY `order` ASC'),
-			query<Row>('SELECT * FROM service ORDER BY `order` ASC')
-		]);
+	const [design_skills, dev_skills, edu_experiences, emp_experiences, testimonials, services] = await Promise.all([
+		query<Row>("SELECT * FROM skill WHERE type = 'design' ORDER BY `order` ASC"),
+		query<Row>("SELECT * FROM skill WHERE type = 'development' ORDER BY `order` ASC"),
+		query<Row>("SELECT * FROM experience WHERE type = 'education' ORDER BY `order` ASC"),
+		query<Row>("SELECT * FROM experience WHERE type = 'employment' ORDER BY `order` ASC"),
+		query<Row>('SELECT * FROM testimonial ORDER BY `order` ASC'),
+		query<Row>('SELECT * FROM service ORDER BY `order` ASC')
+	]);
 	return {
 		design_skills,
 		dev_skills,
@@ -63,9 +62,7 @@ export async function fetchArticles(): Promise<Row[]> {
 export async function fetchArticle(slug: string): Promise<Record<string, unknown>> {
 	const post = await queryOne<Row>('SELECT * FROM articles WHERE slug = ? LIMIT 1', [slug]);
 	if (!post) throw new Error('Not found');
-	const category = await queryOne<Row>('SELECT name FROM article_category WHERE id = ? LIMIT 1', [
-		post.category_id as number
-	]);
+	const category = await queryOne<Row>('SELECT name FROM article_category WHERE id = ? LIMIT 1', [post.category_id as number]);
 	const data: Record<string, unknown> = { ...post };
 	data.category_name = category?.name ?? null;
 	data.date_formated = formatDate(post.created_at as string | Date) ?? null;
@@ -86,10 +83,7 @@ export async function fetchProjects(): Promise<{
 export async function fetchProject(id: number): Promise<Record<string, unknown>> {
 	const project = await queryOne<Row>('SELECT * FROM project WHERE id = ? LIMIT 1', [id]);
 	if (!project) throw new Error('Not found');
-	const category = await queryOne<Row>(
-		'SELECT name FROM project_category WHERE id = ? LIMIT 1',
-		[project.category_id as number]
-	);
+	const category = await queryOne<Row>('SELECT name FROM project_category WHERE id = ? LIMIT 1', [project.category_id as number]);
 	const data: Record<string, unknown> = { ...project };
 	data.category_name = category?.name ?? null;
 	return data;

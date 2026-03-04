@@ -10,11 +10,7 @@
 
 	let { data, children }: LayoutProps = $props();
 
-	const trackingId = $derived(
-		typeof data.general?.analytics_code === 'string' && data.general.analytics_code.trim()
-			? data.general.analytics_code.trim()
-			: ''
-	);
+	const trackingId = $derived(typeof data.general?.analytics_code === 'string' && data.general.analytics_code.trim() ? data.general.analytics_code.trim() : '');
 
 	let dragging = $state(false);
 	let isFullscreen = $state(false);

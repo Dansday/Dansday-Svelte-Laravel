@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\General;
 use App\Models\User;
-use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class GeneralController extends Controller
@@ -58,6 +58,9 @@ class GeneralController extends Controller
                 ->withInput();
         }
 
+        $disk = Storage::disk('public');
+        $directory = 'uploads/img/general/favicon';
+
         if (! empty($data['image_favicon'])) {
             $validate = Validator::make($data, [
                 'image_favicon' => ['file', 'mimes:png', 'max:1024', 'dimensions:min_width=155,min_height=155'],
@@ -68,39 +71,42 @@ class GeneralController extends Controller
                     ->withErrors($validate)
                     ->withInput();
             }
-            $directory = 'uploads/img/general/favicon';
-            $directoryFull = public_path($directory);
             if ($route_image_favicon != '') {
-                foreach (glob($directoryFull . '/*') ?: [] as $file) {
-                    if (File::exists($file)) {
-                        unlink($file);
-                    }
+                $existing = $disk->files($directory);
+                foreach ($existing as $file) {
+                    $disk->delete($file);
                 }
             }
-            if (! file_exists($directoryFull)) {
-                mkdir($directoryFull, 0777, true);
-            }
-            $route_image_favicon = $directory . '/favicon.' . $data['image_favicon']->guessExtension();
-            list($width, $height) = getimagesize($data['image_favicon']);
-            $favicon_dimensions = ['96', '57', '72', '76', '114', '120', '144', '152'];
+            $ext = $data['image_favicon']->guessExtension();
+            $route_image_favicon = $directory . '/favicon.' . $ext;
+            [$width, $height] = getimagesize($data['image_favicon']);
             $source = imagecreatefrompng($data['image_favicon']);
+            $favicon_dimensions = ['96', '57', '72', '76', '114', '120', '144', '152'];
+            $tempDir = sys_get_temp_dir() . '/favicon_' . uniqid();
+            mkdir($tempDir, 0755, true);
             foreach ($favicon_dimensions as $dimension) {
                 $filename = ($dimension == '96')
-                    ? 'favicon.' . $data['image_favicon']->guessExtension()
-                    : 'apple-touch-icon-' . $dimension . 'x' . $dimension . '-precomposed.' . $data['image_favicon']->guessExtension();
+                    ? 'favicon.' . $ext
+                    : 'apple-touch-icon-' . $dimension . 'x' . $dimension . '-precomposed.' . $ext;
                 $destiny = imagecreatetruecolor((int) $dimension, (int) $dimension);
                 imagealphablending($destiny, false);
                 imagesavealpha($destiny, true);
                 imagecopyresampled($destiny, $source, 0, 0, 0, 0, (int) $dimension, (int) $dimension, $width, $height);
-                imagepng($destiny, $directoryFull . '/' . $filename);
+                $tmpPath = $tempDir . '/' . $filename;
+                imagepng($destiny, $tmpPath);
+                imagedestroy($destiny);
+                $disk->put($directory . '/' . $filename, file_get_contents($tmpPath));
+                @unlink($tmpPath);
             }
+            imagedestroy($source);
+            @rmdir($tempDir);
         }
         if (empty($data['image_favicon']) && empty($data['image_favicon_current']) && ! empty($general->image_favicon)) {
-            foreach (glob(public_path('uploads/img/general/favicon') . '/*') ?: [] as $file) {
-                if (File::exists($file)) {
-                    unlink($file);
-                }
+            $existing = $disk->files($directory);
+            foreach ($existing as $file) {
+                $disk->delete($file);
             }
+            $route_image_favicon = '';
         }
 
         $data_new = [
