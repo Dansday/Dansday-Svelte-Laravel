@@ -30,13 +30,16 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 admin/public/assets/admin/css/admin.css
 admin/public/assets/admin/css/manifest.json
+admin/assets/admin/css/admin.css
+admin/assets/admin/css/manifest.json
 
 # OS
 .DS_Store
 
 # Uploads (admin uses storage/app/public via symlink public/storage)
-admin/public/uploads/**/*
-admin/storage/app/public/uploads/**/*
+admin/storage/app/public/uploads/*
+!admin/storage/app/public/uploads/img/
+admin/storage/app/public/uploads/img/*
 !admin/storage/app/public/uploads/img/image_default.png
 
 # References
