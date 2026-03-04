@@ -59,8 +59,8 @@
                                             @endforeach
                                             </td>
                                             <td>
-                                                <a href="{{url('/')}}/{{ $project->image }}" class="css3animate popup-content popup-image text-center text-gray-800 d-flex justify-content-between align-items-center w-100">
-                                                    <img class="img-fluid" src="{{url('/')}}/{{ $project->image }}" />
+                                                <a href="{{ upload_url($project->image) }}" class="css3animate popup-content popup-image text-center text-gray-800 d-flex justify-content-between align-items-center w-100">
+                                                    <img class="img-fluid" src="{{ upload_url($project->image) }}" />
                                                     <div class="popup-content-hover css3animate">
                                                         <i class="fas fa-search-plus text-gray-100 css3animate"></i>
                                                     </div>

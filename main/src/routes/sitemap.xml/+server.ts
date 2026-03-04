@@ -37,7 +37,12 @@ export const GET: RequestHandler = async () => {
 			const articles = await fetchArticles();
 			articleUrlData = articles.map((row) => ({
 				loc: `${baseUrl}/articles/${row.slug as string}`,
-				lastmod: row.updated_at != null ? new Date(row.updated_at as string).toISOString() : (row.created_at != null ? new Date(row.created_at as string).toISOString() : undefined),
+				lastmod:
+					row.updated_at != null
+						? new Date(row.updated_at as string).toISOString()
+						: row.created_at != null
+							? new Date(row.created_at as string).toISOString()
+							: undefined,
 				changefreq: 'daily',
 				priority: 0.8
 			}));
@@ -78,8 +83,12 @@ export const GET: RequestHandler = async () => {
 
 	const allUrlData = [
 		{ loc: `${baseUrl}/`, changefreq: 'daily', priority: 1.0, lastmod: new Date().toISOString() },
-		...(notDisabled(section.projects_enable) ? [{ loc: `${baseUrl}/projects`, changefreq: 'daily' as const, priority: 1.0, lastmod: new Date().toISOString() }] : []),
-		...(notDisabled(section.articles_enable) ? [{ loc: `${baseUrl}/articles`, changefreq: 'daily' as const, priority: 1.0, lastmod: new Date().toISOString() }] : []),
+		...(notDisabled(section.projects_enable)
+			? [{ loc: `${baseUrl}/projects`, changefreq: 'daily' as const, priority: 1.0, lastmod: new Date().toISOString() }]
+			: []),
+		...(notDisabled(section.articles_enable)
+			? [{ loc: `${baseUrl}/articles`, changefreq: 'daily' as const, priority: 1.0, lastmod: new Date().toISOString() }]
+			: []),
 		...aboutsUrlData,
 		...articleUrlData,
 		...projectUrlData
