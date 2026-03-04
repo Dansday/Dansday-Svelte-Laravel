@@ -25,18 +25,12 @@ function getPool(): mysql.Pool {
 	return pool;
 }
 
-export async function query<T = Record<string, unknown>>(
-	sql: string,
-	params: (string | number | null)[] = []
-): Promise<T[]> {
+export async function query<T = Record<string, unknown>>(sql: string, params: (string | number | null)[] = []): Promise<T[]> {
 	const [rows] = await getPool().execute(sql, params);
 	return rows as T[];
 }
 
-export async function queryOne<T = Record<string, unknown>>(
-	sql: string,
-	params: (string | number | null)[] = []
-): Promise<T | null> {
+export async function queryOne<T = Record<string, unknown>>(sql: string, params: (string | number | null)[] = []): Promise<T | null> {
 	const rows = await query<T>(sql, params);
 	return rows[0] ?? null;
 }

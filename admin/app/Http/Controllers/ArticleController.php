@@ -7,9 +7,9 @@ use App\Models\Category;
 use App\Models\Gallery;
 use Illuminate\Http\Request;
 use App\Models\User;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ArticleController extends Controller
 {
@@ -69,26 +69,23 @@ class ArticleController extends Controller
                 ->withInput();
         }
 
-        $directory = 'uploads/img/articles';
-        $dirFull = public_path($directory);
-        File::ensureDirectoryExists($dirFull);
-        $random = mt_rand(10, 9999);
-        $route_image = $directory . '/post_image_' . $random . '.' . $data['image']->guessExtension();
-        $data['image']->move($dirFull, basename($route_image));
+        $disk = Storage::disk('public');
+        $route_image = $data['image']->storeAs('uploads/img/articles', 'post_image_' . mt_rand(10, 9999) . '.' . $data['image']->guessExtension(), 'public');
 
-        $tempFull = public_path('uploads/img/temp');
-        foreach (glob($tempFull . '/*') ?: [] as $file) {
-            $name = basename($file);
-            copy($file, $dirFull . '/' . $name);
-            if (File::exists($file)) {
-                unlink($file);
+        $tempFiles = $disk->files('uploads/img/temp');
+        foreach ($tempFiles as $tempPath) {
+            $name = basename($tempPath);
+            $destPath = 'uploads/img/articles/' . $name;
+            if ($disk->exists($tempPath)) {
+                $disk->put($destPath, $disk->get($tempPath));
+                $disk->delete($tempPath);
             }
         }
 
         $post = new Article();
         $post->title = $data['title'];
         $post->short_desc = $data['short_desc'];
-        $post->text = str_replace('uploads/img/temp', 'uploads/img/articles', $data['text']);
+        $post->text = str_replace([$disk->url('uploads/img/temp'), 'uploads/img/temp'], [$disk->url('uploads/img/articles'), 'uploads/img/articles'], $data['text']);
         $post->image = $route_image;
         $post->author = $data['author'];
         $post->slug = $slug;
@@ -155,32 +152,28 @@ class ArticleController extends Controller
             }
         }
 
+        $disk = Storage::disk('public');
         $route_image = $route_image_current;
         if ($data['image'] != '') {
-            if ($route_image_current != '' && File::exists(public_path($route_image_current))) {
-                unlink(public_path($route_image_current));
+            if ($route_image_current != '' && $disk->exists($route_image_current)) {
+                $disk->delete($route_image_current);
             }
-            $directory = 'uploads/img/articles';
-            $dirFull = public_path($directory);
-            File::ensureDirectoryExists($dirFull);
-            $random = mt_rand(10, 9999);
-            $route_image = $directory . '/post_image_' . $random . '.' . $data['image']->guessExtension();
-            $data['image']->move($dirFull, basename($route_image));
+            $route_image = $data['image']->storeAs('uploads/img/articles', 'post_image_' . mt_rand(10, 9999) . '.' . $data['image']->guessExtension(), 'public');
         } elseif ($route_image_current == '' || $route_image_current === null) {
             $post = Article::find($id);
-            if ($post && $post->image != '' && File::exists(public_path($post->image))) {
-                unlink(public_path($post->image));
+            if ($post && $post->image != '' && $disk->exists($post->image)) {
+                $disk->delete($post->image);
             }
             $route_image = '';
         }
 
-        $tempFull = public_path('uploads/img/temp');
-        $dirFull = public_path('uploads/img/articles');
-        foreach (glob($tempFull . '/*') ?: [] as $file) {
-            $name = basename($file);
-            copy($file, $dirFull . '/' . $name);
-            if (File::exists($file)) {
-                unlink($file);
+        $tempFiles = $disk->files('uploads/img/temp');
+        foreach ($tempFiles as $tempPath) {
+            $name = basename($tempPath);
+            $destPath = 'uploads/img/articles/' . $name;
+            if ($disk->exists($tempPath)) {
+                $disk->put($destPath, $disk->get($tempPath));
+                $disk->delete($tempPath);
             }
         }
         $slug_no_spaces = strtolower(str_replace(' ', '-', $data['slug']));
@@ -189,7 +182,7 @@ class ArticleController extends Controller
         Article::where('id', $id)->update([
             'title' => $data['title'],
             'short_desc' => $data['short_desc'],
-            'text' => str_replace('uploads/img/temp', 'uploads/img/articles', $data['text']),
+            'text' => str_replace([$disk->url('uploads/img/temp'), 'uploads/img/temp'], [$disk->url('uploads/img/articles'), 'uploads/img/articles'], $data['text']),
             'image' => $route_image,
             'author' => $data['author'],
             'slug' => $slug,
@@ -221,15 +214,15 @@ class ArticleController extends Controller
     {
         $validate = Article::where('id', $id)->get();
         if (! empty($validate)) {
-            foreach (glob(public_path('uploads/img/articles') . '/*') ?: [] as $file) {
-                $pos = strpos($file, $validate[0]['images_code']);
-                if ($pos !== false && File::exists($file)) {
-                    unlink($file);
+            $disk = Storage::disk('public');
+            $files = $disk->files('uploads/img/articles');
+            foreach ($files as $file) {
+                if (str_contains($file, $validate[0]['images_code']) && $disk->exists($file)) {
+                    $disk->delete($file);
                 }
             }
-            $imgPath = $validate[0]['image'] ? public_path($validate[0]['image']) : null;
-            if ($imgPath && File::exists($imgPath)) {
-                unlink($imgPath);
+            if (! empty($validate[0]['image']) && $disk->exists($validate[0]['image'])) {
+                $disk->delete($validate[0]['image']);
             }
             Article::where('id', $validate[0]['id'])->delete();
             $posts = DB::table('articles')->orderBy('order', 'asc')->get();

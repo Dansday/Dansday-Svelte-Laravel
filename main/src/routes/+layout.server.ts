@@ -22,12 +22,7 @@ function resolveUrl(url: string | null | undefined, base: string): string {
 export const load: LayoutServerLoad = async () => {
 	try {
 		const publicBase = env.ADMIN_PUBLIC_URL?.replace(/\/$/, '') ?? '';
-		const [generalData, home, sectionData, aboutsData] = await Promise.all([
-			fetchGeneral(),
-			fetchHome(),
-			fetchSection(),
-			fetchAbouts()
-		]);
+		const [generalData, home, sectionData, aboutsData] = await Promise.all([fetchGeneral(), fetchHome(), fetchSection(), fetchAbouts()]);
 		const general = (generalData as Record<string, unknown>) ?? {};
 		const homeRecord = (home as Record<string, unknown>) ?? {};
 		const section = (sectionData as Record<string, unknown>) ?? {};

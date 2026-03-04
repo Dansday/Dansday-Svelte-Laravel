@@ -6,8 +6,8 @@ use App\Models\ProjectGallery;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use App\Models\User;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 class ProjectGalleryController extends Controller
 {
@@ -40,12 +40,7 @@ class ProjectGalleryController extends Controller
             if ($validate->fails()) {
                 return redirect('/admin/projects/projects')->with('error-validation-image', '');
             } else {
-                $directory = "uploads/img/projects";
-                $dirFull = public_path($directory);
-                File::ensureDirectoryExists($dirFull);
-                $random = mt_rand(100, 9999);
-                $route_image = $directory . "/project_image_" . $random . "." . $data["image"]->guessExtension();
-                $data["image"]->move($dirFull, basename($route_image));
+                $route_image = $data["image"]->storeAs('uploads/img/projects', 'project_image_' . mt_rand(100, 9999) . '.' . $data["image"]->guessExtension(), 'public');
                 $gallery = new ProjectGallery();
                 $gallery->image = $route_image;
                 $gallery->project_id = $data['project_id'];
@@ -62,9 +57,9 @@ class ProjectGalleryController extends Controller
         $validate = ProjectGallery::where("id", $id)->get();
         $project_id = $request->input("project_id");
         if (!empty($validate)) {
-            $imgPath = public_path($validate[0]['image']);
-            if (File::exists($imgPath)) {
-                unlink($imgPath);
+            $disk = Storage::disk('public');
+            if ($disk->exists($validate[0]['image'])) {
+                $disk->delete($validate[0]['image']);
             }
             ProjectGallery::where("id", $id)->delete();
             return redirect('/admin/projects/gallery/' . $project_id)->with('ok-delete', '');

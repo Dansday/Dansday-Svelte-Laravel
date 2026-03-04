@@ -47,11 +47,8 @@
                                 <div class="col-md-6 mb-3">
                                     <div class="form-group">
                                         <label for="image_profile" class="form-label">{{ __('content.image') }}</label>
-                                        @php
-                                            $imgProfileUrl = ($user->image != '') ? $user->image : 'uploads/img/image_default.png';
-                                        @endphp
                                         <div class="d-flex p-3 mb-3 bg-gray-200 justify-content-center">
-                                            <img src="{{ asset($imgProfileUrl) }}" class="img-fluid img-maxsize-200 previewImage_image_profile" />
+                                            <img src="{{ upload_url($user->image) }}" class="img-fluid img-maxsize-200 previewImage_image_profile" />
                                         </div>
                                         <input class="form-control previewImage @error('image_profile') is-invalid @enderror" type="file" name="image_profile" value=""/>
                                         <input type="hidden" name="image_profile_current" value="{{$user->image}}" />
