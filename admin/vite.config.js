@@ -5,17 +5,17 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/sass/admin.scss'],
+            input: { admin: 'resources/sass/admin.scss' },
             refresh: true,
             buildDirectory: 'assets/admin/css',
         }),
         tailwindcss(),
     ],
     build: {
+        outDir: 'public/assets/admin/css',
         rollupOptions: {
             output: {
-                entryFileNames: 'admin.css',
-                assetFileNames: 'admin.[ext]',
+                assetFileNames: () => 'admin.css',
             },
         },
     },
