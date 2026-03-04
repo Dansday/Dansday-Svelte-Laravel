@@ -14,31 +14,10 @@ class RunSetupOnFirstVisit
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $this->ensureStorageLink();
         $this->runMigrationsIfNeeded();
         $this->runSeedIfNeeded();
 
         return $next($request);
-    }
-
-    /** Create public/storage symlink if missing (zip deployments often omit symlinks). */
-    protected function ensureStorageLink(): void
-    {
-        $link = public_path('storage');
-        if (file_exists($link) && (is_link($link) || is_dir($link))) {
-            return;
-        }
-        $target = storage_path('app/public');
-        if (! is_dir($target)) {
-            @mkdir($target, 0755, true);
-        }
-        try {
-            Artisan::call('storage:link');
-        } catch (\Throwable) {
-            if (! file_exists($link) && function_exists('symlink')) {
-                @symlink($target, $link);
-            }
-        }
     }
 
     /** Run migrations when DB has no tables (e.g. first deploy / shared hosting). */
