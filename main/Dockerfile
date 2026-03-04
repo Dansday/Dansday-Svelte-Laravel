@@ -1,7 +1,7 @@
 FROM node:alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 COPY . .
 RUN npm run build
 
@@ -13,6 +13,6 @@ ENV PORT=3000
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/static ./static
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 EXPOSE 3000
 CMD ["node", "build"]
