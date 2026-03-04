@@ -2,33 +2,47 @@
 
 Simple monorepo for the public site (`main`, SvelteKit) and the admin panel (`admin`, Laravel) running with Docker Compose.
 
-### How to run with Docker
+### First time? What you need
 
-- **Prerequisites**
-  - **Docker** and **Docker Compose** installed
-  - Ports **80**, **8080**, **3306**, and **6379** free on your machine
+You only need this on your machine:
 
-- **First time setup (installs dependencies)**
+| Need | Why |
+|------|-----|
+| **Git** | To clone the repo |
+| **Docker** | To run the app and database |
+| **Docker Compose** | To start all services (included with Docker Desktop) |
+| **Make** | To run `make up` / `make down` (built-in on macOS/Linux; on Windows use [Docker Desktop](https://www.docker.com/products/docker-desktop/) and WSL2 or Git Bash) |
+
+You do **not** need PHP, Node.js, Composer, or npm installed — everything runs inside Docker.
+
+Ports **80**, **8080**, **3306**, and **6379** must be free.
+
+---
+
+### How to run
 
 ```bash
-make install
-```
-
-- **Start the stack**
-
-```bash
+git clone https://github.com/YOUR_USERNAME/dansday-svelte-laravel.git
+cd dansday-svelte-laravel
 make up
 ```
 
-Then open:
+First run will build images and install dependencies (a few minutes). Then open:
 
-- **Frontend (SvelteKit)**: `http://localhost`
-- **Admin panel (Laravel)**: `http://localhost:8080`
+- **Frontend**: http://localhost  
+- **Admin**: http://localhost:8080  
 
-- **Stop everything**
+**Stop:**
 
 ```bash
 make down
+```
+
+**Optional** — install or update dependencies without starting the app:
+
+```bash
+make install   # install deps
+make update    # update deps
 ```
 
 ### What’s running (services)
