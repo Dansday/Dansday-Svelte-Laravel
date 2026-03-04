@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 
 class SummernoteUploadController extends Controller
 {
@@ -16,17 +16,11 @@ class SummernoteUploadController extends Controller
         ]);
 
         $file = $request->file('file');
-        $folder = $request->input('folder');
-        $dir = public_path($folder);
-        File::ensureDirectoryExists($dir);
-
         $code = $request->input('code', 'img');
         $name = $code . '_' . mt_rand(100, 9999) . '.' . $file->getClientOriginalExtension();
-        $path = $folder . '/' . $name;
+        $path = $file->storeAs('uploads/img/temp', $name, 'public');
 
-        $file->move($dir, $name);
-
-        return response(url('/') . '/' . $path, 200, [
+        return response(Storage::disk('public')->url($path), 200, [
             'Content-Type' => 'text/plain',
         ]);
     }

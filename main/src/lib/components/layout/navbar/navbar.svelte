@@ -30,15 +30,14 @@
 
 	const hasAboutsChildren = $derived(
 		notDisabled((section as SectionFlags).experience_enable) ||
-		notDisabled((section as SectionFlags).services_enable) ||
-		notDisabled((section as SectionFlags).skills_enable) ||
-		notDisabled((section as SectionFlags).testimonial_enable)
+			notDisabled((section as SectionFlags).services_enable) ||
+			notDisabled((section as SectionFlags).skills_enable) ||
+			notDisabled((section as SectionFlags).testimonial_enable)
 	);
 	const visibleMenu = $derived(
 		navbarMenu.filter((item) => {
 			if (item.href === '/') return true;
-			if (item.href === '/abouts')
-				return notDisabled((section as SectionFlags).about_enable) && hasAboutsChildren;
+			if (item.href === '/abouts') return notDisabled((section as SectionFlags).about_enable) && hasAboutsChildren;
 			if (item.href === '/projects') return notDisabled((section as SectionFlags).projects_enable);
 			if (item.href === '/articles') return notDisabled((section as SectionFlags).articles_enable);
 			return true;
@@ -53,9 +52,7 @@
 		return false;
 	};
 
-	const hasSocialLinks = $derived(
-		Array.isArray(socialLinks) && socialLinks.some((link) => link?.text?.trim())
-	);
+	const hasSocialLinks = $derived(Array.isArray(socialLinks) && socialLinks.some((link) => link?.text?.trim()));
 
 	const getHighlightedParts = (title: string, key: string) => {
 		if (!title || !key || key.length !== 1) return { before: title, highlighted: null, after: null };
