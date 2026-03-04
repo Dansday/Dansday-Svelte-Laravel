@@ -28,9 +28,9 @@ git clone https://github.com/YOUR_USERNAME/dansday-svelte-laravel.git
 cd dansday-svelte-laravel
 ```
 
-**Step 2 – Install dependencies (one time, but safe to re-run)**
+**Step 2 – Install & build (one time, but safe to re-run)**
 
-This runs inside Docker and will create `vendor/`, `node_modules/`, Laravel `bootstrap/cache`, `storage/*`, and `.env` for the admin app on your machine:
+This runs inside Docker and will install dependencies **and** build the apps for production:
 
 ```bash
 make install
