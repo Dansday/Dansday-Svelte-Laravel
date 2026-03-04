@@ -16,6 +16,7 @@ export default defineConfig({
         tailwindcss(),
     ],
     build: {
+        emptyOutDir: false,
         outDir: path.resolve(__dirname, 'public/assets/admin/css'),
         rollupOptions: {
             output: {
