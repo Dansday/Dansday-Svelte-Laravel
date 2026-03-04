@@ -1,18 +1,5 @@
-FROM node:alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-
+# Dev use: compose mounts ./main and main_node_modules; no build step needed.
 FROM node:alpine
 WORKDIR /app
-ENV NODE_ENV=production
-ENV HOST=0.0.0.0
-ENV PORT=3000
-COPY --from=builder /app/build ./build
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/static ./static
-RUN npm install --omit=dev
 EXPOSE 3000
-CMD ["node", "build"]
+CMD ["npm", "run", "dev"]

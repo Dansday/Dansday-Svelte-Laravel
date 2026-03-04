@@ -9,21 +9,10 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 
 WORKDIR /app
 
-# Copy application code (vendor will be created on host via `make install`)
+# Code and vendor come from host/volume at runtime; COPY only needed so image builds.
 COPY . .
-
-# Build static admin assets once in the image
-RUN cp -r assets/fonts assets/js assets/bootstrap public/assets/ \
-	&& cp assets/admin/css/*.css public/assets/admin/css/ 2>/dev/null || true \
-	&& cp -r assets/admin/js public/assets/admin/ 2>/dev/null || true \
-	&& cp -r assets/admin/img public/assets/admin/ 2>/dev/null || true
-
-# Ensure Laravel runtime directories exist (also re-created on container start)
-RUN mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/views storage/logs \
-	&& chmod -R 775 bootstrap/cache storage
 
 EXPOSE 8080
 
-# Runtime: assume deps are already installed by `make install`.
-# Just ensure dirs/assets exist (for mounted volume), run migrations, then start server.
-CMD ["sh", "-c", "mkdir -p public/assets/admin/css public/assets/admin/js public/assets/admin/img bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/views storage/logs && chmod -R 775 bootstrap/cache storage && cp -r assets/fonts assets/js assets/bootstrap public/assets/ 2>/dev/null || true && cp assets/admin/css/*.css public/assets/admin/css/ 2>/dev/null || true && cp -r assets/admin/js public/assets/admin/ 2>/dev/null || true && cp -r assets/admin/img public/assets/admin/ 2>/dev/null || true && for i in 1 2 3 4 5 6 7 8 9 10; do php artisan migrate --force --no-interaction && break; sleep 3; done && php artisan config:clear && exec php artisan serve --host=0.0.0.0 --port=8080"]
+# Runtime: assume deps already installed by `make install`. Sync Docker env into .env so Laravel uses mysql host.
+CMD ["sh", "-c", "mkdir -p public/assets/admin/css public/assets/admin/js public/assets/admin/img bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/views storage/logs && chmod -R 775 bootstrap/cache storage && cp -r assets/fonts assets/js assets/bootstrap public/assets/ 2>/dev/null || true && cp assets/admin/css/*.css public/assets/admin/css/ 2>/dev/null || true && cp -r assets/admin/js public/assets/admin/ 2>/dev/null || true && cp -r assets/admin/img public/assets/admin/ 2>/dev/null || true && (test -f .env && sed -i \"s|^DB_HOST=.*|DB_HOST=${DB_HOST:-mysql}|\" .env && sed -i \"s|^DB_USERNAME=.*|DB_USERNAME=${DB_USERNAME:-dansday_main}|\" .env && sed -i \"s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD:-password}|\" .env && sed -i \"s|^APP_URL=.*|APP_URL=${APP_URL:-http://localhost:8080}|\" .env && sed -i \"s|^REDIS_HOST=.*|REDIS_HOST=${REDIS_HOST:-redis}|\" .env; true) && for i in 1 2 3 4 5 6 7 8 9 10; do php artisan migrate --force --no-interaction && break; sleep 3; done && php artisan config:clear && exec php artisan serve --host=0.0.0.0 --port=8080"]

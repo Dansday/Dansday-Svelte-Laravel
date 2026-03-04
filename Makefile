@@ -8,6 +8,7 @@ down:
 
 install:
 	docker compose run --rm -v $(PWD)/main:/app main npm install
+	@test -f main/.env || cp main/.env.example main/.env
 	docker compose run --rm -v $(PWD)/admin:/app admin composer install
 	docker compose run --rm -v $(PWD)/admin:/app admin npm install
 	docker compose run --rm -v $(PWD)/admin:/app admin sh -c "test -f .env || cp .env.example .env; php artisan key:generate --no-interaction --force"
