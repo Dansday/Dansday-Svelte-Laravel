@@ -17,6 +17,5 @@ install:
 	docker compose run --rm -v $(PWD)/admin:/app admin sh -c "test -f .env || cp .env.example .env; php artisan key:generate --no-interaction --force"
 
 update:
-	docker compose run --rm -v $(PWD)/main:/app main npm update
-	docker compose run --rm -v $(PWD)/admin:/app admin composer update
-	docker compose run --rm -v $(PWD)/admin:/app admin npm update
+	docker compose run --rm -v $(PWD)/main:/app main sh -c "npx --yes npm-check-updates -u && npm install"
+	docker compose run --rm -v $(PWD)/admin:/app admin sh -c "composer update --with-all-dependencies --no-interaction && npx --yes npm-check-updates -u && npm install"
