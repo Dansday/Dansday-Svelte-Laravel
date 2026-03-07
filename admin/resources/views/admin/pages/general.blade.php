@@ -49,11 +49,10 @@
                                         <div class="d-flex p-3 mb-3 bg-gray-200 justify-content-center">
                                             <img src="{{ upload_url($general->image_favicon) }}" class="img-fluid img-maxsize-200 previewImage_image_favicon" />
                                         </div>
-                                        <input class="form-control previewImage @error('image_favicon') is-invalid @enderror" type="file" name="image_favicon" value="" />
+                                        <input class="form-control previewImage @error('image_favicon') is-invalid @enderror" type="file" name="image_favicon" value="" accept="image/jpeg,image/png" />
                                         <input type="hidden" name="image_favicon_current" value="{{ $general->image_favicon }}" />
-                                        <div class="form-text d-flex justify-content-between">
+                                        <div class="form-text">
                                             <span>{{ __('content.image_requirements_png') }}</span>
-                                            <span>{{ __('content.image_size_min') }} 155x155px</span>
                                         </div>
                                         @error('image_favicon')<div class="invalid-feedback">{{ __('content.error_validation_image') }}</div>@enderror
                                     </div>
