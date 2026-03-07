@@ -59,12 +59,12 @@ class GeneralController extends Controller
                 ->withInput();
         }
 
-        $disk = Storage::disk('public');
-        $directory = 'uploads/img/general/favicon';
+        $disk = Storage::disk('uploads');
+        $directory = 'img/general/favicon';
 
         if (! empty($data['image_favicon'])) {
             $validate = Validator::make($data, [
-                'image_favicon' => ['file', 'mimes:jpg,jpeg,png'],
+                'image_favicon' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
             ]);
             if ($validate->fails()) {
                 return redirect('/admin/general')
@@ -72,55 +72,102 @@ class GeneralController extends Controller
                     ->withErrors($validate)
                     ->withInput();
             }
-            if ($route_image_favicon != '') {
-                $existing = $disk->files($directory);
-                foreach ($existing as $file) {
-                    $disk->delete($file);
-                }
-            }
-            @ini_set('memory_limit', '256M');
             $pathname = $data['image_favicon']->getPathname();
             $ext = $data['image_favicon']->guessExtension();
-            $route_image_favicon = $directory . '/favicon.' . $ext;
-            [$width, $height] = getimagesize($pathname);
-            $isPng = in_array(strtolower($ext), ['png'], true);
-            $source = $isPng ? imagecreatefrompng($pathname) : imagecreatefromjpeg($pathname);
+            if ($ext === null || $ext === '' || ! in_array(strtolower($ext), ['jpg', 'jpeg', 'png'], true)) {
+                return redirect('/admin/general')
+                    ->with('error-validation', '')
+                    ->withErrors(['image_favicon' => ['The file could not be recognized as a valid image (jpg, jpeg or png).']])
+                    ->withInput();
+            }
+            $size = @getimagesize($pathname);
+            if ($size === false || ! isset($size[0], $size[1]) || $size[0] < 1 || $size[1] < 1) {
+                return redirect('/admin/general')
+                    ->with('error-validation', '')
+                    ->withErrors(['image_favicon' => ['The file could not be read as an image.']])
+                    ->withInput();
+            }
+            $width = (int) $size[0];
+            $height = (int) $size[1];
+
+            if ($route_image_favicon != '' && uploads_path_safe_to_delete($route_image_favicon)) {
+                $dirForDisk = uploads_path_for_disk($route_image_favicon);
+                if ($dirForDisk !== '') {
+                    $parent = dirname($dirForDisk);
+                    if ($disk->exists($parent)) {
+                        $existing = $disk->files($parent);
+                        foreach ($existing as $file) {
+                            $disk->delete($file);
+                        }
+                    }
+                }
+            }
+
+            @ini_set('memory_limit', '256M');
+            $route_image_favicon = 'uploads/' . $directory . '/favicon.' . $ext;
+            $isPng = strtolower($ext) === 'png';
+            $source = $isPng ? @imagecreatefrompng($pathname) : @imagecreatefromjpeg($pathname);
             if ($source === false) {
                 return redirect('/admin/general')
                     ->with('error-validation', '')
                     ->withErrors(['image_favicon' => ['The file could not be processed as a valid image.']])
                     ->withInput();
             }
-            $favicon_dimensions = ['96', '57', '72', '76', '114', '120', '144', '152'];
+
             $tempDir = sys_get_temp_dir() . '/favicon_' . uniqid();
             mkdir($tempDir, 0755, true);
-            foreach ($favicon_dimensions as $dimension) {
-                $filename = ($dimension == '96')
-                    ? 'favicon.' . $ext
-                    : 'apple-touch-icon-' . $dimension . 'x' . $dimension . '-precomposed.' . $ext;
-                $destiny = imagecreatetruecolor((int) $dimension, (int) $dimension);
-                if ($isPng) {
-                    imagealphablending($destiny, false);
-                    imagesavealpha($destiny, true);
+            try {
+                $favicon_dimensions = ['96', '57', '72', '76', '114', '120', '144', '152'];
+                foreach ($favicon_dimensions as $dimension) {
+                    $filename = ($dimension == '96')
+                        ? 'favicon.' . $ext
+                        : 'apple-touch-icon-' . $dimension . 'x' . $dimension . '-precomposed.' . $ext;
+                    $destiny = @imagecreatetruecolor((int) $dimension, (int) $dimension);
+                    if ($destiny === false) {
+                        continue;
+                    }
+                    if ($isPng) {
+                        imagealphablending($destiny, false);
+                        imagesavealpha($destiny, true);
+                    }
+                    if (! @imagecopyresampled($destiny, $source, 0, 0, 0, 0, (int) $dimension, (int) $dimension, $width, $height)) {
+                        imagedestroy($destiny);
+                        continue;
+                    }
+                    $tmpPath = $tempDir . '/' . $filename;
+                    if ($isPng) {
+                        @imagepng($destiny, $tmpPath);
+                    } else {
+                        @imagejpeg($destiny, $tmpPath, 90);
+                    }
+                    imagedestroy($destiny);
+                    if (file_exists($tmpPath)) {
+                        $disk->putFileAs($directory, new File($tmpPath), $filename);
+                        @unlink($tmpPath);
+                    }
                 }
-                imagecopyresampled($destiny, $source, 0, 0, 0, 0, (int) $dimension, (int) $dimension, $width, $height);
-                $tmpPath = $tempDir . '/' . $filename;
-                if ($isPng) {
-                    imagepng($destiny, $tmpPath);
-                } else {
-                    imagejpeg($destiny, $tmpPath, 90);
+            } finally {
+                if (isset($source) && $source !== false) {
+                    imagedestroy($source);
                 }
-                imagedestroy($destiny);
-                $disk->putFileAs($directory, new File($tmpPath), $filename);
-                @unlink($tmpPath);
+                if (isset($tempDir) && is_dir($tempDir)) {
+                    foreach (glob($tempDir . '/*') ?: [] as $f) {
+                        @unlink($f);
+                    }
+                    @rmdir($tempDir);
+                }
             }
-            imagedestroy($source);
-            @rmdir($tempDir);
         }
-        if (empty($data['image_favicon']) && empty($data['image_favicon_current']) && ! empty($general->image_favicon)) {
-            $existing = $disk->files($directory);
-            foreach ($existing as $file) {
-                $disk->delete($file);
+        if (empty($data['image_favicon']) && empty($data['image_favicon_current']) && ! empty($general->image_favicon) && uploads_path_safe_to_delete($general->image_favicon)) {
+            $dirForDisk = uploads_path_for_disk($general->image_favicon);
+            if ($dirForDisk !== '') {
+                $parent = dirname($dirForDisk);
+                if ($disk->exists($parent)) {
+                    $existing = $disk->files($parent);
+                    foreach ($existing as $file) {
+                        $disk->delete($file);
+                    }
+                }
             }
             $route_image_favicon = '';
         }

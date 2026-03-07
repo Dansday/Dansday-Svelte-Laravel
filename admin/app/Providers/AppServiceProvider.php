@@ -10,6 +10,10 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // Shared hosting: when document root is named public_html, point Laravel at it
+        if (is_dir($this->app->basePath('public_html'))) {
+            $this->app->bind('path.public', fn () => $this->app->basePath('public_html'));
+        }
     }
 
     public function boot(): void
