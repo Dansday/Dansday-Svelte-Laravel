@@ -60,7 +60,7 @@ class ArticleController extends Controller
             'category' => ['string', 'max:55'],
             'status' => ['string', 'max:55'],
             'text' => ['required'],
-            'image' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:10240'],
+            'image' => ['required', 'file', 'mimes:jpg,jpeg,png'],
         ]);
         if ($validate->fails()) {
             return redirect('/admin/articles/post')
@@ -143,7 +143,7 @@ class ArticleController extends Controller
                 ->withInput();
         }
         if ($data['image'] != '') {
-            $validate2 = Validator::make($data, ['image' => ['file', 'mimes:jpg,jpeg,png', 'max:10240']]);
+            $validate2 = Validator::make($data, ['image' => ['file', 'mimes:jpg,jpeg,png']]);
             if ($validate2->fails()) {
                 return redirect('/admin/articles/post/' . $data['id'])
                     ->with('error-validation', '')

@@ -58,7 +58,7 @@ class ProjectController extends Controller
             'title' => ['string', 'max:55'],
             'short_desc' => ['string', 'max:110'],
             'description' => ['required'],
-            'image' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:10240'],
+            'image' => ['required', 'file', 'mimes:jpg,jpeg,png'],
         ]);
         if ($validate->fails()) {
             return redirect('/admin/projects/project')
@@ -134,7 +134,7 @@ class ProjectController extends Controller
                 ->withInput();
         }
         if ($data['image'] != '') {
-            $validate2 = Validator::make($data, ['image' => ['file', 'mimes:jpg,jpeg,png', 'max:10240']]);
+            $validate2 = Validator::make($data, ['image' => ['file', 'mimes:jpg,jpeg,png']]);
             if ($validate2->fails()) {
                 return redirect('/admin/projects/project/' . $data['id'])
                     ->with('error-validation', '')

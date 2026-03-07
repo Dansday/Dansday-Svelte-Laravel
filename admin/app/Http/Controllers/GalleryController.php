@@ -34,7 +34,7 @@ class GalleryController extends Controller
         );
         if(!empty($data)){
             $validate = Validator::make($data, [
-                'image' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:10240'],
+                'image' => ['required', 'file', 'mimes:jpg,jpeg,png'],
             ]);
             if($validate->fails()){
                 return redirect('/admin/articles/posts') -> with('error-validation-image', '');

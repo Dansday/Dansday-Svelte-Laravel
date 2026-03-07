@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\General;
 use App\Models\User;
+use Illuminate\Http\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -63,7 +64,7 @@ class GeneralController extends Controller
 
         if (! empty($data['image_favicon'])) {
             $validate = Validator::make($data, [
-                'image_favicon' => ['file', 'mimes:png', 'max:1024', 'dimensions:min_width=155,min_height=155'],
+                'image_favicon' => ['file', 'mimes:jpg,jpeg,png'],
             ]);
             if ($validate->fails()) {
                 return redirect('/admin/general')
@@ -77,10 +78,19 @@ class GeneralController extends Controller
                     $disk->delete($file);
                 }
             }
+            @ini_set('memory_limit', '256M');
+            $pathname = $data['image_favicon']->getPathname();
             $ext = $data['image_favicon']->guessExtension();
             $route_image_favicon = $directory . '/favicon.' . $ext;
-            [$width, $height] = getimagesize($data['image_favicon']);
-            $source = imagecreatefrompng($data['image_favicon']);
+            [$width, $height] = getimagesize($pathname);
+            $isPng = in_array(strtolower($ext), ['png'], true);
+            $source = $isPng ? imagecreatefrompng($pathname) : imagecreatefromjpeg($pathname);
+            if ($source === false) {
+                return redirect('/admin/general')
+                    ->with('error-validation', '')
+                    ->withErrors(['image_favicon' => ['The file could not be processed as a valid image.']])
+                    ->withInput();
+            }
             $favicon_dimensions = ['96', '57', '72', '76', '114', '120', '144', '152'];
             $tempDir = sys_get_temp_dir() . '/favicon_' . uniqid();
             mkdir($tempDir, 0755, true);
@@ -89,13 +99,19 @@ class GeneralController extends Controller
                     ? 'favicon.' . $ext
                     : 'apple-touch-icon-' . $dimension . 'x' . $dimension . '-precomposed.' . $ext;
                 $destiny = imagecreatetruecolor((int) $dimension, (int) $dimension);
-                imagealphablending($destiny, false);
-                imagesavealpha($destiny, true);
+                if ($isPng) {
+                    imagealphablending($destiny, false);
+                    imagesavealpha($destiny, true);
+                }
                 imagecopyresampled($destiny, $source, 0, 0, 0, 0, (int) $dimension, (int) $dimension, $width, $height);
                 $tmpPath = $tempDir . '/' . $filename;
-                imagepng($destiny, $tmpPath);
+                if ($isPng) {
+                    imagepng($destiny, $tmpPath);
+                } else {
+                    imagejpeg($destiny, $tmpPath, 90);
+                }
                 imagedestroy($destiny);
-                $disk->put($directory . '/' . $filename, file_get_contents($tmpPath));
+                $disk->putFileAs($directory, new File($tmpPath), $filename);
                 @unlink($tmpPath);
             }
             imagedestroy($source);

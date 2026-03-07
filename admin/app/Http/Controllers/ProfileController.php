@@ -43,6 +43,15 @@ class ProfileController extends Controller
                     -> withInput();
             }else{
                 if (!empty($data["image_profile"])){
+                    $validateImage = Validator::make($data, [
+                        'image_profile' => ['file', 'mimes:jpg,jpeg,png'],
+                    ]);
+                    if ($validateImage->fails()) {
+                        return redirect('/admin/profile')
+                            ->with('error-validation', '')
+                            ->withErrors($validateImage)
+                            ->withInput();
+                    }
                     $disk = Storage::disk('public');
                     if ($route_image != '' && $disk->exists($route_image)) {
                         $disk->delete($route_image);

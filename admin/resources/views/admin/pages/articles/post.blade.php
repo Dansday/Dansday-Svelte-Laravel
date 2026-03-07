@@ -93,10 +93,9 @@
                                         <div class="d-flex p-3 mb-2 bg-gray-200 justify-content-center">
                                             <img src="{{ upload_url(null) }}" class="img-fluid img-maxsize-200 previewImage_image" />
                                         </div>
-                                        <input class="form-control previewImage @error('image') is-invalid @enderror" type="file" name="image" value="" required />
-                                        <div class="form-text d-flex justify-content-between">
+                                        <input class="form-control previewImage @error('image') is-invalid @enderror" type="file" name="image" value="" required accept="image/jpeg,image/png" />
+                                        <div class="form-text">
                                             <span>{{ __('content.image_requirements') }}</span>
-                                            <span>{{ __('content.image_size_recommended') }} 900x675px</span>
                                         </div>
                                         @error('image')
                                             <div class="invalid-feedback">

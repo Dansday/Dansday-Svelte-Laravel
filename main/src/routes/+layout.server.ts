@@ -17,8 +17,7 @@ function resolveUrl(url: string | null | undefined, base: string): string {
 	const b = base.replace(/\/$/, '');
 	if (url.startsWith('http://') || url.startsWith('https://')) return url;
 	const path = url.startsWith('/') ? url : `/${url}`;
-	// Admin uploads live at /storage/uploads/...
-	if (path.startsWith('/uploads/')) return `${b}/storage${path}`;
+	if (path.startsWith('/uploads/')) return `${b}${path}`;
 	return `${b}${path}`;
 }
 
