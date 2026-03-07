@@ -43,11 +43,23 @@ class ProfileController extends Controller
                     -> withInput();
             }else{
                 if (!empty($data["image_profile"])){
-                    $disk = Storage::disk('public');
-                    if ($route_image != '' && $disk->exists($route_image)) {
-                        $disk->delete($route_image);
+                    $validateImage = Validator::make($data, [
+                        'image_profile' => ['file', 'mimes:jpg,jpeg,png'],
+                    ]);
+                    if ($validateImage->fails()) {
+                        return redirect('/admin/profile')
+                            ->with('error-validation', '')
+                            ->withErrors($validateImage)
+                            ->withInput();
                     }
-                    $route_image = $data["image_profile"]->storeAs('uploads/img/profile', 'profile_image_' . mt_rand(100, 999) . '.' . $data["image_profile"]->guessExtension(), 'public');
+                    $disk = Storage::disk('uploads');
+                    if ($route_image != '' && uploads_path_safe_to_delete($route_image)) {
+                        $p = uploads_path_for_disk($route_image);
+                        if ($p !== '' && $disk->exists($p)) {
+                            $disk->delete($p);
+                        }
+                    }
+                    $route_image = 'uploads/' . $data["image_profile"]->storeAs('img/profile', 'profile_image_' . mt_rand(100, 999) . '.' . $data["image_profile"]->guessExtension(), 'uploads');
                 }
                 if ($data["pass_current"] != '' || $data["pass_new_1"] != '' || $data["pass_new_2"] != ''){
                     $validate = Validator::make($data, [

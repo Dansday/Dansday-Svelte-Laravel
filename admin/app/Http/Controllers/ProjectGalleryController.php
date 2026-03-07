@@ -35,14 +35,14 @@ class ProjectGalleryController extends Controller
         );
         if (!empty($data)) {
             $validate = Validator::make($data, [
-                'image' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:10240'],
+                'image' => ['required', 'file', 'mimes:jpg,jpeg,png'],
             ]);
             if ($validate->fails()) {
                 return redirect('/admin/projects/projects')->with('error-validation-image', '');
             } else {
-                $route_image = $data["image"]->storeAs('uploads/img/projects', 'project_image_' . mt_rand(100, 9999) . '.' . $data["image"]->guessExtension(), 'public');
+                $route_image = $data["image"]->storeAs('img/projects', 'project_image_' . mt_rand(100, 9999) . '.' . $data["image"]->guessExtension(), 'uploads');
                 $gallery = new ProjectGallery();
-                $gallery->image = $route_image;
+                $gallery->image = 'uploads/' . $route_image;
                 $gallery->project_id = $data['project_id'];
                 $gallery->save();
                 return redirect('/admin/projects/projects')->with('ok-add', '');
@@ -57,9 +57,12 @@ class ProjectGalleryController extends Controller
         $validate = ProjectGallery::where("id", $id)->get();
         $project_id = $request->input("project_id");
         if (!empty($validate)) {
-            $disk = Storage::disk('public');
-            if ($disk->exists($validate[0]['image'])) {
-                $disk->delete($validate[0]['image']);
+            $disk = Storage::disk('uploads');
+            if (uploads_path_safe_to_delete($validate[0]['image'])) {
+                $p = uploads_path_for_disk($validate[0]['image']);
+                if ($p !== '' && $disk->exists($p)) {
+                    $disk->delete($p);
+                }
             }
             ProjectGallery::where("id", $id)->delete();
             return redirect('/admin/projects/gallery/' . $project_id)->with('ok-delete', '');

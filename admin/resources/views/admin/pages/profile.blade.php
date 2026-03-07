@@ -50,11 +50,10 @@
                                         <div class="d-flex p-3 mb-3 bg-gray-200 justify-content-center">
                                             <img src="{{ upload_url($user->image) }}" class="img-fluid img-maxsize-200 previewImage_image_profile" />
                                         </div>
-                                        <input class="form-control previewImage @error('image_profile') is-invalid @enderror" type="file" name="image_profile" value=""/>
+                                        <input class="form-control previewImage @error('image_profile') is-invalid @enderror" type="file" name="image_profile" value="" accept="image/jpeg,image/png" />
                                         <input type="hidden" name="image_profile_current" value="{{$user->image}}" />
-                                        <div class="form-text d-flex justify-content-between">
+                                        <div class="form-text">
                                             <span>{{ __('content.image_requirements') }}</span>
-                                            <span>{{ __('content.image_size_recommended') }} 50x50px</span>
                                         </div>
                                         @error('image_profile')
                                             <div class="invalid-feedback">
