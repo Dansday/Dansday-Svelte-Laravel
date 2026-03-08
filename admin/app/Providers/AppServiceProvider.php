@@ -10,9 +10,24 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Shared hosting: when document root is named public_html, point Laravel at it
-        if (is_dir($this->app->basePath('public_html'))) {
-            $this->app->bind('path.public', fn () => $this->app->basePath('public_html'));
+        $publicPath = $this->app->basePath('public');
+        $publicHtmlPath = $this->app->basePath('public_html');
+
+        // Use the folder that is actually the document root so uploads go to the right place
+        if (! empty($_SERVER['DOCUMENT_ROOT'])) {
+            $docRoot = realpath((string) $_SERVER['DOCUMENT_ROOT']);
+            $publicReal = is_dir($publicPath) ? realpath($publicPath) : false;
+            $publicHtmlReal = is_dir($publicHtmlPath) ? realpath($publicHtmlPath) : false;
+            if ($docRoot && $publicHtmlReal && $docRoot === $publicHtmlReal) {
+                $this->app->usePublicPath($publicHtmlPath);
+            } elseif ($docRoot && $publicReal && $docRoot === $publicReal) {
+                $this->app->usePublicPath($publicPath);
+            }
+        } else {
+            // CLI / no document root: use public_html if it exists (e.g. shared hosting deploy)
+            if (is_dir($publicHtmlPath)) {
+                $this->app->usePublicPath($publicHtmlPath);
+            }
         }
     }
 
@@ -21,5 +36,12 @@ class AppServiceProvider extends ServiceProvider
         Model::automaticallyEagerLoadRelationships();
 
         Schema::defaultStringLength(191);
+
+        // Force uploads disk to use current public path (works even when config is cached)
+        $appUrl = rtrim(config('app.url', env('APP_URL', 'http://localhost')), '/');
+        config([
+            'filesystems.disks.uploads.root' => public_path('uploads'),
+            'filesystems.disks.uploads.url'   => $appUrl.'/uploads',
+        ]);
     }
 }
