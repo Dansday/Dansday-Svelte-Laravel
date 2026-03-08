@@ -22,6 +22,8 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 WORKDIR /app
 
 COPY composer.json composer.lock* ./
+# Composer autoload "files" requires app/Helpers/storage.php — copy app before install
+COPY app/Helpers/storage.php ./app/Helpers/storage.php
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 COPY . .
