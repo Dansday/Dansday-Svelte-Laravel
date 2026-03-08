@@ -32,15 +32,9 @@ admin/public/assets/
 admin/assets/admin/css/admin.css
 admin/assets/admin/css/manifest.json
 
-# OS
-.DS_Store
-
 # Uploads (user content, not tracked; keep default image and .htaccess)
 admin/public/uploads/*
 !admin/public/uploads/.htaccess
 !admin/public/uploads/img/
 admin/public/uploads/img/*
 !admin/public/uploads/img/image_default.png
-
-# References
-references/
