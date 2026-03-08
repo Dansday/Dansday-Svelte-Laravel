@@ -12,15 +12,6 @@ composer.lock
 
 # Env
 .env
-
-# Logs & cache
-*.log
-admin/storage/logs/*
-admin/storage/framework/cache/*
-admin/storage/framework/sessions/*
-admin/storage/framework/views/*
-admin/bootstrap/cache/*
-
 # Laravel / PHP
 admin/.phpunit.result.cache
 admin/.phpunit.cache
@@ -32,15 +23,9 @@ admin/public/assets/
 admin/assets/admin/css/admin.css
 admin/assets/admin/css/manifest.json
 
-# OS
-.DS_Store
-
 # Uploads (user content, not tracked; keep default image and .htaccess)
 admin/public/uploads/*
 !admin/public/uploads/.htaccess
 !admin/public/uploads/img/
 admin/public/uploads/img/*
 !admin/public/uploads/img/image_default.png
-
-# References
-references/

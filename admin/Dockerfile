@@ -22,11 +22,12 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 WORKDIR /app
 
 COPY composer.json composer.lock* ./
-# Composer autoload "files" requires app/Helpers/storage.php — copy app before install
-COPY app/Helpers/storage.php ./app/Helpers/storage.php
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# --no-scripts: avoid post-autoload-dump (artisan package:discover) until app is copied
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
 COPY . .
+# Laravel package discovery (needs .env to bootstrap)
+RUN cp .env.example .env && php artisan package:discover --ansi
 
 # Built Vite output (overwrites any placeholder)
 COPY --from=frontend /app/public/assets/admin/css ./public/assets/admin/css
