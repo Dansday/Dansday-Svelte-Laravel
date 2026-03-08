@@ -12,10 +12,6 @@ composer.lock
 
 # Env
 .env
-
-# Logs & cache
-admin/storage/*
-
 # Laravel / PHP
 admin/.phpunit.result.cache
 admin/.phpunit.cache
