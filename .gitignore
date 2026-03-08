@@ -19,7 +19,6 @@ admin/storage/logs/*
 admin/storage/framework/cache/*
 admin/storage/framework/sessions/*
 admin/storage/framework/views/*
-admin/bootstrap/cache/*
 
 # Laravel / PHP
 admin/.phpunit.result.cache
