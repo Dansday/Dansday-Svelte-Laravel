@@ -23,14 +23,14 @@
 		"tailwindcss": "^4.2.1",
 		"typescript": "^5.9.3",
 		"vite": "^7.3.1",
-		"@opentelemetry/api": "^1.9.0",
-    	"@opentelemetry/auto-instrumentations-node": "^0.71.0"
 	},
 	"dependencies": {
 		"@fontsource/commit-mono": "^5.2.5",
 		"dotenv": "^17.3.1",
 		"figlet": "^1.10.0",
 		"mysql2": "^3.19.0",
-		"shiki": "^4.0.1"
+		"shiki": "^4.0.1",
+		"@opentelemetry/api": "^1.9.0",
+    	"@opentelemetry/auto-instrumentations-node": "^0.71.0"
 	}
 }
