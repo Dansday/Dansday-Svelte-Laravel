@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -36,6 +37,15 @@ class AppServiceProvider extends ServiceProvider
         Model::automaticallyEagerLoadRelationships();
 
         Schema::defaultStringLength(191);
+
+        // Use current request URL for asset() so preview (e.g. 20.dansday.com) and production share one codebase
+        if ($this->app->runningInConsole() === false && request()->hasHeader('Host')) {
+            $rootUrl = request()->getScheme() . '://' . request()->getHttpHost();
+            URL::forceRootUrl(rtrim($rootUrl, '/'));
+            if (request()->header('X-Forwarded-Proto') === 'https') {
+                URL::forceScheme('https');
+            }
+        }
 
         // Force uploads disk to use current public path (works even when config is cached)
         $appUrl = rtrim(config('app.url', env('APP_URL', 'http://localhost')), '/');
