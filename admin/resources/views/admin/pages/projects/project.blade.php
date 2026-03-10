@@ -39,10 +39,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-4">
-                                        <label for="title" class="form-label d-flex justify-content-between align-items-center">
-                                            {{ __('content.title') }}
-                                            @include('admin.modules.ai-generate-btn', ['type' => 'project', 'field' => 'title', 'inputName' => 'title', 'summernote' => false])
-                                        </label>
+                                        <label for="title" class="form-label">{{ __('content.title') }}</label>
                                         <input class="form-control @error('title') is-invalid @enderror" type="text" name="title" value="{{ old('title') }}" required />
                                         @error('title')
                                             <div class="invalid-feedback">
@@ -51,10 +48,7 @@
                                         @enderror
                                     </div>
                                     <div class="mb-4">
-                                        <label for="short_desc" class="form-label d-flex justify-content-between align-items-center">
-                                            {{ __('content.short_desc') }}
-                                            @include('admin.modules.ai-generate-btn', ['type' => 'project', 'field' => 'short_desc', 'inputName' => 'short_desc', 'summernote' => false])
-                                        </label>
+                                        <label for="short_desc" class="form-label">{{ __('content.short_desc') }}</label>
                                         <input class="form-control @error('short_desc') is-invalid @enderror" type="text" name="short_desc" value="{{ old('short_desc') }}" required />
                                         @error('short_desc')
                                             <div class="invalid-feedback">

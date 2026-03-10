@@ -31,10 +31,7 @@
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label for="title" class="form-label d-flex justify-content-between align-items-center">
-                                        {{ __('content.title') }}
-                                        @include('admin.modules.ai-generate-btn', ['type' => 'article', 'field' => 'title', 'inputName' => 'title', 'summernote' => false])
-                                    </label>
+                                    <label for="title" class="form-label">{{ __('content.title') }}</label>
                                     <input class="form-control @error('title') is-invalid @enderror" type="text" name="title" value="{{ old('title') }}" required />
                                     @error('title')
                                         <div class="invalid-feedback">
@@ -43,10 +40,7 @@
                                     @enderror
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label for="short_desc" class="form-label d-flex justify-content-between align-items-center">
-                                        {{ __('content.entry') }}
-                                        @include('admin.modules.ai-generate-btn', ['type' => 'article', 'field' => 'short_desc', 'inputName' => 'short_desc', 'summernote' => false])
-                                    </label>
+                                    <label for="short_desc" class="form-label">{{ __('content.entry') }}</label>
                                     <input class="form-control @error('short_desc') is-invalid @enderror" type="text" name="short_desc" value="{{ old('short_desc') }}" />
                                     @error('short_desc')
                                         <div class="invalid-feedback">

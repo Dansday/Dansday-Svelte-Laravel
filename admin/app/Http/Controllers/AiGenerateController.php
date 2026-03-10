@@ -45,6 +45,17 @@ class AiGenerateController extends Controller
         if (! $allowed || ! array_key_exists($field, $allowed)) {
             return response()->json(['error' => 'Invalid type or field.'], 422);
         }
+        $allowedFields = $type === 'project' ? ['description'] : ['text'];
+        if (! in_array($field, $allowedFields, true)) {
+            return response()->json(['error' => 'Only description/content generation is supported.'], 422);
+        }
+
+        $baseUrl = config('ai.providers.openai.url') ?: config('prism.providers.openai.url');
+        if (empty($baseUrl) || ! str_starts_with((string) $baseUrl, 'http')) {
+            return response()->json([
+                'error' => 'AI gateway URL not configured. Set OPENAI_BASE_URL in .env (e.g. https://gateway.hebo.ai/v1).',
+            ], 503);
+        }
 
         $basePrompt = $allowed[$field];
         $context = trim($topic);
@@ -65,13 +76,8 @@ class AiGenerateController extends Controller
                 tools: [],
             )->prompt($prompt, provider: config('ai.default'), model: $model);
 
-            $text = trim((string) $response->text);
-            if ($field === 'short_desc' && mb_strlen($text) > 255) {
-                $text = mb_substr($text, 0, 252) . '...';
-            }
-            if (in_array($field, ['title'], true) && mb_strlen($text) > 55) {
-                $text = mb_substr($text, 0, 52) . '...';
-            }
+            $raw = $response->text ?? '';
+            $text = is_string($raw) ? trim($raw) : '';
 
             return response()->json(['text' => $text]);
         } catch (\Throwable $e) {
@@ -91,7 +97,7 @@ class AiGenerateController extends Controller
             if (empty($baseUrl)) {
                 return $this->fallbackModelsList();
             }
-            $url = rtrim($baseUrl, '/') . '/v1/models';
+            $url = rtrim($baseUrl, '/') . '/models';
             try {
                 $response = Http::timeout(10)->get($url);
                 if (! $response->successful()) {
