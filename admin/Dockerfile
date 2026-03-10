@@ -14,8 +14,8 @@ FROM php:8.5-cli-alpine
 RUN apk add --no-cache git unzip libzip-dev libpng-dev libxml2-dev oniguruma-dev
 RUN docker-php-ext-install pdo_mysql zip gd xml mbstring
 RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
+    && pecl install redis opentelemetry \
+    && docker-php-ext-enable redis opentelemetry \
     && apk del .build-deps
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
