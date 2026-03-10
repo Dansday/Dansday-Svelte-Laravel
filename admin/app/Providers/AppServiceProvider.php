@@ -56,6 +56,17 @@ class AppServiceProvider extends ServiceProvider
             'filesystems.disks.uploads.root' => public_path('uploads'),
             'filesystems.disks.uploads.url'   => $appUrl.'/uploads',
         ]);
+
+        $aiUrl = env('OPENAI_BASE_URL');
+        $aiKey = env('OPENAI_API_KEY');
+        if ($aiUrl !== null && $aiUrl !== '') {
+            config(['ai.providers.openai.url' => $aiUrl]);
+            config(['prism.providers.openai.url' => $aiUrl]);
+        }
+        if ($aiKey !== null && $aiKey !== '') {
+            config(['ai.providers.openai.key' => $aiKey]);
+            config(['prism.providers.openai.api_key' => $aiKey]);
+        }
     }
 
     /** Run pending migrations when the web app boots (e.g. after deploy). */

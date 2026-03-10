@@ -14,6 +14,7 @@ return [
     'add_testimonial'           => 'Add testimonial',
     'admin_panel'               => 'Admin Panel',
     'ai_model'                  => 'AI model',
+    'ai_unavailable'            => 'AI service is temporarily unavailable. Please try again later.',
     'alert_ok_add'              => 'Added correctly!',
     'alert_ok_delete'           => 'The register has been deleted correctly!',
     'alert_ok_update'           => 'Updated correctly!',
