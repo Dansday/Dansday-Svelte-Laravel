@@ -7,52 +7,15 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 
 class RunSetupOnFirstVisit
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $this->runMigrationsIfNeeded();
         $this->runSeedIfNeeded();
 
         return $next($request);
-    }
-
-    /** Run migrations when DB has no tables (e.g. first deploy / shared hosting). */
-    protected function runMigrationsIfNeeded(): void
-    {
-        try {
-            if (Schema::hasTable('page_setting')) {
-                return;
-            }
-        } catch (\Throwable) {
-            return;
-        }
-
-        $lockFile = storage_path('app/.migrate.lock');
-        $dir = dirname($lockFile);
-        if (! is_dir($dir)) {
-            @mkdir($dir, 0755, true);
-        }
-        $fp = @fopen($lockFile, 'c');
-        if (! $fp || ! flock($fp, LOCK_EX | LOCK_NB)) {
-            if ($fp) {
-                fclose($fp);
-            }
-            return;
-        }
-
-        try {
-            if (Schema::hasTable('page_setting')) {
-                return;
-            }
-            Artisan::call('migrate', ['--force' => true]);
-        } finally {
-            flock($fp, LOCK_UN);
-            fclose($fp);
-        }
     }
 
     /** Seed when no settings row exists. */

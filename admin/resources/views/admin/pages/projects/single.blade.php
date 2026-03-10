@@ -21,6 +21,14 @@
                         @csrf
                         @method('PUT')
                         <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="ai_model_select" class="form-label">{{ __('content.ai_model') }}</label>
+                                    <select id="ai_model_select" class="form-select ai-model-select" aria-label="{{ __('content.ai_model') }}">
+                                        <option value="">— {{ __('content.ai_model') }} —</option>
+                                    </select>
+                                </div>
+                            </div>
                             <div class="row">
                                 <input type="hidden" name="id" value="{{$project->id}}" />
                                 <div class="col-md-12 mb-4">
@@ -32,7 +40,10 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-4">
-                                        <label for="title" class="form-label">{{ __('content.title') }}</label>
+                                        <label for="title" class="form-label d-flex justify-content-between align-items-center">
+                                            {{ __('content.title') }}
+                                            @include('admin.modules.ai-generate-btn', ['type' => 'project', 'field' => 'title', 'inputName' => 'title', 'summernote' => false])
+                                        </label>
                                         <input class="form-control @error('title') is-invalid @enderror" type="text" name="title" value="{{ $project->title }}" required />
                                         @error('title')
                                             <div class="invalid-feedback">
@@ -41,7 +52,10 @@
                                         @enderror
                                     </div>
                                     <div class="mb-4">
-                                        <label for="short_desc" class="form-label">{{ __('content.short_desc') }}</label>
+                                        <label for="short_desc" class="form-label d-flex justify-content-between align-items-center">
+                                            {{ __('content.short_desc') }}
+                                            @include('admin.modules.ai-generate-btn', ['type' => 'project', 'field' => 'short_desc', 'inputName' => 'short_desc', 'summernote' => false])
+                                        </label>
                                         <input class="form-control @error('short_desc') is-invalid @enderror" type="text" name="short_desc" value="{{ $project->short_desc }}" required />
                                         @error('short_desc')
                                             <div class="invalid-feedback">
@@ -86,7 +100,10 @@
                                 </div>
 
                                 <div class="col-12 mb-4">
-                                    <label for="description" class="form-label">{{ __('content.description') }}</label>
+                                    <label for="description" class="form-label d-flex justify-content-between align-items-center">
+                                        {{ __('content.description') }}
+                                        @include('admin.modules.ai-generate-btn', ['type' => 'project', 'field' => 'description', 'inputName' => 'description', 'summernote' => true])
+                                    </label>
                                     <textarea class="form-control summernote @error('description') is-invalid @enderror" name="description" data-folder="uploads/img/temp" data-route="{{url('/')}}" data-code="{{$project->images_code}}">{{ $project->description }}</textarea>
                                     @error('description')
                                         <div class="invalid-feedback d-none">

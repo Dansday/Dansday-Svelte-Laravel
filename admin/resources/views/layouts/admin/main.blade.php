@@ -39,6 +39,8 @@
 
 <script>
     window.summernoteUploadUrl = "{{ route('admin.summernote.upload') }}";
+    window.adminAiGenerateUrl = "{{ route('admin.ai.generate') }}";
+    window.adminAiModelsUrl = "{{ route('admin.ai.models') }}";
 </script>
 <script src="{{ asset('assets/js/jquery.min.js') }}" defer></script>
 <script src="{{ asset('assets/bootstrap/js/bootstrap.bundle.min.js') }}" defer></script>

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 
@@ -38,6 +39,8 @@ class AppServiceProvider extends ServiceProvider
 
         Schema::defaultStringLength(191);
 
+        $this->runMigrationsOnWebBoot();
+
         // Use current request URL for asset() so preview (e.g. 20.dansday.com) and production share one codebase
         if ($this->app->runningInConsole() === false && request()->hasHeader('Host')) {
             $rootUrl = request()->getScheme() . '://' . request()->getHttpHost();
@@ -53,5 +56,33 @@ class AppServiceProvider extends ServiceProvider
             'filesystems.disks.uploads.root' => public_path('uploads'),
             'filesystems.disks.uploads.url'   => $appUrl.'/uploads',
         ]);
+    }
+
+    /** Run pending migrations when the web app boots (e.g. after deploy). */
+    protected function runMigrationsOnWebBoot(): void
+    {
+        if ($this->app->runningInConsole()) {
+            return;
+        }
+
+        $lockFile = storage_path('app/.migrate.lock');
+        $dir = dirname($lockFile);
+        if (! is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        $fp = @fopen($lockFile, 'c');
+        if (! $fp || ! flock($fp, LOCK_EX | LOCK_NB)) {
+            if ($fp) {
+                fclose($fp);
+            }
+            return;
+        }
+
+        try {
+            Artisan::call('migrate', ['--force' => true]);
+        } finally {
+            flock($fp, LOCK_UN);
+            fclose($fp);
+        }
     }
 }

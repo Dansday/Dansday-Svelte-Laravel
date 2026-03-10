@@ -105,6 +105,62 @@ $(document).ready(function() {
 
     $('[data-bs-toggle="tooltip"]').tooltip();
 
+    if ($('.ai-model-select').length > 0) {
+        var modelsUrl = window.adminAiModelsUrl || '/admin/ai-models';
+        fetch(modelsUrl, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var list = data.models || [];
+            var $sel = $('#ai_model_select');
+            $sel.find('option:not(:first)').remove();
+            list.forEach(function(m) {
+                $sel.append($('<option></option>').attr('value', m.id).text(m.name));
+            });
+            if (list.length > 0) {
+                $sel.val(list[0].id);
+            }
+        })
+        .catch(function() {});
+    }
+
+    $(document).on('click', '.ai-generate-btn', function() {
+        var $btn = $(this),
+            type = $btn.data('type'),
+            field = $btn.data('field'),
+            inputName = $btn.data('input-name'),
+            isSummernote = $btn.data('summernote') === 1;
+        var topic = prompt('Optional: describe the topic or leave blank');
+        if (topic === null) return;
+        var model = ($('#ai_model_select').length) ? $('#ai_model_select').val() : '';
+        $btn.prop('disabled', true).addClass('disabled');
+        fetch(window.adminAiGenerateUrl || '/admin/ai-generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ type: type, field: field, topic: topic, model: model })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            if (isSummernote) {
+                $('textarea[name="' + inputName + '"]').summernote('code', data.text || '');
+            } else {
+                $('input[name="' + inputName + '"], textarea[name="' + inputName + '"]').val(data.text || '');
+            }
+        })
+        .catch(function() { alert('Request failed.'); })
+        .finally(function() { $btn.prop('disabled', false).removeClass('disabled'); });
+    });
+
     $(".summernote").each(function() {
         var $this = $(this),
             name = $this.attr('name'),

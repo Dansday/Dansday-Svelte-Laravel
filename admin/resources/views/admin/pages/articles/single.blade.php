@@ -21,10 +21,21 @@
                         @csrf
                         @method('PUT')
                         <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="ai_model_select" class="form-label">{{ __('content.ai_model') }}</label>
+                                    <select id="ai_model_select" class="form-select ai-model-select" aria-label="{{ __('content.ai_model') }}">
+                                        <option value="">— {{ __('content.ai_model') }} —</option>
+                                    </select>
+                                </div>
+                            </div>
                             <div class="row">
                                 <input type="hidden" name="id" value="{{$post->id}}" />
                                 <div class="col-md-6 mb-3">
-                                    <label for="title" class="form-label">{{ __('content.title') }}</label>
+                                    <label for="title" class="form-label d-flex justify-content-between align-items-center">
+                                        {{ __('content.title') }}
+                                        @include('admin.modules.ai-generate-btn', ['type' => 'article', 'field' => 'title', 'inputName' => 'title', 'summernote' => false])
+                                    </label>
                                     <input class="form-control @error('title') is-invalid @enderror" type="text" name="title" value="{{ $post->title }}" required />
                                     @error('title')
                                         <div class="invalid-feedback">
@@ -33,7 +44,10 @@
                                     @enderror
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label for="short_desc" class="form-label">{{ __('content.entry') }}</label>
+                                    <label for="short_desc" class="form-label d-flex justify-content-between align-items-center">
+                                        {{ __('content.entry') }}
+                                        @include('admin.modules.ai-generate-btn', ['type' => 'article', 'field' => 'short_desc', 'inputName' => 'short_desc', 'summernote' => false])
+                                    </label>
                                     <input class="form-control @error('short_desc') is-invalid @enderror" type="text" name="short_desc" value="{{ $post->short_desc }}" />
                                     @error('short_desc')
                                         <div class="invalid-feedback">
@@ -85,7 +99,10 @@
                                     @enderror
                                 </div>
                                 <div class="col-md-12 mb-3">
-                                    <label for="text" class="form-label">{{ __('content.content') }}</label>
+                                    <label for="text" class="form-label d-flex justify-content-between align-items-center">
+                                        {{ __('content.content') }}
+                                        @include('admin.modules.ai-generate-btn', ['type' => 'article', 'field' => 'text', 'inputName' => 'text', 'summernote' => true])
+                                    </label>
                                     <input type="hidden" name="images_code" value="{{$post->images_code}}" />
                                     <textarea class="form-control summernote @error('text') is-invalid @enderror" name="text" data-folder="uploads/img/temp" data-route="{{url('/')}}" data-code="{{$post->images_code}}">{{ $post->text }}</textarea>
                                     @error('text')
