@@ -42,7 +42,7 @@
                                     <div class="form-group mb-4">
                                         <label for="openai_url" class="form-label">Open AI URL</label>
                                         <input class="form-control @error('openai_url') is-invalid @enderror" type="url" name="openai_url" value="{{ old('openai_url', $general->openai_url ?? '') }}" placeholder="https://..." />
-                                        <div class="form-text">Base URL for the OpenAI-compatible API (e.g. Hebo, Coolify). Leave empty to use env.</div>
+                                        <div class="form-text">Base URL for the internal OpenAI-compatible API.</div>
                                         @error('openai_url')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                     </div>
                                     <div class="form-group">
