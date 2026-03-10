@@ -4,6 +4,8 @@ admin/node_modules/
 admin/vendor/
 
 # Build / output
+main/logger.js
+main/console-instrumentation.js
 main/.svelte-kit/
 main/.pnpm-store/
 pnpm-lock.yaml

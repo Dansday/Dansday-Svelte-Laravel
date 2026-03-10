@@ -5,8 +5,9 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
-		"build": "prettier --write . && prettier --check . && svelte-kit sync && vite build",
-		"build:prod": "svelte-kit sync && vite build"
+		"build": "prettier --write . && prettier --check . && svelte-kit sync && vite build && npm run build:otel-logs",
+		"build:prod": "svelte-kit sync && vite build && npm run build:otel-logs",
+		"build:otel-logs": "tsc -p tsconfig.otel.json"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^5.5.4",
@@ -14,7 +15,7 @@
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.2.1",
-		"@types/node": "^25.3.5",
+		"@types/node": "^25.4.0",
 		"prettier": "^3.8.1",
 		"prettier-plugin-svelte": "^3.5.1",
 		"prettier-plugin-tailwindcss": "^0.7.2",
@@ -26,11 +27,19 @@
 	},
 	"dependencies": {
 		"@fontsource/commit-mono": "^5.2.5",
+		"@opentelemetry/api": "^1.9.0",
+		"@opentelemetry/api-logs": "^0.213.0",
+		"@opentelemetry/auto-instrumentations-node": "^0.71.0",
+		"@opentelemetry/exporter-logs-otlp-http": "^0.213.0",
+		"@opentelemetry/resources": "^2.6.0",
+		"@opentelemetry/sdk-logs": "^0.213.0",
+		"@opentelemetry/semantic-conventions": "^1.40.0",
+		"@types/express": "^5.0.6",
 		"dotenv": "^17.3.1",
+		"express": "^5.2.1",
 		"figlet": "^1.10.0",
 		"mysql2": "^3.19.0",
 		"shiki": "^4.0.1",
-		"@opentelemetry/api": "^1.9.0",
-    	"@opentelemetry/auto-instrumentations-node": "^0.71.0"
+		"ts-node": "^10.9.2"
 	}
 }
