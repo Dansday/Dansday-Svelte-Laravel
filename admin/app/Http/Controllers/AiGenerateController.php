@@ -50,18 +50,14 @@ class AiGenerateController extends Controller
             return response()->json(['error' => 'Only description/content generation is supported.'], 422);
         }
 
-        $baseUrl = config('ai.providers.openai.url') ?: config('prism.providers.openai.url');
+        $baseUrl = config('ai.providers.openai.url') ?: config('prism.providers.openai.url') ?: env('OPENAI_BASE_URL');
         $baseUrl = is_string($baseUrl) ? trim($baseUrl) : '';
         if ($baseUrl === '' || ! str_starts_with($baseUrl, 'http')) {
-            return response()->json([
-                'error' => 'AI gateway URL not set. In Coolify: add env OPENAI_BASE_URL=https://gateway.hebo.ai/v1 (and OPENAI_API_KEY), then redeploy and run: php artisan config:clear',
-            ], 503);
+            return response()->json(['error' => __('content.ai_unavailable')], 503);
         }
         $host = parse_url($baseUrl, PHP_URL_HOST);
         if (empty($host) || strpos($host, '.') === false) {
-            return response()->json([
-                'error' => 'AI gateway URL is invalid (host looks wrong). In Coolify set OPENAI_BASE_URL=https://gateway.hebo.ai/v1 and redeploy.',
-            ], 503);
+            return response()->json(['error' => __('content.ai_unavailable')], 503);
         }
 
         $basePrompt = $allowed[$field];
@@ -88,9 +84,8 @@ class AiGenerateController extends Controller
 
             return response()->json(['text' => $text]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'error' => 'AI generation failed: ' . $e->getMessage(),
-            ], 502);
+            report($e);
+            return response()->json(['error' => __('content.ai_unavailable')], 502);
         }
     }
 
@@ -130,7 +125,6 @@ class AiGenerateController extends Controller
         return response()->json(['models' => $list]);
     }
 
-    /** Fallback when gateway /v1/models is unavailable (no config or env). */
     private function fallbackModelsList(): array
     {
         return [
