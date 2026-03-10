@@ -10,7 +10,11 @@
         "blade-ui-kit/blade-icons": "^1.7",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
-        "laravel/ui": "^4.6"
+        "laravel/ui": "^4.6",
+        "open-telemetry/exporter-otlp": "*",
+        "open-telemetry/sdk": "*",
+        "php-http/guzzle7-adapter": "*",
+        "open-telemetry/opentelemetry-auto-laravel": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -83,7 +87,7 @@
         "sort-packages": true,
         "allow-plugins": {
             "pestphp/pest-plugin": true,
-            "php-http/discovery": true
+            "php-http/discovery": false
         }
     },
     "minimum-stability": "stable",
