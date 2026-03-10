@@ -51,6 +51,14 @@
                                         <div class="form-text">API key. Leave blank to keep the current key.</div>
                                         @error('openai_key')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                     </div>
+                                    <div class="form-group mt-4">
+                                        <label for="openai_model_alias" class="form-label">Open AI Model Alias</label>
+                                        <textarea class="form-control @error('openai_model_alias') is-invalid @enderror" name="openai_model_alias" rows="4" placeholder='{"openai/gpt-oss-20b":"your-internal-model","openai/gpt-oss-120b":"your-internal-model-2"}'>{{ old('openai_model_alias', $general->openai_model_alias ?? '') }}</textarea>
+                                        <div class="form-text">
+                                            Optional. JSON map from dropdown model id → internal model id. If you put a plain string (not JSON), it will be used as the model for all requests.
+                                        </div>
+                                        @error('openai_model_alias')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <div class="form-group mb-5">

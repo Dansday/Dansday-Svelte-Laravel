@@ -30,7 +30,7 @@ class AiGenerateController extends Controller
             'type' => ['required', 'string', 'in:article,project'],
             'field' => ['required', 'string'],
             'topic' => ['nullable', 'string', 'max:15000'],
-            'model' => ['required', 'string', 'max:255'],
+            'model' => ['nullable', 'string', 'max:255'],
         ]);
 
         if ($validator->fails()) {
@@ -67,23 +67,27 @@ class AiGenerateController extends Controller
             : '';
         $prompt = $basePrompt . $userHint;
 
-        $model = trim((string) $request->input('model'));
-        if ($model === '') {
-            return response()->json(['error' => 'Please select a model from the dropdown.'], 422);
-        }
+        // Gateway handles model mapping; we don't expose model selection in the UI.
+        $model = 'default';
+        $resolvedModel = $model;
 
         try {
             $response = agent(
                 instructions: 'You are a concise copywriter. Reply with only the requested content, no preamble or quotes.',
                 messages: [],
                 tools: [],
-            )->prompt($prompt, provider: config('ai.default'), model: $model);
+            )->prompt($prompt, provider: config('ai.default'), model: $resolvedModel);
 
             $raw = $response->text ?? '';
             $text = is_string($raw) ? trim($raw) : '';
 
             return response()->json(['text' => $text]);
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('AI generate failed', [
+                'base_url' => $baseUrl,
+                'model' => $model,
+                'message' => $e->getMessage(),
+            ]);
             report($e);
             return response()->json(['error' => __('content.ai_unavailable')], 502);
         }
@@ -136,4 +140,5 @@ class AiGenerateController extends Controller
             ['id' => 'anthropic/claude-opus-4.6', 'name' => 'Claude Opus 4.6'],
         ];
     }
+
 }

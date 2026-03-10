@@ -105,24 +105,6 @@ $(document).ready(function() {
 
     $('[data-bs-toggle="tooltip"]').tooltip();
 
-    function loadAiModalModels() {
-        var modelsUrl = window.adminAiModelsUrl || '/admin/ai-models';
-        return fetch(modelsUrl, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                var list = data.models || [];
-                var $sel = $('#ai_modal_model');
-                $sel.find('option:not(:first)').remove();
-                list.forEach(function(m) {
-                    $sel.append($('<option></option>').attr('value', m.id).text(m.name));
-                });
-                if (list.length > 0) {
-                    $sel.val(list[0].id);
-                }
-            })
-            .catch(function() {});
-    }
-
     $(document).on('click', '.ai-generate-btn', function() {
         var $btn = $(this);
         $('#ai_modal_type').val($btn.data('type'));
@@ -134,9 +116,6 @@ $(document).ready(function() {
         if (modalEl) {
             var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
-            if ($('#ai_modal_model option').length <= 1) {
-                loadAiModalModels();
-            }
         }
     });
 
@@ -146,11 +125,6 @@ $(document).ready(function() {
         var inputName = $('#ai_modal_input_name').val();
         var isSummernote = $('#ai_modal_summernote').val() === '1';
         var prompt = ($('#ai_modal_prompt').val() || '').trim();
-        var model = $('#ai_modal_model').val();
-        if (!model) {
-            alert('Please select a model.');
-            return;
-        }
         var $btn = $('#ai_modal_generate_btn');
         $btn.prop('disabled', true).text('…');
         fetch(window.adminAiGenerateUrl || '/admin/ai-generate', {
@@ -161,7 +135,7 @@ $(document).ready(function() {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ type: type, field: field, topic: prompt, model: model })
+            body: JSON.stringify({ type: type, field: field, topic: prompt })
         })
         .then(function(r) { return r.json(); })
         .then(function(data) {

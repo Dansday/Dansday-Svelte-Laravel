@@ -11,12 +11,6 @@
                 <input type="hidden" id="ai_modal_input_name" value="" />
                 <input type="hidden" id="ai_modal_summernote" value="" />
                 <div class="mb-3">
-                    <label for="ai_modal_model" class="form-label">{{ __('content.ai_model') }}</label>
-                    <select id="ai_modal_model" class="form-select">
-                        <option value="">— {{ __('content.ai_model') }} —</option>
-                    </select>
-                </div>
-                <div class="mb-3">
                     <label for="ai_modal_prompt" class="form-label">{{ __('content.ai_prompt_context') }}</label>
                     <textarea id="ai_modal_prompt" class="form-control" rows="4" placeholder="{{ __('content.ai_prompt_context') }}"></textarea>
                 </div>
