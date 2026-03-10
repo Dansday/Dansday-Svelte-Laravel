@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
-use function Laravel\Ai\agent;
 
 class AiGenerateController extends Controller
 {
@@ -53,13 +52,6 @@ class AiGenerateController extends Controller
 
         $baseUrl = config('ai.providers.openai.url') ?: config('prism.providers.openai.url');
         $baseUrl = is_string($baseUrl) ? trim($baseUrl) : '';
-        if ($baseUrl === '' || ! str_starts_with($baseUrl, 'http')) {
-            return response()->json(['error' => __('content.ai_unavailable')], 503);
-        }
-        $host = parse_url($baseUrl, PHP_URL_HOST);
-        if (empty($host) || strpos($host, '.') === false) {
-            return response()->json(['error' => __('content.ai_unavailable')], 503);
-        }
 
         $basePrompt = $allowed[$field];
         $context = trim($topic);
@@ -68,27 +60,78 @@ class AiGenerateController extends Controller
             : '';
         $prompt = $basePrompt . $userHint;
 
-        // Model is set in General settings (DB); UI has no model selector.
         $model = 'default';
+        $apiKey = '';
+        $dbUrl = '';
         try {
             $general = General::find(1);
             $fromDb = $general?->openai_model;
             if (is_string($fromDb) && trim($fromDb) !== '') {
                 $model = trim($fromDb);
             }
+            $keyFromDb = $general?->openai_key;
+            if (is_string($keyFromDb) && trim($keyFromDb) !== '') {
+                $apiKey = trim($keyFromDb);
+            }
+            $urlFromDb = $general?->openai_url;
+            if (is_string($urlFromDb) && trim($urlFromDb) !== '') {
+                $dbUrl = trim($urlFromDb);
+            }
         } catch (\Throwable $e) {
             // ignore
         }
 
-        try {
-            $response = agent(
-                instructions: 'You are a concise copywriter. Reply with only the requested content, no preamble or quotes.',
-                messages: [],
-                tools: [],
-            )->prompt($prompt, provider: config('ai.default'), model: $model);
+        if ($apiKey === '') {
+            return response()->json(['error' => __('content.ai_unavailable')], 503);
+        }
 
-            $raw = $response->text ?? '';
-            $text = is_string($raw) ? trim($raw) : '';
+        // If URL is defined in General use it; otherwise fallback to public OpenAI base URL.
+        if ($dbUrl !== '') {
+            $baseUrl = $dbUrl;
+        }
+        if ($baseUrl === '') {
+            $baseUrl = 'https://api.openai.com/v1';
+        }
+        if (! str_starts_with($baseUrl, 'http')) {
+            return response()->json(['error' => __('content.ai_unavailable')], 503);
+        }
+        $host = parse_url($baseUrl, PHP_URL_HOST);
+        if (empty($host) || strpos($host, '.') === false) {
+            return response()->json(['error' => __('content.ai_unavailable')], 503);
+        }
+
+        try {
+            $endpoint = rtrim($baseUrl, '/') . '/chat/completions';
+            $res = Http::timeout(30)
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'Content-Type' => 'application/json',
+                ])
+                ->withToken($apiKey)
+                ->post($endpoint, [
+                    'model' => $model,
+                    'messages' => [
+                        ['role' => 'system', 'content' => 'You are a concise copywriter. Reply with only the requested content, no preamble or quotes.'],
+                        ['role' => 'user', 'content' => $prompt],
+                    ],
+                    'temperature' => 0.7,
+                ]);
+
+            if (! $res->successful()) {
+                \Illuminate\Support\Facades\Log::warning('AI generate HTTP failed', [
+                    'endpoint' => $endpoint,
+                    'status' => $res->status(),
+                    'model' => $model,
+                    'body' => $res->body(),
+                ]);
+                return response()->json(['error' => __('content.ai_unavailable')], 502);
+            }
+
+            $json = $res->json();
+            $text = trim((string) data_get($json, 'choices.0.message.content', ''));
+            if ($text === '') {
+                $text = trim((string) data_get($json, 'choices.0.text', ''));
+            }
 
             return response()->json(['text' => $text]);
         } catch (\Throwable $e) {
