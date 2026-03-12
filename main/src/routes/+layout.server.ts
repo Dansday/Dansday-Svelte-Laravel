@@ -27,7 +27,10 @@ export const load: LayoutServerLoad = async () => {
 		const [generalData, home, sectionData, aboutsData] = await Promise.all([fetchGeneral(), fetchHome(), fetchSection(), fetchAbouts()]);
 		const general = (generalData as Record<string, unknown>) ?? {};
 		
-		const aiTerminalConfigured = Boolean(general.openai_url && general.openai_key && general.openai_model);
+		const hasUrl = Boolean(general.openai_url && typeof general.openai_url === 'string' && general.openai_url.trim() !== '');
+		const hasKey = Boolean(general.openai_key && typeof general.openai_key === 'string' && general.openai_key.trim() !== '');
+		const hasModel = Boolean(general.openai_model && typeof general.openai_model === 'string' && general.openai_model.trim() !== '');
+		const aiTerminalConfigured = hasUrl && hasKey && hasModel;
 
 		delete general.openai_key;
 		delete general.openai_url;
