@@ -18,5 +18,11 @@ export const navbarMenu = [
 		title: 'articles',
 		href: '/articles',
 		key: 'r'
+	},
+	{
+		title: 'terminal',
+		href: '/terminal',
+		key: 't'
 	}
 ] as const;
+
