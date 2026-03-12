@@ -1,5 +1,5 @@
 import { env } from '$env/dynamic/private';
-import { fetchSection, fetchArticles, fetchProjects } from '$lib/server/data';
+import { fetchSection, fetchArticles, fetchProjects, fetchGeneral } from '$lib/server/data';
 import type { RequestHandler } from './$types';
 
 function escapeXml(unsafe: string): string {
@@ -25,11 +25,17 @@ export const GET: RequestHandler = async () => {
 	}
 
 	let section: Record<string, unknown> = {};
+	let aiTerminalConfigured = false;
 	let articleUrlData: Array<{ loc: string; lastmod?: string; changefreq: string; priority: number }> = [];
 	let projectUrlData: Array<{ loc: string; lastmod?: string; changefreq: string; priority: number }> = [];
 
 	try {
 		section = (await fetchSection()) as Record<string, unknown>;
+		const general = await fetchGeneral() as Record<string, unknown>;
+		const hasUrl = Boolean(general.openai_url && typeof general.openai_url === 'string' && general.openai_url.trim() !== '');
+		const hasKey = Boolean(general.openai_key && typeof general.openai_key === 'string' && general.openai_key.trim() !== '');
+		const hasModel = Boolean(general.openai_model && typeof general.openai_model === 'string' && general.openai_model.trim() !== '');
+		aiTerminalConfigured = hasUrl && hasKey && hasModel;
 	} catch {}
 
 	if (notDisabled(section.articles_enable)) {
@@ -88,6 +94,9 @@ export const GET: RequestHandler = async () => {
 			: []),
 		...(notDisabled(section.articles_enable)
 			? [{ loc: `${baseUrl}/articles`, changefreq: 'daily' as const, priority: 1.0, lastmod: new Date().toISOString() }]
+			: []),
+		...(aiTerminalConfigured
+			? [{ loc: `${baseUrl}/terminal`, changefreq: 'daily' as const, priority: 0.8, lastmod: new Date().toISOString() }]
 			: []),
 		...aboutsUrlData,
 		...articleUrlData,

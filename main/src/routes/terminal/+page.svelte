@@ -4,6 +4,7 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+
 	const general = (data.general ?? {}) as Record<string, unknown>;
 	const metaTitle = (general.title as string) ?? data.siteName ?? '';
 	const metaDescription = (general.description as string) ?? '';

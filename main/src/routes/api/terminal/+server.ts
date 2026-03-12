@@ -25,7 +25,11 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		const openaiKey = generalData.openai_key as string | null;
 		const openaiModel = generalData.openai_model as string | null;
 
-		if (!openaiUrl || !openaiKey || !openaiModel) {
+		const hasUrl = Boolean(openaiUrl && openaiUrl.trim() !== '');
+		const hasKey = Boolean(openaiKey && openaiKey.trim() !== '');
+		const hasModel = Boolean(openaiModel && openaiModel.trim() !== '');
+
+		if (!hasUrl || !hasKey || !hasModel) {
 			return json(
 				{ 
 					response: "Error: AI Terminal is not configured. Please set the OpenAI URL, Key, and Model in the admin settings." 
