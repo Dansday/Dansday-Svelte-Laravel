@@ -52,6 +52,12 @@ WORKDIR /app
 COPY --from=vendor /app/vendor ./vendor
 COPY --from=vendor /app ./
 
+RUN mkdir -p ./public/build ./public/assets
+COPY --from=frontend /app/public ./public
+
+RUN if [ -d assets ]; then cp -r assets/* public/assets/; fi
+
+# Write Caddyfile inline
 RUN mkdir -p /etc/caddy && cat > /etc/caddy/Caddyfile <<'EOF'
 {
     frankenphp
