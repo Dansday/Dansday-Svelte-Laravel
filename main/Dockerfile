@@ -3,10 +3,11 @@ FROM node:25.8.1-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+
+RUN NODE_OPTIONS="" npm ci
 
 COPY . .
-RUN npm run build:prod
+RUN NODE_OPTIONS="" npm run build:prod
 
 
 FROM node:25.8.1-alpine
