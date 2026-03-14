@@ -59,18 +59,16 @@
                                     <div class="form-group info-content">
                                         <label for="social_links" class="form-label">{{ __('content.social_links') }}</label>
                                         <div class="row">
-                                            <div class="col-3">
+                                            <div class="col-4">
                                                 <div class="input-group mb-3">
-                                                    <select class="form-select select-social" name="social_network" id="info_label_social-links">
-                                                        @foreach ($social_icons as $icon)
-                                                            <option value="{{ $icon['code'] }}">{{ $icon['name'] }}</option>
-                                                        @endforeach
-                                                    </select>
+                                                    <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-icons"></i></span></div>
+                                                    <input type="text" class="form-control" name="social_network" id="info_label_social-links" placeholder="fab fa-twitter">
                                                 </div>
+                                                <small class="form-text text-muted">Use Font Awesome classes (e.g. <code>fab fa-github</code>)</small>
                                             </div>
-                                            <div class="col-7">
+                                            <div class="col-6">
                                                 <div class="input-group mb-3">
-                                                    <div class="input-group-append"><span class="input-group-text">{{ __('content.link') }}</span></div>
+                                                    <div class="input-group-prepend"><span class="input-group-text">{{ __('content.link') }}</span></div>
                                                     <input type="text" name="social_links" id="info_value_social-links" class="form-control">
                                                 </div>
                                             </div>

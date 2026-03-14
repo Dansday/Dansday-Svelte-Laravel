@@ -26,10 +26,8 @@ class GeneralController extends Controller
             abort(500, 'Initial data not found. Please run: php artisan db:seed');
         }
         $user = User::find(1);
-        $social_icons = config('social_icons', []);
         return view('admin.pages.general')
             ->with('general', $general)
-            ->with('social_icons', $social_icons)
             ->with('user', $user);
     }
 
