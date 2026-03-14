@@ -1,33 +1,83 @@
-FROM node:alpine AS frontend
+# ── Stage 1: Frontend Build ──────────────────────────────────────
+FROM node:25.8.1-alpine AS frontend
+
 WORKDIR /app
+
 COPY package.json ./
 RUN npm install
+
 COPY . .
 RUN npm run build
 
-FROM php:8.5-cli-alpine
-RUN apk add --no-cache git unzip libzip-dev libpng-dev libxml2-dev oniguruma-dev
-RUN docker-php-ext-install pdo_mysql zip gd xml mbstring
-RUN apk add --no-cache linux-headers --virtual .build-deps $PHPIZE_DEPS \
-    && pecl install redis opentelemetry \
-    && docker-php-ext-enable redis opentelemetry \
-    && apk del .build-deps
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# ── Stage 2: PHP Dependencies ────────────────────────────────────
+FROM composer:2 AS vendor
 
 WORKDIR /app
 
-COPY composer.json ./
+COPY composer.json composer.lock* ./
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-scripts \
+    --optimize-autoloader \
+    --prefer-dist
 
 COPY . .
-RUN php artisan package:discover --ansi
+RUN composer run-script post-autoload-dump || true
 
-RUN mkdir -p public/assets public/uploads \
-    && cp -r assets/* public/assets/
+# ── Stage 3: Runtime ─────────────────────────────────────────────
+FROM dunglas/frankenphp:latest-php8.5-alpine AS runner
 
-COPY --from=frontend /app/public/assets/admin/css/admin.css ./public/assets/admin/css/
+RUN apk add --no-cache \
+    curl \
+    libzip-dev \
+    libpng-dev \
+    libxml2-dev \
+    oniguruma-dev \
+    linux-headers
 
-EXPOSE 80
+RUN install-php-extensions \
+    pdo_mysql \
+    zip \
+    gd \
+    xml \
+    mbstring \
+    redis \
+    opentelemetry \
+    opcache
 
-CMD sh -c "php artisan optimize:clear && php artisan migrate --force && exec php artisan serve --host=0.0.0.0 --port=${PORT:-80}"
+WORKDIR /app
+
+COPY --from=vendor /app/vendor ./vendor
+COPY --from=vendor /app ./
+COPY --from=frontend /app/public/build ./public/build
+COPY --from=frontend /app/public/assets ./public/assets
+
+RUN if [ -d assets ]; then cp -r assets/* public/assets/; fi
+
+# Write Caddyfile inline
+RUN mkdir -p /etc/caddy && cat > /etc/caddy/Caddyfile <<'EOF'
+{
+    frankenphp
+    order php_server before file_server
+}
+
+:2222 {
+    root * /app/public
+    encode gzip
+
+    php_server {
+        worker /app/public/index.php
+    }
+
+    file_server
+}
+EOF
+
+EXPOSE 2222
+
+ENV APP_ENV=production
+ENV LOG_CHANNEL=stderr
+
+CMD ["sh", "-c", "php artisan optimize:clear && php artisan migrate --force && frankenphp run --config /etc/caddy/Caddyfile"]
