@@ -52,12 +52,6 @@ WORKDIR /app
 COPY --from=vendor /app/vendor ./vendor
 COPY --from=vendor /app ./
 
-RUN mkdir -p ./public/build ./public/assets
-COPY --from=frontend /app/public ./public
-
-RUN if [ -d assets ]; then cp -r assets/* public/assets/; fi
-
-# Write Caddyfile inline
 RUN mkdir -p /etc/caddy && cat > /etc/caddy/Caddyfile <<'EOF'
 {
     frankenphp
@@ -67,6 +61,33 @@ RUN mkdir -p /etc/caddy && cat > /etc/caddy/Caddyfile <<'EOF'
 :2222 {
     root * /app/public
     encode gzip
+
+    # Match any request from *.dansday.com or dansday.com
+    @dansday_origin {
+        header Origin ~^https?://([a-z0-9-]+\.)?dansday\.com$
+    }
+
+    # Match font files from dansday origin
+    @fonts_cors {
+        path *.woff *.woff2 *.ttf *.eot *.otf
+        header Origin ~^https?://([a-z0-9-]+\.)?dansday\.com$
+    }
+
+    # Reflect the Origin back (so it works for any subdomain)
+    header @fonts_cors {
+        Access-Control-Allow-Origin "{http.request.header.Origin}"
+        Access-Control-Allow-Methods "GET, OPTIONS"
+        Access-Control-Allow-Headers "*"
+        Vary "Origin"
+    }
+
+    # Handle OPTIONS preflight for fonts
+    @fontsPreflight {
+        method OPTIONS
+        path *.woff *.woff2 *.ttf *.eot *.otf
+        header Origin ~^https?://([a-z0-9-]+\.)?dansday\.com$
+    }
+    respond @fontsPreflight 204
 
     php_server {
         worker /app/public/index.php
