@@ -3,7 +3,7 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
-	const pageTitle = $derived(data.siteName ? `Articles | ${data.siteName}` : '');
+	const pageTitle = $derived(data.siteName ? `Articles | ${data.siteName}` : 'Articles');
 	const description = $derived((data.articlesListMeta?.description as string) ?? '');
 	const defaultOgImage = $derived(data.defaultOgImage);
 </script>
