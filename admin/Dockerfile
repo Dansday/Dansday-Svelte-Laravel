@@ -68,7 +68,9 @@ RUN mkdir -p /etc/caddy && cat > /etc/caddy/Caddyfile <<'EOF'
     root * /app/public
     encode gzip
 
-    php_server
+    php_server {
+        worker /app/public/index.php
+    }
 
     file_server
 }
