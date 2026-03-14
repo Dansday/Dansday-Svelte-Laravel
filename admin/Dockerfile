@@ -27,7 +27,7 @@ COPY . .
 RUN composer run-script post-autoload-dump || true
 
 # ── Stage 3: Runtime ─────────────────────────────────────────────
-FROM dunglas/frankenphp:latest-php8.5-alpine AS runner
+FROM dunglas/frankenphp:1.12.1-php8.5-alpine AS runner
 
 RUN apk add --no-cache \
     curl \
