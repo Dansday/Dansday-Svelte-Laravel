@@ -21,7 +21,7 @@ COPY composer.json ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
 COPY . .
-RUN cp .env.example .env && php artisan package:discover --ansi
+RUN php artisan package:discover --ansi
 
 RUN mkdir -p public/assets public/uploads \
     && cp -r assets/* public/assets/
@@ -30,4 +30,4 @@ COPY --from=frontend /app/public/assets/admin/css/admin.css ./public/assets/admi
 
 EXPOSE 80
 
-CMD sh -c "php artisan optimize:clear && php artisan migrate --force && exec php artisan serve --host=0.0.0.0 --port=${PORT:-80}"
+CMD sh -c "if [ ! -f .env ]; then cp .env.example .env; fi && php artisan optimize:clear && php artisan migrate --force && exec php artisan serve --host=0.0.0.0 --port=${PORT:-80}"
