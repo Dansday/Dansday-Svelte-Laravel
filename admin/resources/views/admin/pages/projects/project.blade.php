@@ -20,7 +20,6 @@
                     <form action="{{ url('/') }}/admin/projects/project" method="POST" class="user" enctype="multipart/form-data">
                         @csrf
                         <div class="modal-body">
-                            <input type="hidden" name="order" value="@php echo (count($projects) > 0) ? (count($projects)+1) : 1; @endphp" />
                             <div class="row">
                                 <div class="col-md-12 mb-4">
                                     <label for="enable_project" class="form-label">{{ __('content.enable') }}</label>

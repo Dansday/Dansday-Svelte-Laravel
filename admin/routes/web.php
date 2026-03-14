@@ -101,8 +101,6 @@ Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
     Route::delete('admin/articles/post/{id}', [App\Http\Controllers\ArticleController::class, 'destroy']);
     Route::get('admin/articles/post/{id}', [App\Http\Controllers\ArticleController::class, 'show']);
     Route::put('admin/articles/post/{id}', [App\Http\Controllers\ArticleController::class, 'update']);
-    Route::get('admin/articles/posts/order-up/{id}', [App\Http\Controllers\ArticleController::class, 'orderUp']);
-    Route::get('admin/articles/posts/order-down/{id}', [App\Http\Controllers\ArticleController::class, 'orderDown']);
 });
 Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
     Route::get('admin/articles/gallery/{id}', [App\Http\Controllers\GalleryController::class, 'index']);
@@ -124,8 +122,6 @@ Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
     Route::delete('admin/projects/project/{id}', [App\Http\Controllers\ProjectController::class, 'destroy']);
     Route::get('admin/projects/project/{id}', [App\Http\Controllers\ProjectController::class, 'show']);
     Route::put('admin/projects/project/{id}', [App\Http\Controllers\ProjectController::class, 'update']);
-    Route::get('admin/projects/projects/order-up/{id}', [App\Http\Controllers\ProjectController::class, 'orderUp']);
-    Route::get('admin/projects/projects/order-down/{id}', [App\Http\Controllers\ProjectController::class, 'orderDown']);
 });
 
 Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {

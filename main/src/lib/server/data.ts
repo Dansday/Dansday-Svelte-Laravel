@@ -56,7 +56,7 @@ export async function fetchAbouts(): Promise<{
 }
 
 export async function fetchArticles(): Promise<Row[]> {
-	return query<Row>("SELECT * FROM articles WHERE status = 'published' ORDER BY `order` ASC");
+	return query<Row>("SELECT * FROM articles WHERE status = 'published' ORDER BY `created_at` DESC");
 }
 
 export async function fetchArticle(slug: string): Promise<Record<string, unknown>> {
@@ -74,7 +74,7 @@ export async function fetchProjects(): Promise<{
 	projects_categories: Row[];
 }> {
 	const [projects, projects_categories] = await Promise.all([
-		query<Row>('SELECT * FROM project WHERE enable = 1 ORDER BY `order` ASC'),
+		query<Row>('SELECT * FROM project WHERE enable = 1 ORDER BY `created_at` DESC'),
 		query<Row>('SELECT * FROM project_category ORDER BY id ASC')
 	]);
 	return { projects, projects_categories };

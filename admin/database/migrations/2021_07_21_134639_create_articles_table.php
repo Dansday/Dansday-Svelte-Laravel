@@ -18,7 +18,6 @@ class CreateArticlesTable extends Migration
             $table->string('slug');
             $table->string('status');
             $table->string('images_code');
-            $table->integer('order');
 
             $table->unsignedBigInteger('category_id');
             $table->foreign('category_id')->references('id')->on('article_category');

@@ -21,7 +21,7 @@ class ProjectController extends Controller
         $gallery = ProjectGallery::all();
         $categories = ProjectCategory::all();
         $projects = DB::table('project')
-            ->orderBy('order', 'asc')
+            ->orderBy('created_at', 'desc')
             ->get();
         return view('admin.pages.projects.projects')
             ->with('projects', $projects)
@@ -51,7 +51,6 @@ class ProjectController extends Controller
             'description' => $request->input('description'),
             'short_desc' => $request->input('short_desc'),
             'image' => $request->file('image'),
-            'order' => $request->input('order'),
         ];
 
         $validate = Validator::make($data, [
@@ -87,7 +86,7 @@ class ProjectController extends Controller
         $project->images_code = $data['images_code'];
         $project->description = str_replace([$disk->url('img/temp'), 'uploads/img/temp'], [$disk->url('img/projects'), 'uploads/img/projects'], $data['description']);
         $project->image = 'uploads/' . $route_image;
-        $project->order = $data['order'];
+        $project->order = 0;
         $project->category_id = $data['category'];
         $project->save();
         return redirect('/admin/projects/projects')->with('ok-add', '');
@@ -185,27 +184,6 @@ class ProjectController extends Controller
         return redirect('/admin/projects/projects')->with('ok-update', '');
     }
 
-    public function orderUp($id)
-    {
-        $project_1 = Project::where("id", $id)->get();
-        $project_2 = DB::table('project')->where('order', '=', $project_1[0]['order'] - 1)->get();
-        $data_new_1 = array("order" => $project_2[0]->order);
-        Project::where("id", $project_1[0]['id'])->update($data_new_1);
-        $data_new_2 = array("order" => $project_1[0]['order']);
-        Project::where("id", $project_2[0]->id)->update($data_new_2);
-        return redirect('/admin/projects/projects')->with('ok-update', '');
-    }
-
-    public function orderDown($id)
-    {
-        $project_1 = Project::where("id", $id)->get();
-        $project_2 = DB::table('project')->where('order', '=', $project_1[0]['order'] + 1)->get();
-        $data_new_1 = array("order" => $project_2[0]->order);
-        Project::where("id", $project_1[0]['id'])->update($data_new_1);
-        $data_new_2 = array("order" => $project_1[0]['order']);
-        Project::where("id", $project_2[0]->id)->update($data_new_2);
-        return redirect('/admin/projects/projects')->with('ok-update', '');
-    }
 
     public function destroy($id, Request $request)
     {
@@ -231,12 +209,6 @@ class ProjectController extends Controller
                 }
             }
             Project::where("id", $validate[0]['id'])->delete();
-            $projects = DB::table('project')->orderBy('order', 'asc')->get();
-            $i = 1;
-            foreach ($projects as $project) {
-                Project::where("id", $project->id)->update(['order' => $i]);
-                $i++;
-            }
             return redirect('/admin/projects/projects')->with('ok-delete', '');
         }
         return redirect('/admin/projects/projects')->with('no-delete', '');

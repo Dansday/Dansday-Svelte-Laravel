@@ -18,7 +18,7 @@ class ArticleController extends Controller
         $user = User::find(1);
         $gallery = Gallery::all();
         $categories = Category::all();
-        $articles = DB::table('articles')->orderBy('order', 'asc')->get();
+        $articles = DB::table('articles')->orderBy('created_at', 'desc')->get();
         return view('admin.pages.articles.posts')
             ->with('articles', $articles)
             ->with('categories', $categories)
@@ -48,7 +48,6 @@ class ArticleController extends Controller
             'images_code' => $request->input('images_code'),
             'text' => $request->input('text'),
             'image' => $request->file('image'),
-            'order' => $request->input('order'),
         ];
         $slug_no_spaces = strtolower(str_replace(' ', '-', $data['title']));
         $slug = preg_replace('/[^A-Za-z0-9\-]/', '', $slug_no_spaces);
@@ -92,7 +91,7 @@ class ArticleController extends Controller
         $post->status = $data['status'];
         $post->images_code = $data['images_code'];
         $post->category_id = $data['category'];
-        $post->order = $data['order'];
+        $post->order = 0;
         $post->save();
         return redirect('/admin/articles/posts')->with('ok-add', '');
     }
@@ -198,23 +197,6 @@ class ArticleController extends Controller
         return redirect('/admin/articles/posts')->with('ok-update', '');
     }
 
-    public function orderUp($id)
-    {
-        $post_1 = Article::where('id', $id)->get();
-        $post_2 = DB::table('articles')->where('order', '=', $post_1[0]['order'] - 1)->get();
-        Article::where('id', $post_1[0]['id'])->update(['order' => $post_2[0]->order]);
-        Article::where('id', $post_2[0]->id)->update(['order' => $post_1[0]['order']]);
-        return redirect('/admin/articles/posts')->with('ok-update', '');
-    }
-
-    public function orderDown($id)
-    {
-        $post_1 = Article::where('id', $id)->get();
-        $post_2 = DB::table('articles')->where('order', '=', $post_1[0]['order'] + 1)->get();
-        Article::where('id', $post_1[0]['id'])->update(['order' => $post_2[0]->order]);
-        Article::where('id', $post_2[0]->id)->update(['order' => $post_1[0]['order']]);
-        return redirect('/admin/articles/posts')->with('ok-update', '');
-    }
 
     public function destroy($id, Request $request)
     {
@@ -234,12 +216,6 @@ class ArticleController extends Controller
                 }
             }
             Article::where('id', $validate[0]['id'])->delete();
-            $posts = DB::table('articles')->orderBy('order', 'asc')->get();
-            $i = 1;
-            foreach ($posts as $post) {
-                Article::where('id', $post->id)->update(['order' => $i]);
-                $i++;
-            }
             return redirect('/admin/articles/posts')->with('ok-delete', '');
         }
         return redirect('/admin/articles/posts')->with('no-delete', '');
