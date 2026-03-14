@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { fetchGeneral } from '$lib/server/data';
+import OpenAI from 'openai';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
@@ -10,12 +11,10 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			return json({ error: 'Invalid messages array' }, { status: 400 });
 		}
 
-		// Log terminal usage for security/Otel tracking
 		const lastMessage = messages[messages.length - 1];
 		if (lastMessage?.role === 'user') {
 			let clientIp = 'unknown';
 			try {
-				// Prioritize real IP headers set by reverse proxies (Coolify, Nginx, Cloudflare, etc.)
 				clientIp = request.headers.get('cf-connecting-ip') 
 					|| request.headers.get('x-real-ip')
 					|| request.headers.get('x-forwarded-for')?.split(',')[0].trim() 
@@ -41,13 +40,16 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			);
 		}
 
-		let apiUrl = openaiUrl.trim().replace(/\/+$/, '');
-		if (!apiUrl.endsWith('/chat/completions')) {
-			if (!apiUrl.endsWith('/v1')) {
-				apiUrl += '/v1';
-			}
-			apiUrl += '/chat/completions';
+		let baseURL = openaiUrl.trim().replace(/\/+$/, '');
+		
+		if (baseURL.endsWith('/chat/completions')) {
+			baseURL = baseURL.replace('/chat/completions', '');
 		}
+
+		const openai = new OpenAI({
+			baseURL: baseURL,
+			apiKey: openaiKey.trim(),
+		});
 
 		const systemPrompt = {
 			role: 'system',
@@ -59,36 +61,22 @@ If the user types a standard Linux command, you can simulate its output or provi
 If they ask a general question, answer it concisely in a terminal-friendly format.`
 		};
 
-		const payload = {
-			model: openaiModel,
-			messages: [systemPrompt, ...messages],
-			temperature: 0.7,
-			max_tokens: 1000
-		};
+		try {
+			const completion = await openai.chat.completions.create({
+				model: openaiModel.trim(),
+				messages: [systemPrompt, ...messages] as OpenAI.Chat.ChatCompletionMessageParam[]
+			});
 
-		const response = await fetch(apiUrl, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${openaiKey}`
-			},
-			body: JSON.stringify(payload)
-		});
-
-		if (!response.ok) {
-			const errorData = await response.text();
-			console.error('OpenAI API Error:', errorData);
+			const reply = completion.choices?.[0]?.message?.content || 'No response from AI.';
+			return json({ response: reply });
+		} catch (error: any) {
+			console.error('OpenAI API Error:', error);
 			return json(
 				{ 
-					response: `Error: Failed to connect to AI service. HTTP ${response.status}\n${errorData}` 
+					response: `Error: Failed to connect to AI service.\n${error.message}` 
 				}
 			);
 		}
-
-		const data = await response.json();
-		const reply = data.choices?.[0]?.message?.content || 'No response from AI.';
-
-		return json({ response: reply });
 	} catch (error: any) {
 		console.error('Terminal API Error:', error);
 		return json({ response: `Error: ${error.message}` });
