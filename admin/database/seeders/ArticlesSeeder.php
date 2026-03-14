@@ -18,7 +18,6 @@ class ArticlesSeeder extends Seeder
             'slug'          => 'lorem-ipsum-1',
             'status'        => 'published',
             'images_code'   => 'post_2038',
-            'order'         => 1,
             'category_id'   => 1,
         ]);
 
@@ -31,7 +30,6 @@ class ArticlesSeeder extends Seeder
             'slug'          => 'lorem-ipsum-2',
             'status'        => 'published',
             'images_code'   => 'post_1073',
-            'order'         => 6,
             'category_id'   => 2,
         ]);
 
@@ -44,7 +42,6 @@ class ArticlesSeeder extends Seeder
             'slug'          => 'lorem-ipsum-3',
             'status'        => 'published',
             'images_code'   => 'post_5384',
-            'order'         => 3,
             'category_id'   => 1,
         ]);
 
@@ -57,7 +54,6 @@ class ArticlesSeeder extends Seeder
             'slug'          => 'lorem-ipsum-4',
             'status'        => 'published',
             'images_code'   => 'post_6737',
-            'order'         => 4,
             'category_id'   => 2,
         ]);
 
@@ -70,7 +66,6 @@ class ArticlesSeeder extends Seeder
             'slug'          => 'lorem-ipsum-5',
             'status'        => 'published',
             'images_code'   => 'post_1166',
-            'order'         => 5,
             'category_id'   => 1,
         ]);
     }

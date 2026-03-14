@@ -34,7 +34,6 @@
                                         <th>{{ __('content.category') }}</th>
                                         <th class="max-w-150">{{ __('content.image') }}</th>
                                         <th>{{ __('content.short_desc') }}</th>
-                                        <th>{{ __('content.order') }}</th>
                                         <th class="custom-width-action">{{ __('content.action') }}</th>
                                     </tr>
                                 </thead>
@@ -67,20 +66,6 @@
                                                 </a>
                                             </td>
                                             <td>{{ $project->short_desc }}</td>
-                                            <td>
-                                                <div class="btn-group">
-                                                    @if ($i < count($projects))
-                                                        <a href="{{ url('/') }}/admin/projects/projects/order-down/{{ $project->id }}" class="btn btn-warning btn-sm mr-1">
-                                                            <i class="fas fa-arrow-down"></i>
-                                                        </a>
-                                                    @endif
-                                                    @if ($i != 1)
-                                                        <a href="{{ url('/') }}/admin/projects/projects/order-up/{{ $project->id }}" class="btn btn-warning btn-sm mr-1">
-                                                            <i class="fas fa-arrow-up"></i>
-                                                        </a>
-                                                    @endif
-                                                </div>
-                                            </td>
                                             <td>
                                                 <div class="btn-group">
                                                     <a href="{{ url('/') }}/admin/projects/project/{{ $project->id }}" class="btn btn-primary btn-sm mr-1">

@@ -20,7 +20,6 @@
                     <form action="{{ url('/') }}/admin/articles/post" method="POST" class="user" enctype="multipart/form-data">
                         @csrf
                         <div class="modal-body">
-                            <input type="hidden" name="order" value="@php echo (count($articles) > 0) ? (count($articles)+1) : 1; @endphp" />
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="title" class="form-label">{{ __('content.title') }}</label>

@@ -25,7 +25,6 @@ class ProjectSeeder extends Seeder
             <li>Aenean ultricies mauris vitae.</li>
             </ul>',
             'image'         => 'demo/img/projects/project_image_8708.jpg',
-            'order'         => 1,
             'category_id'   => 1,
         ]);
 
@@ -45,7 +44,6 @@ class ProjectSeeder extends Seeder
             <li>Aenean ultricies mauris vitae.</li>
             </ul>',
             'image'         => 'demo/img/projects/project_image_3833.jpg',
-            'order'         => 2,
             'category_id'   => 3,
         ]);
 
@@ -65,7 +63,6 @@ class ProjectSeeder extends Seeder
             <li>Aenean ultricies mauris vitae.</li>
             </ul>',
             'image'         => 'demo/img/projects/project_image_5551.jpg',
-            'order'         => 3,
             'category_id'   => 2,
         ]);
 
@@ -85,7 +82,6 @@ class ProjectSeeder extends Seeder
             <li>Aenean ultricies mauris vitae.</li>
             </ul>',
             'image'         => 'demo/img/projects/project_image_168.jpg',
-            'order'         => 4,
             'category_id'   => 1,
         ]);
 
@@ -105,7 +101,6 @@ class ProjectSeeder extends Seeder
             <li>Aenean ultricies mauris vitae.</li>
             </ul>',
             'image'         => 'demo/img/projects/project_image_5784.jpg',
-            'order'         => 5,
             'category_id'   => 3,
         ]);
 
@@ -125,7 +120,6 @@ class ProjectSeeder extends Seeder
             <li>Aenean ultricies mauris vitae.</li>
             </ul>',
             'image'         => 'demo/img/projects/project_image_5330.jpg',
-            'order'         => 6,
             'category_id'   => 2,
         ]);
 
@@ -145,7 +139,6 @@ class ProjectSeeder extends Seeder
             <li>Aenean ultricies mauris vitae.</li>
             </ul>',
             'image'         => 'demo/img/projects/project_image_6487.jpg',
-            'order'         => 7,
             'category_id'   => 1,
         ]);
 
@@ -165,7 +158,6 @@ class ProjectSeeder extends Seeder
             <li>Aenean ultricies mauris vitae.</li>
             </ul>',
             'image'         => 'demo/img/projects/project_image_9837.jpg',
-            'order'         => 8,
             'category_id'   => 3,
         ]);
 
@@ -185,7 +177,6 @@ class ProjectSeeder extends Seeder
             <li>Aenean ultricies mauris vitae.</li>
             </ul>',
             'image'         => 'demo/img/projects/project_image_2983.jpg',
-            'order'         => 9,
             'category_id'   => 2,
         ]);
 
@@ -205,7 +196,6 @@ class ProjectSeeder extends Seeder
             <li>Aenean ultricies mauris vitae.</li>
             </ul>',
             'image'         => 'demo/img/projects/project_image_896.jpg',
-            'order'         => 10,
             'category_id'   => 1,
         ]);
 
@@ -225,7 +215,6 @@ class ProjectSeeder extends Seeder
             <li>Aenean ultricies mauris vitae.</li>
             </ul>',
             'image'         => 'demo/img/projects/project_image_9860.jpg',
-            'order'         => 11,
             'category_id'   => 3,
         ]);
     }

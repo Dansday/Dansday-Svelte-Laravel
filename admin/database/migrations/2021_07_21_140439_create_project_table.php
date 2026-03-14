@@ -21,7 +21,6 @@ class CreateProjectTable extends Migration
             $table->string('images_code');
             $table->text('description');
             $table->text('image')->nullable();
-            $table->integer('order');
 
             $table->unsignedBigInteger('category_id');
             $table->foreign('category_id')->references('id')->on('project_category');

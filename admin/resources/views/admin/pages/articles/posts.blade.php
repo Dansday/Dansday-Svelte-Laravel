@@ -33,7 +33,6 @@
                                         <th>{{ __('content.category') }}</th>
                                         <th class="max-w-150">{{ __('content.image') }}</th>
                                         <th>{{ __('content.status') }}</th>
-                                        <th>{{ __('content.order') }}</th>
                                         <th class="custom-width-action">{{ __('content.action') }}</th>
                                     </tr>
                                 </thead>
@@ -65,20 +64,6 @@
                                                 @else
                                                     <i class="far fa-thumbs-up h4 text-success" data-bs-toggle="tooltip" data-bs-placement="bottom" title="{{ __('content.published') }}"></i>
                                                 @endif
-                                            </td>
-                                            <td>
-                                                <div class="btn-group">
-                                                    @if ($i < count($articles))
-                                                        <a href="{{ url('/') }}/admin/articles/posts/order-down/{{ $post->id }}" class="btn btn-warning btn-sm mr-1">
-                                                            <i class="fas fa-arrow-down"></i>
-                                                        </a>
-                                                    @endif
-                                                    @if ($i != 1)
-                                                        <a href="{{ url('/') }}/admin/articles/posts/order-up/{{ $post->id }}" class="btn btn-warning btn-sm mr-1">
-                                                            <i class="fas fa-arrow-up"></i>
-                                                        </a>
-                                                    @endif
-                                                </div>
                                             </td>
                                             <td>
                                                 <div class="btn-group">
