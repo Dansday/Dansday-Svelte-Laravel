@@ -10,7 +10,7 @@
 <Metadata title={data.meta.title} description={data.meta.description} image={posterUrl} />
 
 <header class="group border-ash-700 bg-ash-700 relative mb-5 aspect-3/1 overflow-hidden border">
-	<img src={posterUrl} alt={data.meta.title} class="size-full object-cover object-center" />
+	<img src={posterUrl} alt={data.meta.title} class="size-full object-cover object-center" fetchpriority="high" loading="eager" />
 	<div class="absolute top-0 left-0 grid h-full w-full place-items-center bg-[#080808]/80 transition-opacity duration-500 group-hover:opacity-0">
 		<h1 class="max-w-[80%] px-4 text-center text-2xl font-semibold uppercase lg:max-w-[60%] lg:text-4xl">
 			{data.meta.title}

@@ -15,7 +15,11 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		if (lastMessage?.role === 'user') {
 			let clientIp = 'unknown';
 			try {
-				clientIp = getClientAddress();
+				// Prioritize real IP headers set by reverse proxies (Coolify, Nginx, Cloudflare, etc.)
+				clientIp = request.headers.get('cf-connecting-ip') 
+					|| request.headers.get('x-real-ip')
+					|| request.headers.get('x-forwarded-for')?.split(',')[0].trim() 
+					|| getClientAddress();
 			} catch(e) {}
 			console.info(`[Terminal Activity] Command executed by IP ${clientIp}: ${lastMessage.content}`);
 		}
