@@ -4,7 +4,7 @@ function esc(s: unknown): string {
 	return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
 
-type Exp = { title?: unknown; period?: unknown };
+type Exp = { title?: unknown; period?: unknown; description?: unknown };
 type Service = { title?: unknown; description?: unknown };
 type Skill = { title?: unknown };
 type Testimonial = { name?: unknown; company?: unknown; text?: unknown };
@@ -14,14 +14,22 @@ export function experienceToCodeLines(edu: Exp[], emp: Exp[]): string[] {
 	if (edu.length > 0) {
 		lines.push('  education: [');
 		for (const e of edu) {
-			lines.push(`    { title: "${esc(e.title)}", period: "${esc(e.period)}" },`);
+			if (e.description) {
+				lines.push(`    { school: "${esc(e.title)}", period: "${esc(e.period)}", description: "${esc(e.description)}" },`);
+			} else {
+				lines.push(`    { school: "${esc(e.title)}", period: "${esc(e.period)}" },`);
+			}
 		}
 		lines.push('  ],');
 	}
 	if (emp.length > 0) {
 		lines.push('  employment: [');
 		for (const e of emp) {
-			lines.push(`    { title: "${esc(e.title)}", period: "${esc(e.period)}" },`);
+			if (e.description) {
+				lines.push(`    { company: "${esc(e.title)}", period: "${esc(e.period)}", description: "${esc(e.description)}" },`);
+			} else {
+				lines.push(`    { company: "${esc(e.title)}", period: "${esc(e.period)}" },`);
+			}
 		}
 		lines.push('  ],');
 	}
