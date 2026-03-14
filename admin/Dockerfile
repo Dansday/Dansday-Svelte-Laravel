@@ -1,14 +1,14 @@
 FROM node:alpine AS frontend
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+COPY package.json ./
+RUN npm install
 COPY . .
 RUN npm run build
 
 FROM php:8.5-cli-alpine
 RUN apk add --no-cache git unzip libzip-dev libpng-dev libxml2-dev oniguruma-dev
 RUN docker-php-ext-install pdo_mysql zip gd xml mbstring
-RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+RUN apk add --no-cache linux-headers --virtual .build-deps $PHPIZE_DEPS \
     && pecl install redis opentelemetry \
     && docker-php-ext-enable redis opentelemetry \
     && apk del .build-deps
