@@ -70,7 +70,10 @@
 	{/if}
 	<link rel="preconnect" href={data.adminBaseUrl} crossorigin="anonymous" />
 	<link rel="preload" href="{data.adminBaseUrl}/assets/fonts/fontawesome/css/all.min.css" as="style" />
-	<link rel="stylesheet" href="{data.adminBaseUrl}/assets/fonts/fontawesome/css/all.min.css" />
+	<link rel="stylesheet" href="{data.adminBaseUrl}/assets/fonts/fontawesome/css/all.min.css" media="print" onload={(e) => ((e.target as HTMLLinkElement).media = 'all')} />
+	<noscript>
+		<link rel="stylesheet" href="{data.adminBaseUrl}/assets/fonts/fontawesome/css/all.min.css" />
+	</noscript>
 </svelte:head>
 
 {#if trackingId}
