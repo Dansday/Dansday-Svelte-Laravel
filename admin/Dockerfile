@@ -30,4 +30,4 @@ COPY --from=frontend /app/public/assets/admin/css/admin.css ./public/assets/admi
 
 EXPOSE 80
 
-CMD sh -c "if [ ! -f .env ]; then cp .env.example .env; fi && php artisan optimize:clear && php artisan migrate --force && exec php artisan serve --host=0.0.0.0 --port=${PORT:-80}"
+CMD sh -c "php artisan optimize:clear && php artisan migrate --force && exec php artisan serve --host=0.0.0.0 --port=${PORT:-80}"
