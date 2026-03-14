@@ -69,7 +69,7 @@ RUN mkdir -p /etc/caddy && cat > /etc/caddy/Caddyfile <<'CADDYEOF'
     encode gzip
 
     @fonts_cors {
-        path_regexp fonts \.(woff2?|ttf|eot|otf)$
+        path_regexp \.(woff2?|ttf|eot|otf)$
         header Origin ~^https?://([a-z0-9-]+\.)?dansday\.com$
     }
 
@@ -83,7 +83,7 @@ RUN mkdir -p /etc/caddy && cat > /etc/caddy/Caddyfile <<'CADDYEOF'
 
     @fontsPreflight {
         method OPTIONS
-        path_regexp fonts \.(woff2?|ttf|eot|otf)$
+        path_regexp \.(woff2?|ttf|eot|otf)$
         header Origin ~^https?://([a-z0-9-]+\.)?dansday\.com$
     }
     respond @fontsPreflight 204
@@ -101,4 +101,4 @@ EXPOSE 2222
 ENV APP_ENV=production
 ENV LOG_CHANNEL=stderr
 
-CMD ["sh", "-c", "php artisan optimize:clear && php artisan migrate --force && frankenphp run --config /etc/caddy/Caddyfile"]
+CMD ["sh", "-c", "php artisan optimize:clear && php artisan migrate --force && frankenphp run --config /etc/caddy/Caddyfile --adapter caddyfile"]
