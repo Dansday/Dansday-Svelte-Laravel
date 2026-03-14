@@ -6,6 +6,8 @@
 	import Navbar from '$lib/components/layout/navbar/navbar.svelte';
 	import GoogleAnalytics from '$lib/components/GoogleAnalytics.svelte';
 
+	import grainUrl from '$lib/assets/grain.webp';
+
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -66,6 +68,8 @@
 	{#if data.defaultFavicon}
 		<link rel="icon" href={data.defaultFavicon} />
 	{/if}
+	<link rel="preconnect" href={data.adminBaseUrl} crossorigin="anonymous" />
+	<link rel="preload" href="{data.adminBaseUrl}/assets/fonts/fontawesome/css/all.min.css" as="style" />
 	<link rel="stylesheet" href="{data.adminBaseUrl}/assets/fonts/fontawesome/css/all.min.css" />
 </svelte:head>
 
@@ -87,7 +91,7 @@
 </main>
 
 <div class="grid-pattern absolute top-0 left-0 h-full w-full" aria-hidden="true"></div>
-<div class="grain-noise pointer-events-none fixed top-0 size-[300%]" aria-hidden="true"></div>
+<div class="grain-noise pointer-events-none fixed top-0 size-[300%]" aria-hidden="true" style:--grain-url="url({grainUrl})"></div>
 
 {#await import('$lib/components/layout/particle.svelte') then { default: Particle }}
 	<Particle />
@@ -103,7 +107,7 @@
 	}
 
 	.grain-noise {
-		background-image: url('/grain.webp');
+		background-image: var(--grain-url);
 		animation: animate-grain 8s steps(10) infinite;
 		opacity: 0.05;
 	}

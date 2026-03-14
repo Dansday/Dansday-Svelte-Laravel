@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { SVGAttributes } from 'svelte/elements';
+	import iconsUrl from '$lib/assets/icons.svg';
 
 	interface $$Props extends Omit<SVGAttributes<SVGSVGElement>, 'class'> {
 		name: string;
@@ -11,5 +12,5 @@
 
 <svg role="img" class="size-[14px]" {...props}>
 	{#if title}<title>{title}</title>{/if}
-	<use xlink:href={`/icons.svg#${name}`} href={`/icons.svg#${name}`} />
+	<use xlink:href={`${iconsUrl}#${name}`} href={`${iconsUrl}#${name}`} />
 </svg>
