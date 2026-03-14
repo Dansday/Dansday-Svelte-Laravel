@@ -51,8 +51,9 @@ WORKDIR /app
 
 COPY --from=vendor /app/vendor ./vendor
 COPY --from=vendor /app ./
-COPY --from=frontend /app/public/build ./public/build
-COPY --from=frontend /app/public/assets ./public/assets
+
+RUN mkdir -p ./public/build ./public/assets
+COPY --from=frontend /app/public ./public
 
 RUN if [ -d assets ]; then cp -r assets/* public/assets/; fi
 
