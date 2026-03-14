@@ -76,7 +76,16 @@ RUN mkdir -p /etc/caddy && cat > /etc/caddy/Caddyfile <<'CADDYEOF'
         Access-Control-Allow-Origin "*"
         Access-Control-Allow-Methods "GET, OPTIONS"
         Access-Control-Allow-Headers "*"
-        Cache-Control "no-cache"
+        Cache-Control "public, max-age=31536000, immutable"
+    }
+
+    @static {
+        path_regexp \.(css|js|webp|png|jpg|jpeg|gif|svg|ico)$
+    }
+
+    header @static {
+        Access-Control-Allow-Origin "*"
+        Cache-Control "public, max-age=31536000, immutable"
     }
 
     php_server {
