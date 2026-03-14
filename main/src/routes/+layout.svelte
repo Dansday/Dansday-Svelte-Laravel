@@ -66,6 +66,7 @@
 	{#if data.defaultFavicon}
 		<link rel="icon" href={data.defaultFavicon} />
 	{/if}
+	<link rel="stylesheet" href="{data.adminBaseUrl}/assets/fonts/fontawesome/css/all.min.css" />
 </svelte:head>
 
 {#if trackingId}

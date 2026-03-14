@@ -27,11 +27,7 @@ $(document).ready(function() {
                 (info_value.search('>') == -1) &&
                 (info_value.search('"') == -1)) {
 
-                if ($('#info_label_' + target).hasClass('select-social') == true) {
-                    var textIcon = '<span class="' + info_label + '"></span>';
-                } else {
-                    var textIcon = info_label;
-                }
+                var textIcon = '<span class="' + info_label + '"></span>';
 
                 $('.table-' + target).append('<tr><td class="fw-bold">' + textIcon + '</td><td>' + info_value + '</td><td class="text-right"><button type="button" class="btn btn-outline-danger btn-sm rounded-circle deleteInfo" data-info="' + info_label + '" data-value="' + info_value + '"><i class="fas fa-times"></i></button></tr>');
 
