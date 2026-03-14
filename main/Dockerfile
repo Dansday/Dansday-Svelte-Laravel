@@ -23,10 +23,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/otel ./otel
 
-EXPOSE 3000
+EXPOSE 1111
 
 ENV HOST=0.0.0.0
-ENV PORT=3000
+ENV PORT=1111
 ENV NODE_ENV=production
 
 CMD ["node", "--import", "./otel/console-instrumentation.js", "build/index.js"]
