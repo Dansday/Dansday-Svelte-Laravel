@@ -21,7 +21,10 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 
 WORKDIR /app
 
-COPY composer.json composer.lock* ./
+COPY composer.json ./
+# If a lockfile somehow makes its way into the build context or exists dynamically, remove it so install evaluates purely from json.
+RUN rm -f composer.lock
+
 # --no-scripts: avoid post-autoload-dump (artisan package:discover) until app is copied
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 

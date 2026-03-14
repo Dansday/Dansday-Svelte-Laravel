@@ -22,6 +22,6 @@ if [ -f .env ]; then
   _set VITE_APP_NAME; _set PORT
 fi
 
-php artisan config:clear
+php artisan optimize:clear || true
 php artisan migrate --force || true
 exec php artisan serve --host=0.0.0.0 --port="${PORT:-80}"
