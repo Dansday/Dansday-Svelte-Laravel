@@ -99,6 +99,26 @@ class GeneralController extends Controller
                         }
                     }
                 }
+                
+                // Clear old generated favicons in public/favicon before making new ones
+                $publicFaviconDir = public_path('favicon');
+                if (is_dir($publicFaviconDir)) {
+                    $filesToDelete = [
+                        'favicon.ico',
+                        'favicon-96x96.png',
+                        'favicon.svg',
+                        'apple-touch-icon.png',
+                        'site.webmanifest',
+                        'web-app-manifest-192x192.png',
+                        'web-app-manifest-512x512.png',
+                    ];
+                    foreach ($filesToDelete as $file) {
+                        $filePath = $publicFaviconDir . '/' . $file;
+                        if (file_exists($filePath)) {
+                            @unlink($filePath);
+                        }
+                    }
+                }
             }
 
             @ini_set('memory_limit', '256M');
@@ -174,6 +194,27 @@ class GeneralController extends Controller
                     }
                 }
             }
+            
+            // Also clean up the generated files in public/favicon
+            $publicFaviconDir = public_path('favicon');
+            if (is_dir($publicFaviconDir)) {
+                $filesToDelete = [
+                    'favicon.ico',
+                    'favicon-96x96.png',
+                    'favicon.svg',
+                    'apple-touch-icon.png',
+                    'site.webmanifest',
+                    'web-app-manifest-192x192.png',
+                    'web-app-manifest-512x512.png',
+                ];
+                foreach ($filesToDelete as $file) {
+                    $filePath = $publicFaviconDir . '/' . $file;
+                    if (file_exists($filePath)) {
+                        @unlink($filePath);
+                    }
+                }
+            }
+            
             $route_image_favicon = '';
         }
 
