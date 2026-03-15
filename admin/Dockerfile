@@ -80,7 +80,7 @@ RUN mkdir -p /etc/caddy && cat > /etc/caddy/Caddyfile <<'CADDYEOF'
     }
 
     @static {
-        path_regexp \.(css|js|webp|png|jpg|jpeg|gif|svg|ico)$
+        path_regexp \.(css|js|webp|png|jpg|jpeg|gif|svg|ico|webmanifest|json)$
     }
 
     header @static {
