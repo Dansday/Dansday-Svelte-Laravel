@@ -53,6 +53,22 @@ export const load: LayoutServerLoad = async () => {
 		} catch {}
 		const defaultOgImage = resolveUrl((general.image_favicon as string) ?? null, publicBase);
 		const defaultFavicon = resolveUrl((general.image_favicon as string) ?? null, publicBase);
+
+		let favicons: Array<{ rel: string; href: string; sizes: string }> = [];
+		if (defaultFavicon && general.image_favicon && typeof general.image_favicon === 'string') {
+			const ext = general.image_favicon.split('.').pop() || 'png';
+			const dirUrl = defaultFavicon.substring(0, defaultFavicon.lastIndexOf('/'));
+			favicons.push({ rel: 'icon', href: defaultFavicon, sizes: '96x96' });
+			const dims = ['57', '72', '76', '114', '120', '144', '152'];
+			for (const dim of dims) {
+				favicons.push({
+					rel: 'apple-touch-icon-precomposed',
+					href: `${dirUrl}/apple-touch-icon-${dim}x${dim}-precomposed.${ext}`,
+					sizes: `${dim}x${dim}`
+				});
+			}
+		}
+
 		const projectsListMeta = {
 			title: siteName ? `Projects | ${siteName}` : 'Projects',
 			description: (general.description as string) ?? ''
@@ -63,6 +79,7 @@ export const load: LayoutServerLoad = async () => {
 			adminBaseUrl: publicBase,
 			defaultOgImage,
 			defaultFavicon,
+			favicons,
 			socialLinks,
 			home: homeRecord,
 			homeTitleAscii,
@@ -84,6 +101,7 @@ export const load: LayoutServerLoad = async () => {
 			adminBaseUrl: publicBase,
 			defaultOgImage: '',
 			defaultFavicon: '',
+			favicons: [],
 			socialLinks: [],
 			home: {},
 			homeTitleAscii: null,
