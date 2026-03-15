@@ -60,7 +60,7 @@ export const load: LayoutServerLoad = async () => {
 			favicons.push({ rel: 'icon', type: 'image/svg+xml', href: `${dirUrl}/favicon.svg` });
 			favicons.push({ rel: 'shortcut icon', href: `${dirUrl}/favicon.ico` });
 			favicons.push({ rel: 'apple-touch-icon', sizes: '180x180', href: `${dirUrl}/apple-touch-icon.png` });
-			favicons.push({ rel: 'manifest', href: `/site.webmanifest` });
+			favicons.push({ rel: 'manifest', href: `${dirUrl}/site.webmanifest` });
 		}
 
 		const projectsListMeta = {
