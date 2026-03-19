@@ -10,11 +10,8 @@
 	const metaDescription = 'GitHub contribution stats and activity.';
 
 	interface ActivityItem {
-		type: 'commit' | 'pr';
 		repo: string;
-		repoUrl: string;
 		title: string;
-		url: string;
 		date: string;
 		private: boolean;
 	}
@@ -44,6 +41,7 @@
 	let githubData = $state<GithubData | null>(null);
 	let loading = $state(true);
 	let error = $state('');
+	let visibleCount = $state(0);
 
 	const LANG_COLORS: Record<string, string> = {
 		TypeScript: '#3178c6',
@@ -124,6 +122,16 @@
 				return;
 			}
 			githubData = await res.json();
+		// Reveal activity items one by one
+		const total = githubData?.activity?.length ?? 0;
+		let i = 0;
+		const tick = () => {
+			if (i < total) {
+				visibleCount = ++i;
+				setTimeout(tick, 80);
+			}
+		};
+		setTimeout(tick, 200);
 		} catch (e: any) {
 			error = e.message ?? 'Network error.';
 		} finally {
@@ -229,15 +237,16 @@
 
 				<!-- Live activity feed -->
 				<div class="lg:col-span-2">
-					<div class="text-xs text-[#8b949e] uppercase tracking-wider mb-2">Live activity</div>
+					<div class="text-xs text-[#8b949e] uppercase tracking-wider mb-2 flex items-center gap-2">
+						Live activity
+						{#if visibleCount < (githubData.activity.length)}
+							<span class="inline-block w-1.5 h-1.5 rounded-full bg-[#39d353] animate-pulse"></span>
+						{/if}
+					</div>
 					<div class="flex flex-col gap-1">
-						{#each githubData.activity as item}
-							<div class="flex items-start gap-2 border border-[#30363d] bg-[#161b22]/60 rounded px-3 py-2">
-								{#if item.type === 'commit'}
-									<i class="fas fa-code-commit mt-0.5 shrink-0 text-[#8b949e] text-xs"></i>
-								{:else}
-									<i class="fas fa-code-pull-request mt-0.5 shrink-0 text-[#bc8cff] text-xs"></i>
-								{/if}
+						{#each githubData.activity.slice(0, visibleCount) as item}
+							<div class="flex items-start gap-2 border border-[#30363d] bg-[#161b22]/60 rounded px-3 py-2 activity-item">
+								<i class="fas fa-code-commit mt-0.5 shrink-0 text-[#8b949e] text-xs"></i>
 								<div class="min-w-0 flex-1">
 									<div class="flex items-center gap-1.5 flex-wrap">
 										<span class="text-[#58a6ff] text-xs font-medium shrink-0">{item.repo}</span>
@@ -245,9 +254,7 @@
 											<span class="text-[#8b949e] text-[10px] border border-[#30363d] rounded px-1">private</span>
 										{/if}
 									</div>
-									<a href={item.url} target="_blank" rel="noopener noreferrer" class="text-[#c9d1d9] text-xs hover:text-white hover:underline line-clamp-1 block mt-0.5">
-										{item.title}
-									</a>
+									<span class="text-[#c9d1d9] text-xs line-clamp-1 block mt-0.5">{item.title}</span>
 								</div>
 								<div class="text-[#8b949e] text-[10px] shrink-0 mt-0.5">{timeAgo(item.date)}</div>
 							</div>
@@ -279,3 +286,20 @@
 		{/if}
 	</div>
 </main>
+
+<style>
+	.activity-item {
+		animation: slide-in 0.2s ease-out both;
+	}
+
+	@keyframes slide-in {
+		from {
+			opacity: 0;
+			transform: translateX(-8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateX(0);
+		}
+	}
+</style>

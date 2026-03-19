@@ -114,11 +114,8 @@ async function fetchRecentActivity(username: string, token: string) {
 	if (!Array.isArray(events)) return [];
 
 	const activity: {
-		type: 'commit' | 'pr';
 		repo: string;
-		repoUrl: string;
 		title: string;
-		url: string;
 		date: string;
 		private: boolean;
 	}[] = [];
@@ -133,24 +130,8 @@ async function fetchRecentActivity(username: string, token: string) {
 			const commits: any[] = event.payload?.commits ?? [];
 			for (const c of commits.slice(0, 3)) {
 				activity.push({
-					type: 'commit',
 					repo: repoShort,
-					repoUrl,
 					title: (c.message as string)?.split('\n')[0] ?? 'Commit',
-					url: `https://github.com/${repoName}/commit/${c.sha}`,
-					date: event.created_at ?? '',
-					private: isPrivate
-				});
-			}
-		} else if (event.type === 'PullRequestEvent') {
-			const pr = event.payload?.pull_request;
-			if (pr) {
-				activity.push({
-					type: 'pr',
-					repo: repoShort,
-					repoUrl,
-					title: pr.title ?? 'Pull Request',
-					url: pr.html_url ?? repoUrl,
 					date: event.created_at ?? '',
 					private: isPrivate
 				});
@@ -165,11 +146,17 @@ async function fetchRecentActivity(username: string, token: string) {
 		.slice(0, 30);
 }
 
-async function fetchTopLanguages(token: string) {
-	const res = await fetch(
+async function fetchTopLanguages(username: string, token: string) {
+	let res = await fetch(
 		`${GITHUB_API}/user/repos?per_page=100&type=all&affiliation=owner`,
 		{ headers: getHeaders(token) }
 	);
+	if (!res.ok) {
+		res = await fetch(
+			`${GITHUB_API}/users/${username}/repos?per_page=100&type=owner`,
+			{ headers: getHeaders(token) }
+		);
+	}
 	if (!res.ok) return [];
 	const repos = await res.json();
 	if (!Array.isArray(repos)) return [];
@@ -199,7 +186,7 @@ export const GET: RequestHandler = async () => {
 		const [contributions, activity, languages] = await Promise.all([
 			fetchContributionStats(username, token),
 			fetchRecentActivity(username, token),
-			fetchTopLanguages(token)
+			fetchTopLanguages(username, token)
 		]);
 
 		return json({ username, ...contributions, activity, languages });
