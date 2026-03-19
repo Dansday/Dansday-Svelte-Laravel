@@ -141,62 +141,25 @@ async function fetchContributionStats(username: string, token: string) {
 	};
 }
 
-function repoHistoryFragment(perRepo: number, untilArg: string) {
-	return `
-		name
-		owner { login }
-		isPrivate
-		defaultBranchRef {
-			target {
-				... on Commit {
-					history(first: ${perRepo}${untilArg}) {
-						nodes {
-							message
-							committedDate
-							oid
-							author { user { login } }
-						}
-						pageInfo { hasNextPage }
-					}
-				}
-			}
-		}
-	`;
-}
-
-async function fetchRecentActivity(username: string, token: string, orgs: string[], before?: string, limit = 10) {
-	const untilArg = before ? `, until: "${before}"` : '';
-	const perRepo = limit + 5;
-	const frag = repoHistoryFragment(perRepo, untilArg);
-
-	const userQuery = `
+async function fetchMyRepos(username: string, token: string, orgs: string[]) {
+	const listQuery = `
 		query($username: String!) {
 			user(login: $username) {
 				repositories(first: 100, orderBy: {field: PUSHED_AT, direction: DESC}, affiliations: [OWNER, COLLABORATOR]) {
-					nodes { ${frag} }
-				}
-			}
-		}
-	`;
-
-	const orgQueryTemplate = `
-		query($org: String!) {
-			organization(login: $org) {
-				repositories(first: 50, orderBy: {field: PUSHED_AT, direction: DESC}) {
-					nodes { ${frag} }
+					nodes { name owner { login } isPrivate pushedAt }
 				}
 			}
 		}
 	`;
 
 	const orgQueries = orgs.map((org) =>
-		graphql(token, orgQueryTemplate, { org })
+		graphql(token, `query($org: String!) { organization(login: $org) { repositories(first: 50, orderBy: {field: PUSHED_AT, direction: DESC}) { nodes { name owner { login } isPrivate pushedAt } } } }`, { org })
 			.then((d) => d.data?.organization?.repositories?.nodes ?? [])
 			.catch(() => [])
 	);
 
 	const [userData, ...orgResults] = await Promise.all([
-		graphql(token, userQuery, { username })
+		graphql(token, listQuery, { username })
 			.then((d) => d.data?.user?.repositories?.nodes ?? [])
 			.catch(() => []),
 		...orgQueries
@@ -213,11 +176,50 @@ async function fetchRecentActivity(username: string, token: string, orgs: string
 		}
 	}
 
+	return Array.from(repoMap.values())
+		.filter((r) => r.pushedAt)
+		.sort((a, b) => new Date(b.pushedAt).getTime() - new Date(a.pushedAt).getTime());
+}
+
+async function fetchRecentActivity(username: string, token: string, repos: any[], before?: string, limit = 10) {
+	const untilArg = before ? `, until: "${before}"` : '';
+	const perRepo = limit + 5;
+
+	const results = await Promise.all(
+		repos.map((repo) => {
+			const owner = repo.owner?.login;
+			const name = repo.name;
+			const query = `
+				query($owner: String!, $name: String!) {
+					repository(owner: $owner, name: $name) {
+						defaultBranchRef {
+							target {
+								... on Commit {
+									history(first: ${perRepo}${untilArg}) {
+										nodes {
+											message
+											committedDate
+											oid
+											author { user { login } }
+										}
+										pageInfo { hasNextPage }
+									}
+								}
+							}
+						}
+					}
+				}
+			`;
+			return graphql(token, query, { owner, name })
+				.then((d) => ({ repo, history: d.data?.repository?.defaultBranchRef?.target?.history }))
+				.catch(() => ({ repo, history: null }));
+		})
+	);
+
 	const all: ActivityItem[] = [];
 	let anyRepoHasMore = false;
 
-	for (const repo of repoMap.values()) {
-		const history = repo.defaultBranchRef?.target?.history;
+	for (const { repo, history } of results) {
 		const commits = history?.nodes ?? [];
 		if (history?.pageInfo?.hasNextPage) anyRepoHasMore = true;
 
@@ -251,61 +253,21 @@ async function fetchRecentActivity(username: string, token: string, orgs: string
 
 type ActivityItem = { repo: string; title: string; date: string; private: boolean };
 
-async function fetchTopLanguages(username: string, token: string, orgs: string[]) {
-	const langFrag = `
-		name
-		owner { login }
-		primaryLanguage { name }
-		defaultBranchRef {
-			target {
-				... on Commit {
-					history(first: 1) {
-						nodes { author { user { login } } }
-					}
-				}
-			}
-		}
-	`;
-
-	const userQuery = `
-		query($username: String!) {
-			user(login: $username) {
-				repositories(first: 100, orderBy: {field: PUSHED_AT, direction: DESC}, affiliations: [OWNER, COLLABORATOR]) {
-					nodes { ${langFrag} }
-				}
-			}
-		}
-	`;
-
-	const orgQueries = orgs.map((org) =>
-		graphql(token, `query($org: String!) { organization(login: $org) { repositories(first: 50, orderBy: {field: PUSHED_AT, direction: DESC}) { nodes { ${langFrag} } } } }`, { org })
-			.then((d) => d.data?.organization?.repositories?.nodes ?? [])
-			.catch(() => [])
+async function fetchTopLanguages(username: string, token: string, repos: any[]) {
+	const results = await Promise.all(
+		repos.map((repo) =>
+			graphql(token, `query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { primaryLanguage { name } defaultBranchRef { target { ... on Commit { history(first: 1) { nodes { author { user { login } } } } } } } } }`, { owner: repo.owner?.login, name: repo.name })
+				.then((d) => d.data?.repository)
+				.catch(() => null)
+		)
 	);
 
-	const [userData, ...orgResults] = await Promise.all([
-		graphql(token, userQuery, { username })
-			.then((d) => d.data?.user?.repositories?.nodes ?? [])
-			.catch(() => []),
-		...orgQueries
-	]);
-
-	const repoMap = new Map<string, any>();
-	for (const repo of userData) {
-		repoMap.set(`${repo.owner?.login}/${repo.name}`, repo);
-	}
-	for (const orgRepos of orgResults) {
-		for (const repo of orgRepos) {
-			const key = `${repo.owner?.login}/${repo.name}`;
-			if (!repoMap.has(key)) repoMap.set(key, repo);
-		}
-	}
-
 	const langMap: Record<string, number> = {};
-	for (const repo of repoMap.values()) {
-		const lang = repo.primaryLanguage?.name;
+	for (const r of results) {
+		if (!r) continue;
+		const lang = r.primaryLanguage?.name;
 		if (!lang) continue;
-		const commits = repo.defaultBranchRef?.target?.history?.nodes ?? [];
+		const commits = r.defaultBranchRef?.target?.history?.nodes ?? [];
 		const hasMyCommit = commits.some((c: any) => {
 			const login = c.author?.user?.login;
 			return !login || login.toLowerCase() === username.toLowerCase();
@@ -333,15 +295,16 @@ export const GET: RequestHandler = async ({ url }) => {
 	try {
 		const contributions = await fetchContributionStats(username, token);
 		const orgs = contributions.user.organizations.map((o) => o.login);
+		const repos = await fetchMyRepos(username, token, orgs);
 
 		if (before) {
-			const activity = await fetchRecentActivity(username, token, orgs, before, 10);
+			const activity = await fetchRecentActivity(username, token, repos, before, 10);
 			return json(activity);
 		}
 
 		const [activity, languages] = await Promise.all([
-			fetchRecentActivity(username, token, orgs, undefined, 10),
-			fetchTopLanguages(username, token, orgs)
+			fetchRecentActivity(username, token, repos, undefined, 10),
+			fetchTopLanguages(username, token, repos)
 		]);
 
 		return json({ username, ...contributions, activity, languages });
