@@ -190,11 +190,11 @@
 				{#each [
 					{ label: 'week', value: githubData.stats.week, color: 'text-[#39d353]' },
 					{ label: 'month', value: githubData.stats.month, color: 'text-[#26a641]' },
-					{ label: 'year', value: githubData.stats.year, color: 'text-[#238636]' },
+					{ label: 'this year', value: githubData.stats.year, color: 'text-[#238636]' },
 					{ label: 'all time', value: githubData.stats.allTime, color: 'text-[#3fb950]' },
-					{ label: 'commits', value: githubData.stats.totalCommits, color: 'text-[#58a6ff]' },
-					{ label: 'PRs', value: githubData.stats.totalPRs, color: 'text-[#bc8cff]' },
-					{ label: 'issues', value: githubData.stats.totalIssues, color: 'text-[#f78166]' }
+					{ label: 'commits (yr)', value: githubData.stats.totalCommits, color: 'text-[#58a6ff]' },
+					{ label: 'PRs (yr)', value: githubData.stats.totalPRs, color: 'text-[#bc8cff]' },
+					{ label: 'issues (yr)', value: githubData.stats.totalIssues, color: 'text-[#f78166]' }
 				] as card}
 					<div class="border border-[#30363d] bg-[#161b22]/60 rounded p-2 text-center">
 						<div class="text-lg font-bold {card.color}">{card.value.toLocaleString()}</div>

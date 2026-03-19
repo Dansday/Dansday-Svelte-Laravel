@@ -108,14 +108,16 @@ async function fetchContributionStats(username: string, token: string) {
 		)
 	);
 
-	let allTime = 0, totalCommits = 0, totalPRs = 0, totalIssues = 0;
+	let allTime = 0;
 	for (const yc of yearResults) {
 		if (!yc) continue;
 		allTime += yc.contributionCalendar?.totalContributions ?? 0;
-		totalCommits += yc.totalCommitContributions ?? 0;
-		totalPRs += yc.totalPullRequestContributions ?? 0;
-		totalIssues += yc.totalIssueContributions ?? 0;
 	}
+
+	const thisYearData = user?.contributionsCollection;
+	const totalCommits = thisYearData?.totalCommitContributions ?? 0;
+	const totalPRs = thisYearData?.totalPullRequestContributions ?? 0;
+	const totalIssues = thisYearData?.totalIssueContributions ?? 0;
 
 	return {
 		user: {
@@ -143,11 +145,20 @@ async function fetchContributionStats(username: string, token: string) {
 }
 
 async function fetchRecentActivity(username: string, token: string) {
-	const res = await fetch(
+	let res = await fetch(
 		`${GITHUB_API}/user/events?per_page=100`,
 		{ headers: getHeaders(token) }
 	);
-	if (!res.ok) return [];
+	if (!res.ok) {
+		res = await fetch(
+			`${GITHUB_API}/users/${username}/events?per_page=100`,
+			{ headers: getHeaders(token) }
+		);
+	}
+	if (!res.ok) {
+		console.error('[GitHub activity] status:', res.status, await res.text());
+		return [];
+	}
 
 	const events = await res.json();
 	if (!Array.isArray(events)) return [];
