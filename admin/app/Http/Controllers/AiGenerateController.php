@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\General;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 
@@ -51,7 +50,7 @@ class AiGenerateController extends Controller
                 $systemPrompt = trim($promptFromDb);
             }
         } catch (\Throwable $e) {
-            // ignore
+
         }
 
         if ($apiKey === '') {
