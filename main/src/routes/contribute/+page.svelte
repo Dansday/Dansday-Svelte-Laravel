@@ -99,7 +99,10 @@
 		}
 		for (const day of days) {
 			week.push(day);
-			if (week.length === 7) { weeks.push(week); week = []; }
+			if (week.length === 7) {
+				weeks.push(week);
+				week = [];
+			}
 		}
 
 		if (week.length > 0) {
@@ -110,9 +113,7 @@
 	}
 
 	const weeks = $derived(githubData ? buildWeeks(githubData.calendar) : []);
-	const maxLangCount = $derived(
-		githubData?.languages.length ? Math.max(...githubData.languages.map((l) => l.count)) : 1
-	);
+	const maxLangCount = $derived(githubData?.languages.length ? Math.max(...githubData.languages.map((l) => l.count)) : 1);
 
 	onMount(async () => {
 		try {
@@ -124,15 +125,15 @@
 			}
 			githubData = await res.json();
 
-		const total = githubData?.activity?.items?.length ?? 0;
-		let i = 0;
-		const tick = () => {
-			if (i < total) {
-				visibleCount = ++i;
-				setTimeout(tick, 80);
-			}
-		};
-		setTimeout(tick, 200);
+			const total = githubData?.activity?.items?.length ?? 0;
+			let i = 0;
+			const tick = () => {
+				if (i < total) {
+					visibleCount = ++i;
+					setTimeout(tick, 80);
+				}
+			};
+			setTimeout(tick, 200);
 		} catch (e: any) {
 			error = e.message ?? 'Network error.';
 		} finally {
@@ -149,10 +150,13 @@
 			const res = await fetch(`/api/github?before=${encodeURIComponent(lastDate)}`);
 			if (!res.ok) return;
 			const page: { items: ActivityItem[]; hasMore: boolean } = await res.json();
+
+			const existing = new Set(githubData.activity.items.map((i) => `${i.repo}:${i.date}:${i.title}`));
+			const newItems = page.items.filter((i) => !existing.has(`${i.repo}:${i.date}:${i.title}`));
 			const prevLen = githubData.activity.items.length;
-			githubData.activity.items = [...githubData.activity.items, ...page.items];
+			githubData.activity.items = [...githubData.activity.items, ...newItems];
 			githubData.activity.hasMore = page.hasMore;
-			// Animate new items in
+
 			let i = prevLen;
 			const total = githubData.activity.items.length;
 			const tick = () => {
@@ -173,128 +177,122 @@
 <main class="relative flex min-h-0 flex-1 flex-col font-mono text-sm md:text-base">
 	<div class="absolute inset-0 -z-10 bg-[#080808]/80 backdrop-blur-sm"></div>
 	<div class="text-ash-100 z-10 flex-1 overflow-y-auto p-4 pb-12 sm:p-6">
-
 		<!-- Header -->
 		<div class="mb-6">
-			<div class="text-white font-bold text-base">~/contribute</div>
-			<div class="text-[#8b949e] text-xs mt-0.5">Live GitHub contribution stats</div>
+			<div class="text-base font-bold text-white">~/contribute</div>
+			<div class="mt-0.5 text-xs text-[#8b949e]">Live GitHub contribution stats</div>
 		</div>
 
 		{#if loading}
-			<div class="flex items-center gap-2 text-[#8b949e] py-10 justify-center">
-				<span class="inline-block w-3 h-3 border-2 border-[#238636] border-t-transparent rounded-full animate-spin"></span>
+			<div class="flex items-center justify-center gap-2 py-10 text-[#8b949e]">
+				<span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-[#238636] border-t-transparent"></span>
 				<span class="text-xs">Fetching GitHub data...</span>
 			</div>
-
 		{:else if error}
-			<div class="text-red-400 text-xs">{error}</div>
-
+			<div class="text-xs text-red-400">{error}</div>
 		{:else if githubData}
 			<!-- Profile row -->
-			<div class="flex items-start gap-3 mb-5">
-				<img src={githubData.user.avatarUrl} alt={githubData.user.name} class="w-10 h-10 rounded-full border border-[#30363d] shrink-0" />
+			<div class="mb-5 flex items-start gap-3">
+				<img src={githubData.user.avatarUrl} alt={githubData.user.name} class="h-10 w-10 shrink-0 rounded-full border border-[#30363d]" />
 				<div class="min-w-0 flex-1">
-					<div class="text-white font-bold text-sm leading-tight">{githubData.user.name}</div>
-					<div class="text-[#8b949e] text-xs">@{githubData.username}</div>
+					<div class="text-sm leading-tight font-bold text-white">{githubData.user.name}</div>
+					<div class="text-xs text-[#8b949e]">@{githubData.username}</div>
 					{#if githubData.user.bio}
-						<div class="text-[#8b949e] text-xs mt-0.5 truncate">{githubData.user.bio}</div>
+						<div class="mt-0.5 truncate text-xs text-[#8b949e]">{githubData.user.bio}</div>
 					{/if}
 					{#if githubData.user.organizations.length > 0}
-						<div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
-							<i class="fas fa-building text-[#8b949e] text-[10px]"></i>
+						<div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+							<i class="fas fa-building text-[10px] text-[#8b949e]"></i>
 							{#each githubData.user.organizations as org}
-								<a href={org.url} target="_blank" rel="noopener noreferrer" class="flex items-center gap-1 hover:opacity-80 transition-opacity" title={org.name}>
-									<img src={org.avatarUrl} alt={org.name} class="w-4 h-4 rounded-sm border border-[#30363d]" />
-									<span class="text-[#8b949e] text-[10px] hover:text-white transition-colors">{org.login}</span>
+								<a
+									href={org.url}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="flex items-center gap-1 transition-opacity hover:opacity-80"
+									title={org.name}
+								>
+									<img src={org.avatarUrl} alt={org.name} class="h-4 w-4 rounded-sm border border-[#30363d]" />
+									<span class="text-[10px] text-[#8b949e] transition-colors hover:text-white">{org.login}</span>
 								</a>
 							{/each}
 						</div>
 					{/if}
 				</div>
-				</div>
+			</div>
 
 			<!-- Stat cards -->
-			<div class="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-5">
-				{#each [
-					{ label: 'week', value: githubData.stats.week, color: 'text-[#39d353]' },
-					{ label: 'month', value: githubData.stats.month, color: 'text-[#26a641]' },
-					{ label: 'this year', value: githubData.stats.year, color: 'text-[#238636]' },
-					{ label: 'all time', value: githubData.stats.allTime, color: 'text-[#3fb950]' },
-					{ label: 'commits (yr)', value: githubData.stats.totalCommits, color: 'text-[#58a6ff]' },
-					{ label: 'PRs (yr)', value: githubData.stats.totalPRs, color: 'text-[#bc8cff]' },
-					{ label: 'issues (yr)', value: githubData.stats.totalIssues, color: 'text-[#f78166]' }
-				] as card}
-					<div class="border border-[#30363d] bg-[#161b22]/60 rounded p-2 text-center">
+			<div class="mb-5 grid grid-cols-4 gap-2 sm:grid-cols-7">
+				{#each [{ label: 'week', value: githubData.stats.week, color: 'text-[#39d353]' }, { label: 'month', value: githubData.stats.month, color: 'text-[#26a641]' }, { label: 'this year', value: githubData.stats.year, color: 'text-[#238636]' }, { label: 'all time', value: githubData.stats.allTime, color: 'text-[#3fb950]' }, { label: 'commits (yr)', value: githubData.stats.totalCommits, color: 'text-[#58a6ff]' }, { label: 'PRs (yr)', value: githubData.stats.totalPRs, color: 'text-[#bc8cff]' }, { label: 'issues (yr)', value: githubData.stats.totalIssues, color: 'text-[#f78166]' }] as card}
+					<div class="rounded border border-[#30363d] bg-[#161b22]/60 p-2 text-center">
 						<div class="text-lg font-bold {card.color}">{card.value.toLocaleString()}</div>
-						<div class="text-[#8b949e] text-xs">{card.label}</div>
+						<div class="text-xs text-[#8b949e]">{card.label}</div>
 					</div>
 				{/each}
 			</div>
 
 			<!-- Contribution calendar -->
-			<div class="border border-[#30363d] bg-[#161b22]/60 rounded p-3 mb-5 overflow-x-auto">
-				<div class="text-xs text-[#8b949e] mb-2">
-					<span class="text-white font-semibold">{githubData.stats.year.toLocaleString()}</span> contributions this year
+			<div class="mb-5 overflow-x-auto rounded border border-[#30363d] bg-[#161b22]/60 p-3">
+				<div class="mb-2 text-xs text-[#8b949e]">
+					<span class="font-semibold text-white">{githubData.stats.year.toLocaleString()}</span> contributions this year
 				</div>
 				<div class="flex gap-[3px]">
 					{#each weeks as week}
 						<div class="flex flex-col gap-[3px]">
 							{#each week as day}
 								{#if day.count === -1}
-									<div class="w-[9px] h-[9px]"></div>
+									<div class="h-[9px] w-[9px]"></div>
 								{:else}
-									<div class="w-[9px] h-[9px] rounded-sm {cellColor(day.count)}" title="{day.count} on {day.date}"></div>
+									<div class="h-[9px] w-[9px] rounded-sm {cellColor(day.count)}" title="{day.count} on {day.date}"></div>
 								{/if}
 							{/each}
 						</div>
 					{/each}
 				</div>
-				<div class="flex items-center gap-1.5 mt-2 text-xs text-[#8b949e]">
+				<div class="mt-2 flex items-center gap-1.5 text-xs text-[#8b949e]">
 					<span>Less</span>
-					<div class="w-[9px] h-[9px] rounded-sm bg-white/15"></div>
-					<div class="w-[9px] h-[9px] rounded-sm bg-[#0e4429]"></div>
-					<div class="w-[9px] h-[9px] rounded-sm bg-[#006d32]"></div>
-					<div class="w-[9px] h-[9px] rounded-sm bg-[#26a641]"></div>
-					<div class="w-[9px] h-[9px] rounded-sm bg-[#39d353]"></div>
+					<div class="h-[9px] w-[9px] rounded-sm bg-white/15"></div>
+					<div class="h-[9px] w-[9px] rounded-sm bg-[#0e4429]"></div>
+					<div class="h-[9px] w-[9px] rounded-sm bg-[#006d32]"></div>
+					<div class="h-[9px] w-[9px] rounded-sm bg-[#26a641]"></div>
+					<div class="h-[9px] w-[9px] rounded-sm bg-[#39d353]"></div>
 					<span>More</span>
 				</div>
 			</div>
 
 			<!-- Bottom: activity feed + languages -->
-			<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
+			<div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
 				<!-- Live activity feed -->
 				<div class="lg:col-span-2">
-					<div class="text-xs text-[#8b949e] uppercase tracking-wider mb-2 flex items-center gap-2">
+					<div class="mb-2 flex items-center gap-2 text-xs tracking-wider text-[#8b949e] uppercase">
 						Live activity
-						{#if visibleCount < (githubData.activity.items.length)}
-							<span class="inline-block w-1.5 h-1.5 rounded-full bg-[#39d353] animate-pulse"></span>
+						{#if visibleCount < githubData.activity.items.length}
+							<span class="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#39d353]"></span>
 						{/if}
 					</div>
 					<div class="flex flex-col gap-1">
 						{#each githubData.activity.items.slice(0, visibleCount) as item}
-							<div class="flex items-start gap-2 border border-[#30363d] bg-[#161b22]/60 rounded px-3 py-2 activity-item">
-								<i class="fas fa-code-commit mt-0.5 shrink-0 text-[#8b949e] text-xs"></i>
+							<div class="activity-item flex items-start gap-2 rounded border border-[#30363d] bg-[#161b22]/60 px-3 py-2">
+								<i class="fas fa-code-commit mt-0.5 shrink-0 text-xs text-[#8b949e]"></i>
 								<div class="min-w-0 flex-1">
-									<div class="flex items-center gap-1.5 flex-wrap">
-										<span class="text-[#58a6ff] text-xs font-medium shrink-0">{item.repo}</span>
+									<div class="flex flex-wrap items-center gap-1.5">
+										<span class="shrink-0 text-xs font-medium text-[#58a6ff]">{item.repo}</span>
 										{#if item.private}
-											<span class="text-[#8b949e] text-[10px] border border-[#30363d] rounded px-1">private</span>
+											<span class="rounded border border-[#30363d] px-1 text-[10px] text-[#8b949e]">private</span>
 										{/if}
 									</div>
-									<span class="text-[#c9d1d9] text-xs line-clamp-1 block mt-0.5">{item.title}</span>
+									<span class="mt-0.5 line-clamp-1 block text-xs text-[#c9d1d9]">{item.title}</span>
 								</div>
-								<div class="text-[#8b949e] text-[10px] shrink-0 mt-0.5">{timeAgo(item.date)}</div>
+								<div class="mt-0.5 shrink-0 text-[10px] text-[#8b949e]">{timeAgo(item.date)}</div>
 							</div>
 						{/each}
 						{#if githubData.activity.hasMore}
 							<button
 								onclick={loadMore}
 								disabled={loadingMore}
-								class="mt-1 text-xs text-[#58a6ff] hover:text-white border border-[#30363d] bg-[#161b22]/60 rounded px-3 py-2 transition-colors disabled:opacity-50 cursor-pointer"
+								class="mt-1 cursor-pointer rounded border border-[#30363d] bg-[#161b22]/60 px-3 py-2 text-xs text-[#58a6ff] transition-colors hover:text-white disabled:opacity-50"
 							>
 								{#if loadingMore}
-									<span class="inline-block w-3 h-3 border-2 border-[#58a6ff] border-t-transparent rounded-full animate-spin mr-1"></span>
+									<span class="mr-1 inline-block h-3 w-3 animate-spin rounded-full border-2 border-[#58a6ff] border-t-transparent"></span>
 									Loading...
 								{:else}
 									Load more
@@ -306,18 +304,18 @@
 
 				<!-- Top languages -->
 				<div>
-					<div class="text-xs text-[#8b949e] uppercase tracking-wider mb-2">Top languages</div>
-					<div class="border border-[#30363d] bg-[#161b22]/60 rounded p-3 flex flex-col gap-3">
+					<div class="mb-2 text-xs tracking-wider text-[#8b949e] uppercase">Top languages</div>
+					<div class="flex flex-col gap-3 rounded border border-[#30363d] bg-[#161b22]/60 p-3">
 						{#each githubData.languages as lang}
 							<div>
-								<div class="flex justify-between text-xs mb-1">
+								<div class="mb-1 flex justify-between text-xs">
 									<div class="flex items-center gap-1.5">
-										<span class="inline-block w-2 h-2 rounded-full" style="background:{langColor(lang.name)}"></span>
+										<span class="inline-block h-2 w-2 rounded-full" style="background:{langColor(lang.name)}"></span>
 										<span class="text-[#c9d1d9]">{lang.name}</span>
 									</div>
 									<span class="text-[#8b949e]">{lang.count}</span>
 								</div>
-								<div class="h-1 bg-[#21262d] rounded-full overflow-hidden">
+								<div class="h-1 overflow-hidden rounded-full bg-[#21262d]">
 									<div class="h-full rounded-full" style="width:{(lang.count / maxLangCount) * 100}%; background:{langColor(lang.name)}"></div>
 								</div>
 							</div>

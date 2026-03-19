@@ -144,20 +144,23 @@ async function fetchContributionStats(username: string, token: string) {
 }
 
 async function fetchRecentActivity(username: string, token: string, before?: string, limit = 10) {
-	// Use `until` to paginate — only fetch commits older than the cursor
 	const untilArg = before ? `, until: "${before}"` : '';
+	const perRepo = limit + 5;
 
+	// Use `viewer` instead of `user(login:)` to get ALL repos the token can access
+	// This properly includes: private repos, org repos, collaborator repos
 	const query = `
-		query($username: String!) {
-			user(login: $username) {
+		query {
+			viewer {
 				repositories(first: 100, orderBy: {field: PUSHED_AT, direction: DESC}, ownerAffiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER]) {
 					nodes {
 						name
+						owner { login }
 						isPrivate
 						defaultBranchRef {
 							target {
 								... on Commit {
-									history(first: ${limit + 5}${untilArg}) {
+									history(first: ${perRepo}${untilArg}) {
 										nodes {
 											message
 											committedDate
@@ -178,7 +181,7 @@ async function fetchRecentActivity(username: string, token: string, before?: str
 	const res = await fetch(GITHUB_GRAPHQL, {
 		method: 'POST',
 		headers: getHeaders(token),
-		body: JSON.stringify({ query, variables: { username } })
+		body: JSON.stringify({ query })
 	});
 
 	if (!res.ok) return { items: [], hasMore: false };
@@ -188,7 +191,7 @@ async function fetchRecentActivity(username: string, token: string, before?: str
 		return { items: [], hasMore: false };
 	}
 
-	const repos = data.data?.user?.repositories?.nodes ?? [];
+	const repos = data.data?.viewer?.repositories?.nodes ?? [];
 	const all: ActivityItem[] = [];
 	let anyRepoHasMore = false;
 
@@ -197,12 +200,15 @@ async function fetchRecentActivity(username: string, token: string, before?: str
 		const commits = history?.nodes ?? [];
 		if (history?.pageInfo?.hasNextPage) anyRepoHasMore = true;
 
+		const ownerLogin = repo.owner?.login ?? '';
+		const isOrg = ownerLogin.toLowerCase() !== username.toLowerCase();
+
 		for (const commit of commits) {
 			const authorLogin = commit.author?.user?.login;
 			if (authorLogin && authorLogin.toLowerCase() !== username.toLowerCase()) continue;
 
 			all.push({
-				repo: repo.name,
+				repo: isOrg ? `${ownerLogin}/${repo.name}` : repo.name,
 				title: (commit.message as string)?.split('\n')[0] ?? 'Commit',
 				date: commit.committedDate ?? '',
 				private: repo.isPrivate ?? false
@@ -220,10 +226,10 @@ async function fetchRecentActivity(username: string, token: string, before?: str
 
 type ActivityItem = { repo: string; title: string; date: string; private: boolean };
 
-async function fetchTopLanguages(username: string, token: string) {
+async function fetchTopLanguages(token: string) {
 	const langQuery = `
-		query($username: String!) {
-			user(login: $username) {
+		query {
+			viewer {
 				repositories(first: 100, orderBy: {field: PUSHED_AT, direction: DESC}, ownerAffiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER]) {
 					nodes {
 						primaryLanguage { name }
@@ -236,14 +242,14 @@ async function fetchTopLanguages(username: string, token: string) {
 	const res = await fetch(GITHUB_GRAPHQL, {
 		method: 'POST',
 		headers: getHeaders(token),
-		body: JSON.stringify({ query: langQuery, variables: { username } })
+		body: JSON.stringify({ query: langQuery })
 	});
 
 	if (!res.ok) return [];
 	const data = await res.json();
 	if (data.errors) return [];
 
-	const repos = data.data?.user?.repositories?.nodes ?? [];
+	const repos = data.data?.viewer?.repositories?.nodes ?? [];
 	const langMap: Record<string, number> = {};
 	for (const repo of repos) {
 		const lang = repo.primaryLanguage?.name;
@@ -266,21 +272,18 @@ export const GET: RequestHandler = async ({ url }) => {
 		return json({ error: 'GitHub credentials not configured.' }, { status: 503 });
 	}
 
-	// Paginated activity: /api/github?before=<ISO date>
 	const before = url.searchParams.get('before') ?? undefined;
 
 	try {
 		if (before) {
-			// Only return next page of activity
 			const activity = await fetchRecentActivity(username, token, before, 10);
 			return json(activity);
 		}
 
-		// Initial load: full stats + first 10 activity items
 		const [contributions, activity, languages] = await Promise.all([
 			fetchContributionStats(username, token),
 			fetchRecentActivity(username, token, undefined, 10),
-			fetchTopLanguages(username, token)
+			fetchTopLanguages(token)
 		]);
 
 		return json({ username, ...contributions, activity, languages });

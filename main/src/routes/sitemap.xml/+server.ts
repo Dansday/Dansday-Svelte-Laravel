@@ -89,8 +89,12 @@ export const GET: RequestHandler = async () => {
 		...(notDisabled(section.articles_enable)
 			? [{ loc: `${baseUrl}/articles`, changefreq: 'daily' as const, priority: 1.0, lastmod: new Date().toISOString() }]
 			: []),
-		...(notDisabled(section.terminal_enable) ? [{ loc: `${baseUrl}/terminal`, changefreq: 'daily' as const, priority: 0.8, lastmod: new Date().toISOString() }] : []),
-		...(notDisabled(section.contribute_enable) ? [{ loc: `${baseUrl}/contribute`, changefreq: 'daily' as const, priority: 0.8, lastmod: new Date().toISOString() }] : []),
+		...(notDisabled(section.terminal_enable)
+			? [{ loc: `${baseUrl}/terminal`, changefreq: 'daily' as const, priority: 0.8, lastmod: new Date().toISOString() }]
+			: []),
+		...(notDisabled(section.contribute_enable)
+			? [{ loc: `${baseUrl}/contribute`, changefreq: 'daily' as const, priority: 0.8, lastmod: new Date().toISOString() }]
+			: []),
 		...aboutsUrlData,
 		...articleUrlData,
 		...projectUrlData

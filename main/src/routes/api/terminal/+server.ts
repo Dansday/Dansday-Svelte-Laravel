@@ -13,7 +13,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const lastMessage = messages[messages.length - 1];
 		if (lastMessage?.role === 'user') {
-			}
+		}
 
 		const generalData = await fetchGeneral();
 		const openaiUrl = generalData.ai_url as string | null;
@@ -42,9 +42,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			apiKey: openaiKey.trim()
 		});
 
-		const systemMessages = terminalPrompt
-			? [{ role: 'system' as const, content: terminalPrompt }]
-			: [];
+		const systemMessages = terminalPrompt ? [{ role: 'system' as const, content: terminalPrompt }] : [];
 
 		try {
 			const completion = await openai.chat.completions.create({

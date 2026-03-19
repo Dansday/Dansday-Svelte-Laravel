@@ -65,7 +65,13 @@
 <svelte:head>
 	{#if data.favicons && data.favicons.length > 0}
 		{#each data.favicons as favicon}
-			<link rel={favicon.rel} type={favicon.type} href={favicon.href} sizes={favicon.sizes} crossorigin={favicon.rel === 'manifest' ? 'use-credentials' : undefined} />
+			<link
+				rel={favicon.rel}
+				type={favicon.type}
+				href={favicon.href}
+				sizes={favicon.sizes}
+				crossorigin={favicon.rel === 'manifest' ? 'use-credentials' : undefined}
+			/>
 		{/each}
 	{:else if data.defaultFavicon}
 		<link rel="icon" href={data.defaultFavicon} />
