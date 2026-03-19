@@ -20,13 +20,13 @@ async function fetchContributionStats(username: string, token: string) {
 	const weekStart = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
 	weekStart.setHours(0, 0, 0, 0);
 
-	// Two contributionsCollections: scoped to this year + all-time (no date args)
-	const query = `
+	const yearQuery = `
 		query($username: String!, $from: DateTime!, $to: DateTime!) {
 			user(login: $username) {
 				name
 				avatarUrl
 				bio
+				createdAt
 				organizations(first: 10) {
 					nodes { login name avatarUrl url }
 				}
@@ -41,9 +41,6 @@ async function fetchContributionStats(username: string, token: string) {
 						}
 					}
 				}
-				allTimeContributions: contributionsCollection {
-					contributionCalendar { totalContributions }
-				}
 			}
 		}
 	`;
@@ -51,7 +48,7 @@ async function fetchContributionStats(username: string, token: string) {
 	const res = await fetch(GITHUB_GRAPHQL, {
 		method: 'POST',
 		headers: getHeaders(token),
-		body: JSON.stringify({ query, variables: { username, from: yearStart, to: now.toISOString() } })
+		body: JSON.stringify({ query: yearQuery, variables: { username, from: yearStart, to: now.toISOString() } })
 	});
 
 	if (!res.ok) throw new Error(`GitHub GraphQL error: ${res.status}`);
@@ -74,14 +71,57 @@ async function fetchContributionStats(username: string, token: string) {
 	const weekCommits = allDays.filter((d) => d.date >= weekStartStr).reduce((s, d) => s + d.count, 0);
 	const monthCommits = allDays.filter((d) => d.date >= monthStartStr).reduce((s, d) => s + d.count, 0);
 	const yearCommits = calendar?.totalContributions ?? 0;
-	const allTimeCommits = user?.allTimeContributions?.contributionCalendar?.totalContributions ?? 0;
+
+	const createdYear = new Date(user?.createdAt ?? yearStart).getFullYear();
+	const currentYear = now.getFullYear();
+
+	const perYearQuery = `
+		query($username: String!, $from: DateTime!, $to: DateTime!) {
+			user(login: $username) {
+				contributionsCollection(from: $from, to: $to) {
+					totalCommitContributions
+					totalPullRequestContributions
+					totalIssueContributions
+					contributionCalendar { totalContributions }
+				}
+			}
+		}
+	`;
+
+	const yearRanges: { from: string; to: string }[] = [];
+	for (let yr = createdYear; yr <= currentYear; yr++) {
+		yearRanges.push({
+			from: new Date(yr, 0, 1).toISOString(),
+			to: yr === currentYear ? now.toISOString() : new Date(yr, 11, 31, 23, 59, 59).toISOString()
+		});
+	}
+
+	const yearResults = await Promise.all(
+		yearRanges.map(({ from, to }) =>
+			fetch(GITHUB_GRAPHQL, {
+				method: 'POST',
+				headers: getHeaders(token),
+				body: JSON.stringify({ query: perYearQuery, variables: { username, from, to } })
+			})
+				.then((r) => r.json())
+				.then((d) => d.data?.user?.contributionsCollection ?? null)
+		)
+	);
+
+	let allTime = 0, totalCommits = 0, totalPRs = 0, totalIssues = 0;
+	for (const yc of yearResults) {
+		if (!yc) continue;
+		allTime += yc.contributionCalendar?.totalContributions ?? 0;
+		totalCommits += yc.totalCommitContributions ?? 0;
+		totalPRs += yc.totalPullRequestContributions ?? 0;
+		totalIssues += yc.totalIssueContributions ?? 0;
+	}
 
 	return {
 		user: {
 			name: user?.name ?? username,
 			avatarUrl: user?.avatarUrl ?? '',
 			bio: user?.bio ?? '',
-			totalRepos: user?.repositories?.totalCount ?? 0,
 			organizations: (user?.organizations?.nodes ?? []).map((o: any) => ({
 				login: o.login,
 				name: o.name ?? o.login,
@@ -93,19 +133,18 @@ async function fetchContributionStats(username: string, token: string) {
 			week: weekCommits,
 			month: monthCommits,
 			year: yearCommits,
-			allTime: allTimeCommits,
-			totalCommits: user?.contributionsCollection?.totalCommitContributions ?? 0,
-			totalPRs: user?.contributionsCollection?.totalPullRequestContributions ?? 0,
-			totalIssues: user?.contributionsCollection?.totalIssueContributions ?? 0
+			allTime,
+			totalCommits,
+			totalPRs,
+			totalIssues
 		},
 		calendar: allDays
 	};
 }
 
 async function fetchRecentActivity(username: string, token: string) {
-	// Events API — single call, includes private events, push + PR events
 	const res = await fetch(
-		`${GITHUB_API}/users/${username}/events?per_page=100`,
+		`${GITHUB_API}/user/events?per_page=100`,
 		{ headers: getHeaders(token) }
 	);
 	if (!res.ok) return [];
@@ -121,21 +160,20 @@ async function fetchRecentActivity(username: string, token: string) {
 	}[] = [];
 
 	for (const event of events) {
+		if (event.type !== 'PushEvent') continue;
+
 		const repoName = (event.repo?.name as string) ?? '';
 		const repoShort = repoName.split('/')[1] ?? repoName;
 		const isPrivate = event.public === false;
-		const repoUrl = `https://github.com/${repoName}`;
+		const commits: any[] = event.payload?.commits ?? [];
 
-		if (event.type === 'PushEvent') {
-			const commits: any[] = event.payload?.commits ?? [];
-			for (const c of commits.slice(0, 3)) {
-				activity.push({
-					repo: repoShort,
-					title: (c.message as string)?.split('\n')[0] ?? 'Commit',
-					date: event.created_at ?? '',
-					private: isPrivate
-				});
-			}
+		for (const c of commits.slice(0, 3)) {
+			activity.push({
+				repo: repoShort,
+				title: (c.message as string)?.split('\n')[0] ?? 'Commit',
+				date: event.created_at ?? '',
+				private: isPrivate
+			});
 		}
 
 		if (activity.length >= 30) break;

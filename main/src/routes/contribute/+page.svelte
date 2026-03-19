@@ -100,7 +100,7 @@
 			week.push(day);
 			if (week.length === 7) { weeks.push(week); week = []; }
 		}
-		// pad end of last week to Saturday
+
 		if (week.length > 0) {
 			while (week.length < 7) week.push({ date: '', count: -1 });
 			weeks.push(week);
@@ -122,7 +122,7 @@
 				return;
 			}
 			githubData = await res.json();
-		// Reveal activity items one by one
+
 		const total = githubData?.activity?.length ?? 0;
 		let i = 0;
 		const tick = () => {
