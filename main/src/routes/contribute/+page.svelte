@@ -40,9 +40,9 @@
 
 	let githubData = $state<GithubData | null>(null);
 	let loading = $state(true);
-	let loadingMore = $state(false);
 	let error = $state('');
 	let visibleCount = $state(0);
+	let currentPage = $state(1);
 
 	const LANG_COLORS: Record<string, string> = {
 		TypeScript: '#3178c6',
@@ -142,33 +142,25 @@
 	});
 
 	async function loadMore() {
-		if (!githubData || !githubData.activity.hasMore || loadingMore) return;
-		loadingMore = true;
-		try {
-			const lastDate = githubData.activity.items.at(-1)?.date;
-			if (!lastDate) return;
-			const res = await fetch(`/api/github?before=${encodeURIComponent(lastDate)}`);
-			if (!res.ok) return;
-			const page: { items: ActivityItem[]; hasMore: boolean } = await res.json();
+		if (!githubData || !githubData.activity.hasMore) return;
+		currentPage++;
+		const res = await fetch(`/api/github?page=${currentPage}`);
+		if (!res.ok) return;
+		const page: { items: ActivityItem[]; hasMore: boolean } = await res.json();
 
-			const existing = new Set(githubData.activity.items.map((i) => `${i.repo}:${i.date}:${i.title}`));
-			const newItems = page.items.filter((i) => !existing.has(`${i.repo}:${i.date}:${i.title}`));
-			const prevLen = githubData.activity.items.length;
-			githubData.activity.items = [...githubData.activity.items, ...newItems];
-			githubData.activity.hasMore = page.hasMore;
+		const prevLen = githubData.activity.items.length;
+		githubData.activity.items = [...githubData.activity.items, ...page.items];
+		githubData.activity.hasMore = page.hasMore;
 
-			let i = prevLen;
-			const total = githubData.activity.items.length;
-			const tick = () => {
-				if (i < total) {
-					visibleCount = ++i;
-					setTimeout(tick, 80);
-				}
-			};
-			tick();
-		} finally {
-			loadingMore = false;
-		}
+		let i = prevLen;
+		const total = githubData.activity.items.length;
+		const tick = () => {
+			if (i < total) {
+				visibleCount = ++i;
+				setTimeout(tick, 80);
+			}
+		};
+		tick();
 	}
 </script>
 
@@ -265,9 +257,7 @@
 				<div class="lg:col-span-2">
 					<div class="mb-2 flex items-center gap-2 text-xs tracking-wider text-[#8b949e] uppercase">
 						Live activity
-						{#if visibleCount < githubData.activity.items.length}
-							<span class="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#39d353]"></span>
-						{/if}
+						<span class="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#39d353]"></span>
 					</div>
 					<div class="flex flex-col gap-1">
 						{#each githubData.activity.items.slice(0, visibleCount) as item}
@@ -288,15 +278,9 @@
 						{#if githubData.activity.hasMore}
 							<button
 								onclick={loadMore}
-								disabled={loadingMore}
-								class="mt-1 cursor-pointer rounded border border-[#30363d] bg-[#161b22]/60 px-3 py-2 text-xs text-[#58a6ff] transition-colors hover:text-white disabled:opacity-50"
+								class="mt-1 cursor-pointer rounded border border-[#30363d] bg-[#161b22]/60 px-3 py-2 text-xs text-[#58a6ff] transition-colors hover:text-white"
 							>
-								{#if loadingMore}
-									<span class="mr-1 inline-block h-3 w-3 animate-spin rounded-full border-2 border-[#58a6ff] border-t-transparent"></span>
-									Loading...
-								{:else}
-									Load more
-								{/if}
+								Load more
 							</button>
 						{/if}
 					</div>

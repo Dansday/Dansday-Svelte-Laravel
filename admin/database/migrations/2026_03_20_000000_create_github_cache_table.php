@@ -8,15 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('github_cache', function (Blueprint $table) {
-            $table->string('cache_key', 64)->primary();
-            $table->longText('data');
-            $table->timestamp('updated_at')->useCurrent();
+        Schema::create('github_activity', function (Blueprint $table) {
+            $table->id();
+            $table->string('repo', 255);
+            $table->text('title');
+            $table->timestamp('committed_at');
+            $table->string('oid', 40)->unique();
+            $table->boolean('is_private')->default(false);
+            $table->index('committed_at');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('github_cache');
+        Schema::dropIfExists('github_activity');
     }
 };

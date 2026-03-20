@@ -4,7 +4,6 @@ import { query, queryOne } from '$lib/server/db';
 import type { RequestHandler } from './$types';
 
 const GITHUB_GRAPHQL = 'https://api.github.com/graphql';
-const CACHE_TTL_MS = 5 * 60 * 1000;
 
 function getHeaders(token: string) {
 	return {
@@ -24,25 +23,37 @@ async function graphql(token: string, q: string, variables?: Record<string, any>
 	return res.json();
 }
 
-async function getCache(key: string): Promise<{ data: any; updatedAt: Date } | null> {
-	const row = await queryOne<{ data: string; updated_at: string }>(
-		'SELECT data, updated_at FROM github_cache WHERE cache_key = ?',
-		[key]
+async function getActivityFromDb(offset: number, limit: number) {
+	const rows = await query<{ repo: string; title: string; committed_at: string; is_private: number }>(
+		'SELECT repo, title, committed_at, is_private FROM github_activity ORDER BY committed_at DESC LIMIT ? OFFSET ?',
+		[limit + 1, offset]
 	);
-	if (!row) return null;
-	return { data: JSON.parse(row.data), updatedAt: new Date(row.updated_at) };
+	const hasMore = rows.length > limit;
+	const items = rows.slice(0, limit).map((r) => ({
+		repo: r.repo,
+		title: r.title,
+		date: r.committed_at,
+		private: !!r.is_private
+	}));
+	return { items, hasMore };
 }
 
-async function setCache(key: string, data: any): Promise<void> {
-	const jsonData = JSON.stringify(data);
+async function getActivityCount(): Promise<number> {
+	const row = await queryOne<{ cnt: number }>('SELECT COUNT(*) as cnt FROM github_activity');
+	return row?.cnt ?? 0;
+}
+
+async function saveActivityToDb(items: { repo: string; title: string; date: string; oid: string; private: boolean }[]) {
+	if (!items.length) return;
+	const values = items.map(() => '(?, ?, ?, ?, ?)').join(', ');
+	const params: (string | number)[] = [];
+	for (const item of items) {
+		params.push(item.repo, item.title, item.date, item.oid, item.private ? 1 : 0);
+	}
 	await query(
-		'INSERT INTO github_cache (cache_key, data, updated_at) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE data = VALUES(data), updated_at = NOW()',
-		[key, jsonData]
+		`INSERT IGNORE INTO github_activity (repo, title, committed_at, oid, is_private) VALUES ${values}`,
+		params
 	);
-}
-
-function isCacheStale(updatedAt: Date): boolean {
-	return Date.now() - updatedAt.getTime() > CACHE_TTL_MS;
 }
 
 async function fetchContributionStats(username: string, token: string) {
@@ -204,9 +215,10 @@ async function fetchMyRepos(username: string, token: string, orgs: string[]) {
 		.sort((a, b) => new Date(b.pushedAt).getTime() - new Date(a.pushedAt).getTime());
 }
 
-async function fetchRecentActivity(username: string, token: string, repos: any[], before?: string, limit = 10) {
-	const untilArg = before ? `, until: "${before}"` : '';
-	const perRepo = limit + 5;
+type RawActivity = { repo: string; title: string; date: string; oid: string; private: boolean };
+
+async function fetchAllActivity(username: string, token: string, repos: any[]) {
+	const perRepo = 100;
 
 	const results = await Promise.all(
 		repos.map((repo) => {
@@ -218,14 +230,13 @@ async function fetchRecentActivity(username: string, token: string, repos: any[]
 						defaultBranchRef {
 							target {
 								... on Commit {
-									history(first: ${perRepo}${untilArg}) {
+									history(first: ${perRepo}) {
 										nodes {
 											message
 											committedDate
 											oid
 											author { user { login } }
 										}
-										pageInfo { hasNextPage }
 									}
 								}
 							}
@@ -234,18 +245,14 @@ async function fetchRecentActivity(username: string, token: string, repos: any[]
 				}
 			`;
 			return graphql(token, q, { owner, name })
-				.then((d) => ({ repo, history: d.data?.repository?.defaultBranchRef?.target?.history }))
-				.catch(() => ({ repo, history: null }));
+				.then((d) => ({ repo, commits: d.data?.repository?.defaultBranchRef?.target?.history?.nodes ?? [] }))
+				.catch(() => ({ repo, commits: [] as any[] }));
 		})
 	);
 
-	const all: ActivityItem[] = [];
-	let anyRepoHasMore = false;
+	const all: RawActivity[] = [];
 
-	for (const { repo, history } of results) {
-		const commits = history?.nodes ?? [];
-		if (history?.pageInfo?.hasNextPage) anyRepoHasMore = true;
-
+	for (const { repo, commits } of results) {
 		const ownerLogin = repo.owner?.login ?? '';
 		const isOwner = ownerLogin.toLowerCase() === username.toLowerCase();
 
@@ -261,25 +268,19 @@ async function fetchRecentActivity(username: string, token: string, repos: any[]
 				repo: isOwner ? repo.name : `${ownerLogin}/${repo.name}`,
 				title: isPrivate ? '*'.repeat(wordCount) : message,
 				date: commit.committedDate ?? '',
+				oid: commit.oid,
 				private: isPrivate
 			});
 		}
 	}
 
-	all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-	const items = all.slice(0, limit);
-	const hasMore = all.length > limit || anyRepoHasMore;
-
-	return { items, hasMore };
+	return all;
 }
-
-type ActivityItem = { repo: string; title: string; date: string; private: boolean };
 
 async function fetchTopLanguages(username: string, token: string, repos: any[]) {
 	const results = await Promise.all(
 		repos.map((repo) =>
-			graphql(token, `query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { primaryLanguage { name } defaultBranchRef { target { ... on Commit { history(first: 1) { nodes { author { user { login } } } } } } } } }`, { owner: repo.owner?.login, name: repo.name })
+			graphql(token, `query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { primaryLanguage { name } defaultBranchRef { target { ... on Commit { history(first: 10) { nodes { author { user { login } } } } } } } } }`, { owner: repo.owner?.login, name: repo.name })
 				.then((d) => d.data?.repository)
 				.catch(() => null)
 		)
@@ -305,18 +306,10 @@ async function fetchTopLanguages(username: string, token: string, repos: any[]) 
 		.map(([name, count]) => ({ name, count }));
 }
 
-async function fetchFreshData(username: string, token: string) {
-	const contributions = await fetchContributionStats(username, token);
-	const orgs = contributions.user.organizations.map((o) => o.login);
+async function syncActivity(username: string, token: string, orgs: string[]) {
 	const repos = await fetchMyRepos(username, token, orgs);
-
-	const [activity, languages] = await Promise.all([
-		fetchRecentActivity(username, token, repos, undefined, 10),
-		fetchTopLanguages(username, token, repos)
-	]);
-
-	const response = { username, ...contributions, activity, languages };
-	return { response, repos };
+	const rawActivity = await fetchAllActivity(username, token, repos);
+	await saveActivityToDb(rawActivity);
 }
 
 export const GET: RequestHandler = async ({ url }) => {
@@ -327,46 +320,35 @@ export const GET: RequestHandler = async ({ url }) => {
 		return json({ error: 'GitHub credentials not configured.' }, { status: 503 });
 	}
 
-	const before = url.searchParams.get('before') ?? undefined;
-
-	if (before) {
-		try {
-			const cached = await getCache('github_main');
-			const repos = cached?.data?.repos;
-			if (repos?.length) {
-				const activity = await fetchRecentActivity(username, token, repos, before, 10);
-				return json(activity);
-			}
-			const contributions = await fetchContributionStats(username, token);
-			const orgs = contributions.user.organizations.map((o) => o.login);
-			const freshRepos = await fetchMyRepos(username, token, orgs);
-			const activity = await fetchRecentActivity(username, token, freshRepos, before, 10);
-			return json(activity);
-		} catch (err: any) {
-			console.error('[GitHub API]', err);
-			return json({ error: err.message ?? 'Failed to fetch GitHub data.' }, { status: 500 });
-		}
-	}
+	const page = parseInt(url.searchParams.get('page') ?? '1', 10);
+	const limit = 10;
+	const offset = (page - 1) * limit;
 
 	try {
-		const cached = await getCache('github_main');
-
-		if (cached && !isCacheStale(cached.updatedAt)) {
-			return json(cached.data.response);
+		if (page > 1) {
+			const activity = await getActivityFromDb(offset, limit);
+			return json(activity);
 		}
 
-		if (cached) {
-			fetchFreshData(username, token).then(async ({ response, repos }) => {
-				await setCache('github_main', { response, repos });
-			}).catch((err) => console.error('[GitHub sync]', err));
+		const [stats, activityCount] = await Promise.all([
+			fetchContributionStats(username, token),
+			getActivityCount()
+		]);
 
-			return json(cached.data.response);
+		const orgs = stats.user.organizations.map((o) => o.login);
+		const repos = await fetchMyRepos(username, token, orgs);
+		const languages = await fetchTopLanguages(username, token, repos);
+
+		if (activityCount === 0) {
+			const rawActivity = await fetchAllActivity(username, token, repos);
+			await saveActivityToDb(rawActivity);
+		} else {
+			syncActivity(username, token, orgs).catch((err) => console.error('[GitHub sync]', err));
 		}
 
-		const { response, repos } = await fetchFreshData(username, token);
-		await setCache('github_main', { response, repos });
+		const activity = await getActivityFromDb(offset, limit);
 
-		return json(response);
+		return json({ username, ...stats, languages, activity });
 	} catch (err: any) {
 		console.error('[GitHub API]', err);
 		return json({ error: err.message ?? 'Failed to fetch GitHub data.' }, { status: 500 });
