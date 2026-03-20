@@ -5,7 +5,8 @@ let client: ReturnType<typeof createClient> | null = null;
 
 async function getClient() {
 	if (!client) {
-		client = createClient({ url: env.REDIS_URL });
+		const url = env.REDIS_URL?.replace('redis://', 'redis://default:') ?? '';
+		client = createClient({ url });
 		client.on('error', (err) => console.error('[Redis]', err));
 		await client.connect();
 	}
