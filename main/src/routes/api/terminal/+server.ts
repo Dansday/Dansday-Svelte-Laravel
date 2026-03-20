@@ -1,7 +1,92 @@
 import { json } from '@sveltejs/kit';
-import { fetchGeneral } from '$lib/server/data';
+import { fetchGeneral, fetchHome, fetchArticles, fetchProjects, fetchAbouts } from '$lib/server/data';
+import { query } from '$lib/server/db';
 import OpenAI from 'openai';
 import type { RequestHandler } from './$types';
+
+const tools: OpenAI.Chat.ChatCompletionTool[] = [
+	{
+		type: 'function',
+		function: {
+			name: 'get_home',
+			description: 'Get the homepage title and description',
+			parameters: { type: 'object', properties: {}, required: [] }
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'get_about',
+			description: 'Get about info: skills, experience, education, services, testimonials',
+			parameters: { type: 'object', properties: {}, required: [] }
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'get_articles',
+			description: 'Get published articles/blog posts',
+			parameters: { type: 'object', properties: {}, required: [] }
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'get_projects',
+			description: 'Get portfolio projects',
+			parameters: { type: 'object', properties: {}, required: [] }
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'get_activity',
+			description: 'Get recent GitHub commit activity',
+			parameters: { type: 'object', properties: {}, required: [] }
+		}
+	}
+];
+
+async function executeTool(name: string): Promise<string> {
+	switch (name) {
+		case 'get_home': {
+			const home = await fetchHome();
+			return JSON.stringify({ title: home.title, description: home.description });
+		}
+		case 'get_about': {
+			const about = await fetchAbouts();
+			return JSON.stringify({
+				design_skills: about.design_skills.map((s) => s.title),
+				dev_skills: about.dev_skills.map((s) => s.title),
+				education: about.edu_experiences.map((e) => ({ title: e.title, place: e.place, year: e.year })),
+				employment: about.emp_experiences.map((e) => ({ title: e.title, place: e.place, year: e.year })),
+				services: about.services.map((s) => ({ title: s.title, description: s.short_desc })),
+				testimonials: about.testimonials.map((t) => ({ name: t.name, text: t.text }))
+			});
+		}
+		case 'get_articles': {
+			const articles = await fetchArticles();
+			return JSON.stringify(articles.map((a) => ({ title: a.title, description: a.short_desc, slug: a.slug })));
+		}
+		case 'get_projects': {
+			const { projects, projects_categories } = await fetchProjects();
+			const catMap = new Map(projects_categories.map((c) => [c.id, c.name]));
+			return JSON.stringify(projects.map((p) => ({ title: p.title, description: p.short_desc, category: catMap.get(p.category_id) })));
+		}
+		case 'get_activity': {
+			const rows = await query<{ repo: string; title: string; committed_at: string; is_private: number }>(
+				'SELECT repo, title, committed_at, is_private FROM github_activity ORDER BY committed_at DESC LIMIT 20'
+			);
+			return JSON.stringify(rows.map((r) => ({
+				repo: r.repo,
+				title: r.is_private ? '*'.repeat(r.title.length) : r.title,
+				date: r.committed_at
+			})));
+		}
+		default:
+			return '{}';
+	}
+}
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
@@ -9,10 +94,6 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		if (!Array.isArray(messages) || messages.length === 0) {
 			return json({ error: 'Invalid messages array' }, { status: 400 });
-		}
-
-		const lastMessage = messages[messages.length - 1];
-		if (lastMessage?.role === 'user') {
 		}
 
 		const generalData = await fetchGeneral();
@@ -44,13 +125,41 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const systemMessages = terminalPrompt ? [{ role: 'system' as const, content: terminalPrompt }] : [];
 
+		const allMessages = [...systemMessages, ...messages] as OpenAI.Chat.ChatCompletionMessageParam[];
+
 		try {
-			const completion = await openai.chat.completions.create({
+			let completion = await openai.chat.completions.create({
 				model: openaiModel.trim(),
-				messages: [...systemMessages, ...messages] as OpenAI.Chat.ChatCompletionMessageParam[]
+				messages: allMessages,
+				tools,
+				tool_choice: 'auto'
 			});
 
-			const reply = completion.choices?.[0]?.message?.content || 'No response from AI.';
+			let message = completion.choices?.[0]?.message;
+
+			while (message?.tool_calls && message.tool_calls.length > 0) {
+				allMessages.push(message);
+
+				for (const call of message.tool_calls) {
+					const result = await executeTool(call.function.name);
+					allMessages.push({
+						role: 'tool',
+						tool_call_id: call.id,
+						content: result
+					});
+				}
+
+				completion = await openai.chat.completions.create({
+					model: openaiModel.trim(),
+					messages: allMessages,
+					tools,
+					tool_choice: 'auto'
+				});
+
+				message = completion.choices?.[0]?.message;
+			}
+
+			const reply = message?.content || 'No response from AI.';
 			return json({ response: reply });
 		} catch (error: any) {
 			console.error('OpenAI API Error:', error);
