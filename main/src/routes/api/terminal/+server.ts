@@ -1,51 +1,72 @@
 import { json } from '@sveltejs/kit';
-import { fetchGeneral, fetchHome, fetchArticles, fetchProjects, fetchAbouts } from '$lib/server/data';
+import { fetchGeneral, fetchHome, fetchArticles, fetchProjects, fetchAbouts, fetchSection } from '$lib/server/data';
 import { query } from '$lib/server/db';
 import OpenAI from 'openai';
 import type { RequestHandler } from './$types';
 
-const tools: OpenAI.Chat.ChatCompletionTool[] = [
-	{
-		type: 'function',
-		function: {
-			name: 'get_home',
-			description: 'Get the homepage title and description',
-			parameters: { type: 'object', properties: {}, required: [] }
+const allTools: Record<string, { tool: OpenAI.Chat.ChatCompletionTool; section?: string }> = {
+	get_home: {
+		tool: {
+			type: 'function',
+			function: {
+				name: 'get_home',
+				description: 'Get the homepage title and description',
+				parameters: { type: 'object', properties: {}, required: [] }
+			}
 		}
 	},
-	{
-		type: 'function',
-		function: {
-			name: 'get_about',
-			description: 'Get about info: skills, experience, education, services, testimonials',
-			parameters: { type: 'object', properties: {}, required: [] }
+	get_about: {
+		section: 'about_enable',
+		tool: {
+			type: 'function',
+			function: {
+				name: 'get_about',
+				description: 'Get about info: skills, experience, education, services, testimonials',
+				parameters: { type: 'object', properties: {}, required: [] }
+			}
 		}
 	},
-	{
-		type: 'function',
-		function: {
-			name: 'get_articles',
-			description: 'Get published articles/blog posts',
-			parameters: { type: 'object', properties: {}, required: [] }
+	get_articles: {
+		section: 'articles_enable',
+		tool: {
+			type: 'function',
+			function: {
+				name: 'get_articles',
+				description: 'Get published articles/blog posts',
+				parameters: { type: 'object', properties: {}, required: [] }
+			}
 		}
 	},
-	{
-		type: 'function',
-		function: {
-			name: 'get_projects',
-			description: 'Get portfolio projects',
-			parameters: { type: 'object', properties: {}, required: [] }
+	get_projects: {
+		section: 'projects_enable',
+		tool: {
+			type: 'function',
+			function: {
+				name: 'get_projects',
+				description: 'Get portfolio projects',
+				parameters: { type: 'object', properties: {}, required: [] }
+			}
 		}
 	},
-	{
-		type: 'function',
-		function: {
-			name: 'get_activity',
-			description: 'Get recent GitHub commit activity',
-			parameters: { type: 'object', properties: {}, required: [] }
+	get_activity: {
+		section: 'contribute_enable',
+		tool: {
+			type: 'function',
+			function: {
+				name: 'get_activity',
+				description: 'Get recent GitHub commit activity',
+				parameters: { type: 'object', properties: {}, required: [] }
+			}
 		}
 	}
-];
+};
+
+async function getEnabledTools(): Promise<OpenAI.Chat.ChatCompletionTool[]> {
+	const section = await fetchSection();
+	return Object.values(allTools)
+		.filter((t) => !t.section || section[t.section])
+		.map((t) => t.tool);
+}
 
 async function executeTool(name: string): Promise<string> {
 	switch (name) {
@@ -58,10 +79,10 @@ async function executeTool(name: string): Promise<string> {
 			return JSON.stringify({
 				design_skills: about.design_skills.map((s) => s.title),
 				dev_skills: about.dev_skills.map((s) => s.title),
-				education: about.edu_experiences.map((e) => ({ title: e.title, place: e.place, year: e.year })),
-				employment: about.emp_experiences.map((e) => ({ title: e.title, place: e.place, year: e.year })),
+				education: about.edu_experiences.map((e) => ({ title: e.title, place: e.place, year: e.year, description: e.description })),
+				employment: about.emp_experiences.map((e) => ({ title: e.title, place: e.place, year: e.year, description: e.description })),
 				services: about.services.map((s) => ({ title: s.title, description: s.short_desc })),
-				testimonials: about.testimonials.map((t) => ({ name: t.name, text: t.text }))
+				testimonials: about.testimonials.map((t) => ({ name: t.name, text: t.text, position: t.position }))
 			});
 		}
 		case 'get_articles': {
@@ -126,12 +147,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		const systemMessages = terminalPrompt ? [{ role: 'system' as const, content: terminalPrompt }] : [];
 
 		const allMessages = [...systemMessages, ...messages] as OpenAI.Chat.ChatCompletionMessageParam[];
+		const enabledTools = await getEnabledTools();
 
 		try {
 			let completion = await openai.chat.completions.create({
 				model: openaiModel.trim(),
 				messages: allMessages,
-				tools,
+				tools: enabledTools,
 				tool_choice: 'auto'
 			});
 
@@ -152,7 +174,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				completion = await openai.chat.completions.create({
 					model: openaiModel.trim(),
 					messages: allMessages,
-					tools,
+					tools: enabledTools,
 					tool_choice: 'auto'
 				});
 

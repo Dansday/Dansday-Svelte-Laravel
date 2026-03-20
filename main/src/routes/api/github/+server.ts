@@ -384,18 +384,35 @@ export const GET: RequestHandler = async ({ url }) => {
 		if (cached) {
 			statsData = cached;
 		} else {
-			const result = await fetchAndCacheStats(username, token);
-			statsData = result.data;
-			repos = result.repos;
+			try {
+				const result = await fetchAndCacheStats(username, token);
+				statsData = result.data;
+				repos = result.repos;
+			} catch (apiErr: any) {
+				console.error('[GitHub API]', apiErr);
+				const activity = await getActivityFromDb(offset, limit);
+				return json({
+					username,
+					user: { name: username, avatarUrl: '', bio: '', organizations: [] },
+					stats: { week: 0, month: 0, year: 0, allTime: 0, totalCommits: 0, totalPRs: 0, totalIssues: 0 },
+					calendar: [],
+					languages: [],
+					activity
+				});
+			}
 		}
 
 		const lastSync = await getLastSyncTime();
 		if (Date.now() - lastSync > SYNC_INTERVAL_MS) {
-			if (!repos) {
-				const orgs = statsData.user.organizations.map((o: any) => o.login);
-				repos = await fetchMyRepos(username, token, orgs);
+			try {
+				if (!repos) {
+					const orgs = statsData.user.organizations.map((o: any) => o.login);
+					repos = await fetchMyRepos(username, token, orgs);
+				}
+				syncAllActivity(username, token, repos).catch((err) => console.error('[GitHub sync]', err));
+			} catch {
+				console.error('[GitHub sync] Rate limited, skipping sync');
 			}
-			syncAllActivity(username, token, repos).catch((err) => console.error('[GitHub sync]', err));
 		}
 
 		const activity = await getActivityFromDb(offset, limit);
