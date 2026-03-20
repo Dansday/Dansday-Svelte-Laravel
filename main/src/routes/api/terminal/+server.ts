@@ -55,7 +55,7 @@ const allTools: Record<string, { tool: OpenAI.Chat.ChatCompletionTool; section?:
 			function: {
 				name: 'get_activity',
 				description:
-					'Get GitHub commit activity with real commit titles. Filter by date range and/or repo/org name. Repo names are stored as "orgName/repoName" for org repos or just "repoName" for personal repos. Each commit includes a "private" flag. Use the titles to summarize what work was done — never show raw commit titles from private repos to the user, instead summarize the work topics.',
+					'Get GitHub commit activity with real commit titles. Filter by date range and/or repo/org name. Repo names are stored as "orgName/repoName" for org repos or just "repoName" for personal repos. You may show individual commit titles from any repo.',
 				parameters: {
 					type: 'object',
 					properties: {
@@ -76,7 +76,7 @@ const allTools: Record<string, { tool: OpenAI.Chat.ChatCompletionTool; section?:
 			function: {
 				name: 'get_prs',
 				description:
-					'Get merged pull requests with line change stats (additions/deletions). Filter by date range and/or repo/org name. Each PR includes repo, title, additions, deletions, merged_at, and a "private" flag. For private repos, summarize the work topics without showing raw PR titles.',
+					'Get merged pull requests with line change stats (additions/deletions). Filter by date range and/or repo/org name. Each PR includes repo, title, additions, deletions, and merged_at. You may show individual PR titles from any repo.',
 				parameters: {
 					type: 'object',
 					properties: {
@@ -146,15 +146,14 @@ async function executeTool(name: string, args?: Record<string, any>): Promise<st
 			}
 			const where = ' WHERE ' + conditions.join(' AND ');
 			const limit = Math.min(args?.limit ?? 50, 200);
-			const sql = `SELECT repo, title, committed_at, is_private FROM github_activity${where} ORDER BY committed_at DESC LIMIT ?`;
+			const sql = `SELECT repo, title, committed_at FROM github_activity${where} ORDER BY committed_at DESC LIMIT ?`;
 			params.push(limit);
-			const rows = await query<{ repo: string; title: string; committed_at: string; is_private: number }>(sql, params);
+			const rows = await query<{ repo: string; title: string; committed_at: string }>(sql, params);
 			return JSON.stringify(
 				rows.map((r) => ({
 					repo: r.repo,
 					title: r.title,
-					date: r.committed_at,
-					private: !!r.is_private
+					date: r.committed_at
 				}))
 			);
 		}
@@ -177,17 +176,16 @@ async function executeTool(name: string, args?: Record<string, any>): Promise<st
 			}
 			const where = ' WHERE ' + conditions.join(' AND ');
 			const limit = Math.min(args?.limit ?? 50, 200);
-			const sql = `SELECT repo, title, additions, deletions, committed_at, is_private FROM github_activity${where} ORDER BY committed_at DESC LIMIT ?`;
+			const sql = `SELECT repo, title, additions, deletions, committed_at FROM github_activity${where} ORDER BY committed_at DESC LIMIT ?`;
 			params.push(limit);
-			const rows = await query<{ repo: string; title: string; additions: number; deletions: number; committed_at: string; is_private: number }>(sql, params);
+			const rows = await query<{ repo: string; title: string; additions: number; deletions: number; committed_at: string }>(sql, params);
 			return JSON.stringify(
 				rows.map((r) => ({
 					repo: r.repo,
 					title: r.title,
 					additions: r.additions,
 					deletions: r.deletions,
-					mergedAt: r.committed_at,
-					private: !!r.is_private
+					mergedAt: r.committed_at
 				}))
 			);
 		}
