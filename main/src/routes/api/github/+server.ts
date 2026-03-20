@@ -358,6 +358,25 @@ async function fetchAndCacheStats(username: string, token: string) {
 	return { data, repos };
 }
 
+async function backgroundSync() {
+	const token = env.GITHUB_TOKEN;
+	const username = env.GITHUB_USERNAME;
+	if (!token || !username) return;
+
+	const lastSync = await getLastSyncTime();
+	if (Date.now() - lastSync > SYNC_INTERVAL_MS) {
+		try {
+			const result = await fetchAndCacheStats(username, token);
+			syncAllActivity(username, token, result.repos).catch((err) => console.error('[GitHub sync]', err));
+		} catch (err) {
+			console.error('[GitHub background sync]', err);
+		}
+	}
+}
+
+setInterval(backgroundSync, SYNC_INTERVAL_MS);
+backgroundSync();
+
 export const GET: RequestHandler = async ({ url }) => {
 	const token = env.GITHUB_TOKEN;
 	const username = env.GITHUB_USERNAME;
@@ -377,47 +396,26 @@ export const GET: RequestHandler = async ({ url }) => {
 		}
 
 		const cached = await getCachedStats();
-
-		let statsData: any;
-		let repos: any[] | null = null;
-
-		if (cached) {
-			statsData = cached;
-		} else {
-			try {
-				const result = await fetchAndCacheStats(username, token);
-				statsData = result.data;
-				repos = result.repos;
-			} catch (apiErr: any) {
-				console.error('[GitHub API]', apiErr);
-				const activity = await getActivityFromDb(offset, limit);
-				return json({
-					username,
-					user: { name: username, avatarUrl: '', bio: '', organizations: [] },
-					stats: { week: 0, month: 0, year: 0, allTime: 0, totalCommits: 0, totalPRs: 0, totalIssues: 0 },
-					calendar: [],
-					languages: [],
-					activity
-				});
-			}
-		}
-
-		const lastSync = await getLastSyncTime();
-		if (Date.now() - lastSync > SYNC_INTERVAL_MS) {
-			try {
-				if (!repos) {
-					const orgs = statsData.user.organizations.map((o: any) => o.login);
-					repos = await fetchMyRepos(username, token, orgs);
-				}
-				syncAllActivity(username, token, repos).catch((err) => console.error('[GitHub sync]', err));
-			} catch {
-				console.error('[GitHub sync] Rate limited, skipping sync');
-			}
-		}
-
 		const activity = await getActivityFromDb(offset, limit);
 
-		return json({ ...statsData, activity });
+		if (cached) {
+			return json({ ...cached, activity });
+		}
+
+		try {
+			const result = await fetchAndCacheStats(username, token);
+			return json({ ...result.data, activity });
+		} catch (apiErr: any) {
+			console.error('[GitHub API]', apiErr);
+			return json({
+				username,
+				user: { name: username, avatarUrl: '', bio: '', organizations: [] },
+				stats: { week: 0, month: 0, year: 0, allTime: 0, totalCommits: 0, totalPRs: 0, totalIssues: 0 },
+				calendar: [],
+				languages: [],
+				activity
+			});
+		}
 	} catch (err: any) {
 		console.error('[GitHub API]', err);
 		return json({ error: err.message ?? 'Failed to fetch GitHub data.' }, { status: 500 });

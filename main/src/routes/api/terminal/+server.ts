@@ -54,8 +54,8 @@ const allTools: Record<string, { tool: OpenAI.Chat.ChatCompletionTool; section?:
 			type: 'function',
 			function: {
 				name: 'get_activity',
-				description: 'Get recent GitHub commit activity',
-				parameters: { type: 'object', properties: {}, required: [] }
+				description: 'Get GitHub commit activity. Use since/until to filter by date range. Dates in YYYY-MM-DD format.',
+				parameters: { type: 'object', properties: { since: { type: 'string', description: 'Start date (YYYY-MM-DD)' }, until: { type: 'string', description: 'End date (YYYY-MM-DD)' }, limit: { type: 'number', description: 'Max results (default 50)' } }, required: [] }
 			}
 		}
 	}
@@ -68,7 +68,7 @@ async function getEnabledTools(): Promise<OpenAI.Chat.ChatCompletionTool[]> {
 		.map((t) => t.tool);
 }
 
-async function executeTool(name: string): Promise<string> {
+async function executeTool(name: string, args?: Record<string, any>): Promise<string> {
 	switch (name) {
 		case 'get_home': {
 			const [home, general] = await Promise.all([fetchHome(), fetchGeneral()]);
@@ -95,9 +95,18 @@ async function executeTool(name: string): Promise<string> {
 			return JSON.stringify(projects.map((p) => ({ title: p.title, description: p.short_desc, category: catMap.get(p.category_id), created_at: p.created_at })));
 		}
 		case 'get_activity': {
-			const rows = await query<{ repo: string; title: string; committed_at: string; is_private: number }>(
-				'SELECT repo, title, committed_at, is_private FROM github_activity ORDER BY committed_at DESC LIMIT 20'
-			);
+			const since = args?.since;
+			const until = args?.until;
+			const limit = Math.min(args?.limit ?? 50, 200);
+			let sql = 'SELECT repo, title, committed_at, is_private FROM github_activity';
+			const params: (string | number)[] = [];
+			const conditions: string[] = [];
+			if (since) { conditions.push('committed_at >= ?'); params.push(since); }
+			if (until) { conditions.push('committed_at <= ?'); params.push(until + ' 23:59:59'); }
+			if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
+			sql += ' ORDER BY committed_at DESC LIMIT ?';
+			params.push(limit);
+			const rows = await query<{ repo: string; title: string; committed_at: string; is_private: number }>(sql, params);
 			return JSON.stringify(rows.map((r) => ({
 				repo: r.repo,
 				title: r.is_private ? '*'.repeat(r.title.length) : r.title,
@@ -163,7 +172,9 @@ export const POST: RequestHandler = async ({ request }) => {
 				allMessages.push(message);
 
 				for (const call of message.tool_calls) {
-					const result = await executeTool(call.function.name);
+					const fn = (call as any).function;
+					const toolArgs = fn?.arguments ? JSON.parse(fn.arguments) : {};
+					const result = await executeTool(fn?.name, toolArgs);
 					allMessages.push({
 						role: 'tool',
 						tool_call_id: call.id,
