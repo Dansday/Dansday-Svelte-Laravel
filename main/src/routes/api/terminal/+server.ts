@@ -55,7 +55,7 @@ const allTools: Record<string, { tool: OpenAI.Chat.ChatCompletionTool; section?:
 			function: {
 				name: 'get_activity',
 				description:
-					'Get GitHub commit activity with real commit titles. Filter by date range and/or repo/org name. Repo names are stored as "orgName/repoName" for org repos or just "repoName" for personal repos. You may show individual commit titles from any repo.',
+					'Get GitHub commit activity with real commit titles. IMPORTANT: Always use since/until filters when the user asks about a specific year or date range. Filter by date range and/or repo/org name. Repo names are stored as "orgName/repoName" for org repos or just "repoName" for personal repos. You may show individual commit titles from any repo.',
 				parameters: {
 					type: 'object',
 					properties: {
@@ -77,7 +77,7 @@ const allTools: Record<string, { tool: OpenAI.Chat.ChatCompletionTool; section?:
 			function: {
 				name: 'get_prs',
 				description:
-					'Get merged pull requests with line change stats (additions/deletions). Filter by date range and/or repo/org name. Each PR includes repo, title, additions, deletions, and merged_at. You may show individual PR titles from any repo.',
+					'Get merged pull requests with line change stats (additions/deletions). IMPORTANT: Always use since/until filters when the user asks about a specific year or date range. Filter by date range and/or repo/org name. Each PR includes repo, title, additions, deletions, and merged_at. You may show individual PR titles from any repo.',
 				parameters: {
 					type: 'object',
 					properties: {
