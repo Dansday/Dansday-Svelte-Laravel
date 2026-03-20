@@ -11,7 +11,8 @@ const allTools: Record<string, { tool: OpenAI.Chat.ChatCompletionTool; section?:
 			type: 'function',
 			function: {
 				name: 'get_home',
-				description: 'Get the homepage title, description, site URL, and social/contact links. Always use site_url from this response — never guess or make up URLs.',
+				description:
+					'Get the homepage title, description, site URL, and social/contact links. Always use site_url from this response — never guess or make up URLs.',
 				parameters: { type: 'object', properties: {}, required: [] }
 			}
 		}

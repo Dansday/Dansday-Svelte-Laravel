@@ -7,8 +7,6 @@ import type { RequestHandler } from './$types';
 const GITHUB_GRAPHQL = 'https://api.github.com/graphql';
 const SYNC_INTERVAL_MS = 10 * 60 * 1000;
 
-
-
 function getHeaders(token: string) {
 	return {
 		Authorization: `Bearer ${token}`,
