@@ -154,7 +154,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			apiKey: openaiKey.trim()
 		});
 
-		const systemMessages = terminalPrompt ? [{ role: 'system' as const, content: terminalPrompt }] : [];
+		const today = new Date().toISOString().slice(0, 10);
+		const systemContent = `Today's date is ${today}.\n\n${terminalPrompt}`;
+		const systemMessages = [{ role: 'system' as const, content: systemContent }];
 
 		const allMessages = [...systemMessages, ...messages] as OpenAI.Chat.ChatCompletionMessageParam[];
 		const enabledTools = await getEnabledTools();
