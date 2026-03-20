@@ -22,6 +22,44 @@ async function getEnabledToolNames(): Promise<string[]> {
 		.map(([name]) => name);
 }
 
+function getISOWeek(dateStr: string): string {
+	const d = new Date(dateStr);
+	const jan1 = new Date(d.getFullYear(), 0, 1);
+	const week = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7);
+	return `${d.getFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
+function buildStats(rows: Record<string, any>[], dateKey: string) {
+	const yearly = new Map<string, number>();
+	const monthly = new Map<string, number>();
+	const weekly = new Map<string, number>();
+
+	for (const row of rows) {
+		const date = String(row[dateKey] ?? '');
+		const repo = row.repo ?? 'unknown';
+		const year = date.slice(0, 4);
+		const month = date.slice(0, 7);
+		const week = getISOWeek(date);
+
+		const yk = `${year}|${repo}`;
+		yearly.set(yk, (yearly.get(yk) ?? 0) + 1);
+		const mk = `${month}|${repo}`;
+		monthly.set(mk, (monthly.get(mk) ?? 0) + 1);
+		const wk = `${week}|${repo}`;
+		weekly.set(wk, (weekly.get(wk) ?? 0) + 1);
+	}
+
+	const toArr = (map: Map<string, number>) =>
+		Array.from(map.entries())
+			.map(([key, count]) => {
+				const [period, repo] = key.split('|');
+				return { period, repo, count };
+			})
+			.sort((a, b) => b.period.localeCompare(a.period) || b.count - a.count);
+
+	return { yearly: toArr(yearly), monthly: toArr(monthly), weekly: toArr(weekly) };
+}
+
 async function executeTool(name: string): Promise<string> {
 	switch (name) {
 		case 'get_home': {
@@ -53,8 +91,12 @@ async function executeTool(name: string): Promise<string> {
 			const rows = await query<{ repo: string; title: string; committed_at: string }>(
 				'SELECT repo, title, committed_at FROM github_activity WHERE type = "commit" ORDER BY committed_at DESC'
 			);
+			const stats = buildStats(rows, 'committed_at');
 			return toToon({
 				totalCount: rows.length,
+				yearlyStats: stats.yearly,
+				monthlyStats: stats.monthly,
+				weeklyStats: stats.weekly,
 				items: rows.map((r) => ({ repo: r.repo, title: r.title, date: r.committed_at }))
 			});
 		}
@@ -62,8 +104,12 @@ async function executeTool(name: string): Promise<string> {
 			const rows = await query<{ repo: string; title: string; additions: number; deletions: number; committed_at: string }>(
 				'SELECT repo, title, additions, deletions, committed_at FROM github_activity WHERE type = "pr" ORDER BY committed_at DESC'
 			);
+			const stats = buildStats(rows, 'committed_at');
 			return toToon({
 				totalCount: rows.length,
+				yearlyStats: stats.yearly,
+				monthlyStats: stats.monthly,
+				weeklyStats: stats.weekly,
 				items: rows.map((r) => ({ repo: r.repo, title: r.title, additions: r.additions, deletions: r.deletions, mergedAt: r.committed_at }))
 			});
 		}
@@ -130,7 +176,9 @@ export const POST: RequestHandler = async ({ request }) => {
 		try {
 			const completion = await openai.chat.completions.create({
 				model: openaiModel.trim(),
-				messages: allMessages
+				messages: allMessages,
+				temperature: 0.3,
+				max_tokens: 2048
 			});
 
 			const reply = completion.choices?.[0]?.message?.content || 'No response from AI.';
