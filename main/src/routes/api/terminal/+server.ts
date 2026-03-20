@@ -55,7 +55,7 @@ const allTools: Record<string, { tool: OpenAI.Chat.ChatCompletionTool; section?:
 			function: {
 				name: 'get_activity',
 				description:
-					'Get GitHub commit activity with real commit titles. IMPORTANT: Always use since/until filters when the user asks about a specific year or date range. Filter by date range and/or repo/org name. Repo names are stored as "orgName/repoName" for org repos or just "repoName" for personal repos. You may show individual commit titles from any repo.',
+					'Get GitHub commit activity with real commit titles. Returns { totalCount, items }. totalCount is the exact total matching the filters — always use this number, never count items manually. IMPORTANT: Always use since/until filters when the user asks about a specific year or date range. Filter by date range and/or repo/org name. Repo names are stored as "orgName/repoName" for org repos or just "repoName" for personal repos. You may show individual commit titles from any repo.',
 				parameters: {
 					type: 'object',
 					properties: {
@@ -77,7 +77,7 @@ const allTools: Record<string, { tool: OpenAI.Chat.ChatCompletionTool; section?:
 			function: {
 				name: 'get_prs',
 				description:
-					'Get merged pull requests with line change stats (additions/deletions). IMPORTANT: Always use since/until filters when the user asks about a specific year or date range. Filter by date range and/or repo/org name. Each PR includes repo, title, additions, deletions, and merged_at. You may show individual PR titles from any repo.',
+					'Get merged pull requests with line change stats (additions/deletions). Returns { totalCount, items }. totalCount is the exact total matching the filters — always use this number, never count items manually. IMPORTANT: Always use since/until filters when the user asks about a specific year or date range. Filter by date range and/or repo/org name. Each PR includes repo, title, additions, deletions, and merged_at. You may show individual PR titles from any repo.',
 				parameters: {
 					type: 'object',
 					properties: {
@@ -149,16 +149,20 @@ async function executeTool(name: string, args?: Record<string, any>): Promise<st
 			const where = ' WHERE ' + conditions.join(' AND ');
 			const limit = Math.min(args?.limit ?? 50, 200);
 			const order = args?.order === 'asc' ? 'ASC' : 'DESC';
+			const countParams = [...params];
+			const countRows = await query<{ total: number }>(`SELECT COUNT(*) as total FROM github_activity${where}`, countParams);
+			const totalCount = countRows[0]?.total ?? 0;
 			const sql = `SELECT repo, title, committed_at FROM github_activity${where} ORDER BY committed_at ${order} LIMIT ?`;
 			params.push(limit);
 			const rows = await query<{ repo: string; title: string; committed_at: string }>(sql, params);
-			return JSON.stringify(
-				rows.map((r) => ({
+			return JSON.stringify({
+				totalCount,
+				items: rows.map((r) => ({
 					repo: r.repo,
 					title: r.title,
 					date: r.committed_at
 				}))
-			);
+			});
 		}
 		case 'get_prs': {
 			const since = args?.since;
@@ -180,18 +184,22 @@ async function executeTool(name: string, args?: Record<string, any>): Promise<st
 			const where = ' WHERE ' + conditions.join(' AND ');
 			const limit = Math.min(args?.limit ?? 50, 200);
 			const order = args?.order === 'asc' ? 'ASC' : 'DESC';
+			const countParams = [...params];
+			const countRows = await query<{ total: number }>(`SELECT COUNT(*) as total FROM github_activity${where}`, countParams);
+			const totalCount = countRows[0]?.total ?? 0;
 			const sql = `SELECT repo, title, additions, deletions, committed_at FROM github_activity${where} ORDER BY committed_at ${order} LIMIT ?`;
 			params.push(limit);
 			const rows = await query<{ repo: string; title: string; additions: number; deletions: number; committed_at: string }>(sql, params);
-			return JSON.stringify(
-				rows.map((r) => ({
+			return JSON.stringify({
+				totalCount,
+				items: rows.map((r) => ({
 					repo: r.repo,
 					title: r.title,
 					additions: r.additions,
 					deletions: r.deletions,
 					mergedAt: r.committed_at
 				}))
-			);
+			});
 		}
 		default:
 			return '{}';
