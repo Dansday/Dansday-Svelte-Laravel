@@ -258,7 +258,7 @@ async function fetchAllActivity(username: string, token: string, repos: any[]) {
 
 		for (const commit of commits) {
 			const authorLogin = commit.author?.user?.login;
-			if (authorLogin && authorLogin.toLowerCase() !== username.toLowerCase()) continue;
+			if (!authorLogin || authorLogin.toLowerCase() !== username.toLowerCase()) continue;
 
 			const message = (commit.message as string)?.split('\n')[0] ?? 'Commit';
 			const isPrivate = repo.isPrivate ?? false;
