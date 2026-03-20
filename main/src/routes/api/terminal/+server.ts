@@ -79,20 +79,20 @@ async function executeTool(name: string): Promise<string> {
 			return JSON.stringify({
 				design_skills: about.design_skills.map((s) => s.title),
 				dev_skills: about.dev_skills.map((s) => s.title),
-				education: about.edu_experiences.map((e) => ({ title: e.title, place: e.place, year: e.year, description: e.description })),
-				employment: about.emp_experiences.map((e) => ({ title: e.title, place: e.place, year: e.year, description: e.description })),
-				services: about.services.map((s) => ({ title: s.title, description: s.short_desc })),
-				testimonials: about.testimonials.map((t) => ({ name: t.name, text: t.text, position: t.position }))
+				education: about.edu_experiences.map((e) => ({ title: e.title, period: e.period, description: e.description })),
+				employment: about.emp_experiences.map((e) => ({ title: e.title, period: e.period, description: e.description })),
+				services: about.services.map((s) => ({ title: s.title, description: s.description })),
+				testimonials: about.testimonials.map((t) => ({ name: t.name, company: t.company, text: t.text }))
 			});
 		}
 		case 'get_articles': {
 			const articles = await fetchArticles();
-			return JSON.stringify(articles.map((a) => ({ title: a.title, description: a.short_desc, slug: a.slug })));
+			return JSON.stringify(articles.map((a) => ({ title: a.title, description: a.short_desc, slug: a.slug, created_at: a.created_at })));
 		}
 		case 'get_projects': {
 			const { projects, projects_categories } = await fetchProjects();
 			const catMap = new Map(projects_categories.map((c) => [c.id, c.name]));
-			return JSON.stringify(projects.map((p) => ({ title: p.title, description: p.short_desc, category: catMap.get(p.category_id) })));
+			return JSON.stringify(projects.map((p) => ({ title: p.title, description: p.short_desc, category: catMap.get(p.category_id), created_at: p.created_at })));
 		}
 		case 'get_activity': {
 			const rows = await query<{ repo: string; title: string; committed_at: string; is_private: number }>(
