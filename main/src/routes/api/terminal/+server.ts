@@ -54,8 +54,8 @@ const allTools: Record<string, { tool: OpenAI.Chat.ChatCompletionTool; section?:
 			type: 'function',
 			function: {
 				name: 'get_activity',
-				description: 'Get GitHub commit activity. Use since/until to filter by date range. Dates in YYYY-MM-DD format.',
-				parameters: { type: 'object', properties: { since: { type: 'string', description: 'Start date (YYYY-MM-DD)' }, until: { type: 'string', description: 'End date (YYYY-MM-DD)' }, limit: { type: 'number', description: 'Max results (default 50)' } }, required: [] }
+				description: 'Get GitHub commit activity. Filter by date range and/or repo/org name. Repo names are stored as "orgName/repoName" for org repos or just "repoName" for personal repos.',
+				parameters: { type: 'object', properties: { since: { type: 'string', description: 'Start date (YYYY-MM-DD)' }, until: { type: 'string', description: 'End date (YYYY-MM-DD)' }, repo: { type: 'string', description: 'Filter by repo or org name (partial match)' }, limit: { type: 'number', description: 'Max results (default 50)' } }, required: [] }
 			}
 		}
 	}
@@ -103,6 +103,7 @@ async function executeTool(name: string, args?: Record<string, any>): Promise<st
 			const conditions: string[] = [];
 			if (since) { conditions.push('committed_at >= ?'); params.push(since); }
 			if (until) { conditions.push('committed_at <= ?'); params.push(until + ' 23:59:59'); }
+			if (args?.repo) { conditions.push('repo LIKE ?'); params.push(`%${args.repo}%`); }
 			if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
 			sql += ' ORDER BY committed_at DESC LIMIT ?';
 			params.push(limit);
