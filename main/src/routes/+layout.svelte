@@ -77,7 +77,6 @@
 		<link rel="icon" href={data.defaultFavicon} />
 	{/if}
 	<link rel="preconnect" href={data.adminBaseUrl} crossorigin="anonymous" />
-	<link rel="preload" href="{data.adminBaseUrl}/assets/fonts/fontawesome/css/all.min.css" as="style" />
 	<link
 		rel="stylesheet"
 		href="{data.adminBaseUrl}/assets/fonts/fontawesome/css/all.min.css"
