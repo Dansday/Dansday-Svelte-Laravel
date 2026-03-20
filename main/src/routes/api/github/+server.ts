@@ -6,7 +6,8 @@ import type { RequestHandler } from './$types';
 
 const GITHUB_GRAPHQL = 'https://api.github.com/graphql';
 const SYNC_INTERVAL_MS = 10 * 60 * 1000;
-const STATS_TTL = 300;
+
+
 
 function getHeaders(token: string) {
 	return {
@@ -82,7 +83,7 @@ async function getCachedStats(): Promise<any | null> {
 }
 
 async function setCachedStats(data: any): Promise<void> {
-	await redisSet('github:stats', JSON.stringify(data), STATS_TTL);
+	await redisSet('github:stats', JSON.stringify(data));
 }
 
 async function fetchContributionStats(username: string, token: string) {
