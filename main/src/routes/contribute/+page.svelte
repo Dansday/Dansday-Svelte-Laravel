@@ -294,9 +294,9 @@
 				</div>
 			</div>
 
-			<div class="mb-5 flex gap-2 overflow-x-auto lg:grid lg:grid-cols-7">
+			<div class="mb-5 flex gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-7">
 				{#each [{ label: 'this week', value: githubData.stats.week, color: 'text-[#39d353]', sub: githubData.stats.weekRange }, { label: 'this month', value: githubData.stats.month, color: 'text-[#26a641]', sub: githubData.stats.monthRange }, { label: 'all time', value: githubData.stats.allTime, color: 'text-[#3fb950]', sub: githubData.stats.allTimeRange }, { label: 'commits', value: githubData.stats.totalCommits, color: 'text-[#58a6ff]', sub: githubData.stats.yearRange }, { label: 'PRs', value: githubData.stats.totalPRs, color: 'text-[#bc8cff]', sub: githubData.stats.yearRange }, { label: 'reviews', value: githubData.stats.totalReviews, color: 'text-[#d2a8ff]', sub: githubData.stats.yearRange }, { label: 'issues', value: githubData.stats.totalIssues, color: 'text-[#f78166]', sub: githubData.stats.yearRange }] as card}
-					<div class="min-w-24 shrink-0 rounded border border-[#30363d] bg-[#161b22]/60 p-2 text-center lg:min-w-0 lg:shrink">
+					<div class="min-w-20 shrink-0 rounded border border-[#30363d] bg-[#161b22]/60 p-1.5 text-center sm:min-w-24 sm:p-2 lg:min-w-0 lg:shrink">
 						<div class="text-lg font-bold {card.color}">{(card.value ?? 0).toLocaleString()}</div>
 						<div class="text-xs text-[#8b949e]">{card.label}</div>
 						{#if card.sub}<div class="text-[10px] text-[#6e7681]">{card.sub}</div>{/if}
@@ -305,18 +305,20 @@
 			</div>
 
 			<div class="mb-5 rounded border border-[#30363d] bg-[#161b22]/60 p-3">
-				<div class="mb-2 flex items-center justify-between">
-					<div class="text-xs text-[#8b949e]">
+				<div class="mb-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+					<div class="shrink-0 text-xs text-[#8b949e]">
 						{#if calendarLoading}
 							<span class="text-[#8b949e]">Loading...</span>
 						{:else}
-							<span class="font-semibold text-white">{calendarTotal.toLocaleString()}</span> contributions in {selectedYear}
+							<span class="font-semibold text-white">{calendarTotal.toLocaleString()}</span>
+							<span class="hidden sm:inline">contributions in {selectedYear}</span>
+							<span class="sm:hidden">in {selectedYear}</span>
 						{/if}
 					</div>
-					<div class="flex flex-wrap items-center gap-1 lg:hidden">
+					<div class="flex items-center gap-1 overflow-x-auto lg:hidden">
 						{#each yearOptions as year}
 							<button
-								class="rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors {year === selectedYear
+								class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors {year === selectedYear
 									? 'bg-[#238636] text-white'
 									: 'text-[#8b949e] hover:bg-[#21262d] hover:text-white'}"
 								onclick={() => selectYear(year)}>{year}</button
@@ -327,14 +329,12 @@
 				<div class="flex gap-3">
 					<div class="min-w-0 flex-1 overflow-x-auto">
 						<div class="min-w-[500px]">
-							<div class="grid gap-[2px]" style="grid-template-columns: 2rem repeat({weeks.length}, 1fr)">
+							<div class="grid grid-rows-[auto_repeat(7,1fr)] gap-x-0.5" style="grid-template-columns: 2rem repeat({weeks.length}, 1fr)">
 								<span></span>
 								{#each monthLabels as ml}
-									<span class="flex items-center justify-center text-[10px] text-[#8b949e]" style="grid-column:{ml.col + 2}">{ml.label}</span>
+									<span class="row-start-1 flex items-end text-[10px] leading-none text-[#8b949e]" style="grid-column:{ml.col + 2}">{ml.label}</span>
 								{/each}
-							</div>
-							<div class="grid gap-[2px]" style="grid-template-columns: 2rem repeat({weeks.length}, 1fr)">
-								<div class="grid grid-rows-7 gap-[2px]">
+								<div class="row-start-2 -row-end-1 grid grid-rows-7 gap-[2px]">
 									<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Mon</span>
 									<span></span>
 									<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Wed</span>
@@ -344,7 +344,7 @@
 									<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Sun</span>
 								</div>
 								{#each weeks as week, wi}
-									<div class="grid grid-rows-7 gap-[2px]">
+									<div class="row-start-2 -row-end-1 grid grid-rows-7 gap-[2px]">
 										{#each week as day}
 											{#if day.date === ''}
 												<div class="aspect-square w-full"></div>

@@ -6,7 +6,7 @@
 	let { children, data }: LayoutProps = $props();
 </script>
 
-<section class="flex min-h-0 flex-1 flex-col overflow-hidden px-3 lg:px-4">
+<section class="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#080808]/80 px-3 backdrop-blur-sm lg:px-4">
 	<nav class="border-ash-600 bg-ash-700/80 flex shrink-0 items-center gap-0 overflow-x-auto border-b select-none" aria-label="Abouts sections">
 		{#each data.posts as post (post.slug)}
 			<a
