@@ -93,7 +93,6 @@
         {{ __('menu.settings_options') }}
     </div>
 
-    <!-- GENERAL ITEM -->
     <li class="nav-item {{ request()->is('admin/general*') ? 'active' : '' }}">
         <a class="nav-link css3animate padding-sm" href="{{ url('admin/general') }}">
             <i class="fas fa-cog css3animate"></i>

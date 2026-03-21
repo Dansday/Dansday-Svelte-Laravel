@@ -110,7 +110,6 @@
     </div>
 </div>
 
-<!-- Icon Picker Modal -->
 <div class="modal fade" id="iconPickerModal" tabindex="-1" role="dialog" aria-labelledby="iconPickerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content">
@@ -123,7 +122,6 @@
                     <input type="text" id="iconSearchInput" class="form-control" placeholder="Search icons...">
                 </div>
                 <div id="iconGrid" class="d-flex flex-wrap gap-2" style="max-height: 400px; overflow-y: auto;">
-                    <!-- Icons injected via JS -->
                 </div>
             </div>
         </div>

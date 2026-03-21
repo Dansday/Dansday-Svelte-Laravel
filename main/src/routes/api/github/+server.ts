@@ -252,63 +252,50 @@ async function fetchCalendarForYear(username: string, token: string, year: numbe
 	return { calendar: days, total: calendar?.totalContributions ?? 0 };
 }
 
-async function fetchMyRepos(username: string, token: string, orgs: string[]) {
-	const listQuery = `
-		query($username: String!) {
-			user(login: $username) {
-				repositories(first: 100, orderBy: {field: PUSHED_AT, direction: DESC}, affiliations: [OWNER, COLLABORATOR]) {
-					nodes { name owner { login } isPrivate pushedAt }
-				}
-			}
-		}
-	`;
+async function fetchMyRepos(username: string, token: string, createdYear: number) {
+	const now = new Date();
+	const repoMap = new Map<string, any>();
 
-	const orgQueries = orgs.map((org) =>
-		graphql(
-			token,
-			`
-				query ($org: String!) {
-					organization(login: $org) {
-						repositories(first: 50, orderBy: { field: PUSHED_AT, direction: DESC }) {
-							nodes {
-								name
-								owner {
-									login
-								}
-								isPrivate
-								pushedAt
-							}
+	for (let yr = createdYear; yr <= now.getFullYear(); yr++) {
+		const from = new Date(yr, 0, 1).toISOString();
+		const to = yr === now.getFullYear() ? now.toISOString() : new Date(yr, 11, 31, 23, 59, 59).toISOString();
+
+		const q = `
+			query($username: String!, $from: DateTime!, $to: DateTime!) {
+				user(login: $username) {
+					contributionsCollection(from: $from, to: $to) {
+						commitContributionsByRepository(maxRepositories: 100) {
+							repository { name owner { login } isPrivate pushedAt }
+						}
+						pullRequestContributionsByRepository(maxRepositories: 100) {
+							repository { name owner { login } isPrivate pushedAt }
+						}
+						issueContributionsByRepository(maxRepositories: 100) {
+							repository { name owner { login } isPrivate pushedAt }
 						}
 					}
 				}
-			`,
-			{ org }
-		)
-			.then((d) => d.data?.organization?.repositories?.nodes ?? [])
-			.catch(() => [])
-	);
+			}
+		`;
 
-	const [userData, ...orgResults] = await Promise.all([
-		graphql(token, listQuery, { username })
-			.then((d) => d.data?.user?.repositories?.nodes ?? [])
-			.catch(() => []),
-		...orgQueries
-	]);
+		const d = await graphql(token, q, { username, from, to }).catch(() => null);
+		const col = d?.data?.user?.contributionsCollection;
+		if (!col) continue;
 
-	const repoMap = new Map<string, any>();
-	for (const repo of userData) {
-		repoMap.set(`${repo.owner?.login}/${repo.name}`, repo);
-	}
-	for (const orgRepos of orgResults) {
-		for (const repo of orgRepos) {
+		const allRepos = [
+			...(col.commitContributionsByRepository ?? []).map((c: any) => c.repository),
+			...(col.pullRequestContributionsByRepository ?? []).map((c: any) => c.repository),
+			...(col.issueContributionsByRepository ?? []).map((c: any) => c.repository)
+		];
+
+		for (const repo of allRepos) {
+			if (!repo) continue;
 			const key = `${repo.owner?.login}/${repo.name}`;
 			if (!repoMap.has(key)) repoMap.set(key, repo);
 		}
 	}
 
-	return Array.from(repoMap.values())
-		.filter((r) => r.pushedAt)
-		.sort((a, b) => new Date(b.pushedAt).getTime() - new Date(a.pushedAt).getTime());
+	return Array.from(repoMap.values());
 }
 
 function commitQuery(owner: string, name: string, cursor: string | null) {
@@ -602,8 +589,7 @@ async function getTopPRs() {
 
 async function fetchAndCacheStats(username: string, token: string) {
 	const stats = await fetchContributionStats(username, token);
-	const orgs = stats.user.organizations.map((o) => o.login);
-	const repos = await fetchMyRepos(username, token, orgs);
+	const repos = await fetchMyRepos(username, token, stats.createdYear);
 	const [topRepos, topPRsRaw] = await Promise.all([getTopRepos(), getTopPRs()]);
 	const topPRs = topPRsRaw.map((r) => ({
 		repo: r.repo,

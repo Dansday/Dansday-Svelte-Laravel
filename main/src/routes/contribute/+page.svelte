@@ -71,12 +71,8 @@
 		const gap = 10;
 		const wouldClipRight = mouseX + gap + tw > rect.right;
 		const wouldClipBottom = mouseY - gap - th < rect.top;
-		const xStyle = wouldClipRight
-			? `left:${mouseX - rect.left - tw - gap}px`
-			: `left:${mouseX - rect.left + gap}px`;
-		const yStyle = wouldClipBottom
-			? `top:${mouseY - rect.top + gap}px`
-			: `top:${mouseY - rect.top - th - gap}px`;
+		const xStyle = wouldClipRight ? `left:${mouseX - rect.left - tw - gap}px` : `left:${mouseX - rect.left + gap}px`;
+		const yStyle = wouldClipBottom ? `top:${mouseY - rect.top + gap}px` : `top:${mouseY - rect.top - th - gap}px`;
 		return `${xStyle};${yStyle}`;
 	});
 
@@ -259,7 +255,6 @@
 <main bind:this={mainEl} class="relative flex min-h-0 flex-1 flex-col font-mono text-sm md:text-base">
 	<div class="absolute inset-0 -z-10 bg-[#080808]/80 backdrop-blur-sm"></div>
 	<div class="text-ash-100 relative z-10 flex-1 overflow-y-auto p-4 pb-12 sm:p-6">
-		<!-- Header -->
 		<div class="mb-6">
 			<div class="text-base font-bold text-white">~/contribute</div>
 			<div class="mt-0.5 text-xs text-[#8b949e]">Live GitHub contribution stats</div>
@@ -273,7 +268,6 @@
 		{:else if error}
 			<div class="text-xs text-red-400">{error}</div>
 		{:else if githubData}
-			<!-- Profile row -->
 			<div class="mb-5 flex items-start gap-3">
 				<img src={githubData.user.avatarUrl} alt={githubData.user.name} class="h-10 w-10 shrink-0 rounded-full border border-[#30363d]" />
 				<div class="min-w-0 flex-1">
@@ -302,7 +296,6 @@
 				</div>
 			</div>
 
-			<!-- Stat cards -->
 			<div class="mb-5 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-7">
 				{#each [{ label: 'this week', value: githubData.stats.week, color: 'text-[#39d353]', sub: githubData.stats.weekRange }, { label: 'this month', value: githubData.stats.month, color: 'text-[#26a641]', sub: githubData.stats.monthRange }, { label: 'all time', value: githubData.stats.allTime, color: 'text-[#3fb950]', sub: githubData.stats.allTimeRange }, { label: 'commits', value: githubData.stats.totalCommits, color: 'text-[#58a6ff]', sub: githubData.stats.yearRange }, { label: 'PRs', value: githubData.stats.totalPRs, color: 'text-[#bc8cff]', sub: githubData.stats.yearRange }, { label: 'reviews', value: githubData.stats.totalReviews, color: 'text-[#d2a8ff]', sub: githubData.stats.yearRange }, { label: 'issues', value: githubData.stats.totalIssues, color: 'text-[#f78166]', sub: githubData.stats.yearRange }] as card}
 					<div class="rounded border border-[#30363d] bg-[#161b22]/60 p-2 text-center">
@@ -313,7 +306,6 @@
 				{/each}
 			</div>
 
-			<!-- Contribution calendar -->
 			<div class="mb-5 rounded border border-[#30363d] bg-[#161b22]/60 p-3">
 				<div class="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
 					<div class="text-xs text-[#8b949e]">
@@ -336,7 +328,7 @@
 				</div>
 				<div class="overflow-x-auto">
 					<div class="flex min-w-[500px]">
-						<div class="grid shrink-0 pr-1.5" style="display:grid; grid-template-rows: repeat(7, 10px); gap: 2px; margin-top: 22px">
+						<div class="mt-4.5 grid shrink-0 grid-rows-[repeat(7,1fr)] gap-0.5 pr-1.5">
 							<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Mon</span>
 							<span></span>
 							<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Wed</span>
@@ -351,15 +343,18 @@
 									<span class="absolute top-0 text-[10px] text-[#8b949e]" style="left: {(ml.col / weeks.length) * 100}%">{ml.label}</span>
 								{/each}
 							</div>
-							<div class="grid gap-0.5" style="grid-template-columns: repeat({weeks.length}, 1fr)">
+							<div class="grid grid-cols-(--weeks) gap-0.5" style="--weeks: repeat({weeks.length}, 1fr)">
 								{#each weeks as week}
-									<div class="grid gap-0.5" style="grid-template-rows: repeat(7, 10px)">
+									<div class="grid grid-rows-[repeat(7,1fr)] gap-0.5">
 										{#each week as day}
 											{#if day.date === ''}
-												<div style="width:10px;height:10px"></div>
+												<div class="h-2.5 w-2.5"></div>
 											{:else if day.future}
 												<div
-													style="width:10px;height:10px" class="cursor-pointer rounded-sm bg-white/15 opacity-40"
+													role="gridcell"
+													tabindex="0"
+													aria-label="No contributions on {day.date}"
+													class="h-2.5 w-2.5 cursor-pointer rounded-sm bg-white/15 opacity-40"
 													onmouseenter={(e) => {
 														hoveredDay = { date: day.date, count: 0 };
 														mouseX = e.clientX;
@@ -375,7 +370,10 @@
 												></div>
 											{:else}
 												<div
-													style="width:10px;height:10px" class="cursor-pointer rounded-sm {cellColor(day.count)} hover:brightness-125"
+													role="gridcell"
+													tabindex="0"
+													aria-label="{day.count} contribution{day.count !== 1 ? 's' : ''} on {day.date}"
+													class="h-2.5 w-2.5 cursor-pointer rounded-sm {cellColor(day.count)} hover:brightness-125"
 													onmouseenter={(e) => {
 														hoveredDay = { date: day.date, count: day.count };
 														mouseX = e.clientX;
@@ -410,7 +408,6 @@
 				</div>
 			</div>
 
-			<!-- Live activity feed -->
 			<div class="mb-5">
 				<div class="mb-2 flex items-center gap-2 text-xs tracking-wider text-[#8b949e] uppercase">
 					Live activity
@@ -457,9 +454,7 @@
 				</div>
 			</div>
 
-			<!-- Top PRs + Top repos -->
 			<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-				<!-- Top PRs -->
 				{#if githubData.topPRs?.length > 0}
 					<div>
 						<div class="mb-2 text-xs tracking-wider text-[#8b949e] uppercase">Top pull requests</div>
@@ -488,7 +483,6 @@
 					</div>
 				{/if}
 
-				<!-- Top repos -->
 				{#if githubData.topRepos?.length > 0}
 					<div>
 						<div class="mb-2 text-xs tracking-wider text-[#8b949e] uppercase">Top repositories</div>
@@ -507,7 +501,8 @@
 		{/if}
 	</div>
 	{#if hoveredDay}
-		<div bind:this={tooltipEl}
+		<div
+			bind:this={tooltipEl}
 			class="pointer-events-none absolute z-[9999] rounded border border-[#30363d] bg-[#1b1f23] px-2 py-1.5 text-xs whitespace-nowrap text-white shadow-lg"
 			style={tooltipStyle}
 		>
