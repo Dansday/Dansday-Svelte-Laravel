@@ -347,13 +347,13 @@
 									<div class="row-start-2 -row-end-1 grid grid-rows-7 gap-[2px]">
 										{#each week as day}
 											{#if day.date === ''}
-												<div class="relative w-full pb-[100%]"></div>
+												<div class="aspect-square w-full"></div>
 											{:else if day.future}
 												<div
 													role="gridcell"
 													tabindex="0"
 													aria-label="No contributions on {day.date}"
-													class="relative w-full cursor-pointer rounded-sm bg-white/15 pb-[100%] opacity-40"
+													class="aspect-square w-full cursor-pointer rounded-sm bg-white/15 opacity-40"
 													onmouseenter={(e) => {
 														hoveredDay = { date: day.date, count: 0 };
 														mouseX = e.clientX;
@@ -372,7 +372,7 @@
 													role="gridcell"
 													tabindex="0"
 													aria-label="{day.count} contribution{day.count !== 1 ? 's' : ''} on {day.date}"
-													class="relative w-full cursor-pointer rounded-sm pb-[100%] {cellColor(day.count)} hover:brightness-125"
+													class="aspect-square w-full cursor-pointer rounded-sm {cellColor(day.count)} hover:brightness-125"
 													onmouseenter={(e) => {
 														hoveredDay = { date: day.date, count: day.count };
 														mouseX = e.clientX;
