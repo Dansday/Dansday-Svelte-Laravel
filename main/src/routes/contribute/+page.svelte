@@ -328,7 +328,7 @@
 				</div>
 				<div class="overflow-x-auto">
 					<div class="flex min-w-[500px]">
-						<div class="mt-4.5 grid shrink-0 grid-rows-[repeat(7,1fr)] gap-0.5 pr-1.5">
+						<div class="mt-4.5 grid shrink-0 grid-rows-[repeat(7,10px)] gap-0.5 pr-1.5">
 							<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Mon</span>
 							<span></span>
 							<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Wed</span>
@@ -343,9 +343,9 @@
 									<span class="absolute top-0 text-[10px] text-[#8b949e]" style="left: {(ml.col / weeks.length) * 100}%">{ml.label}</span>
 								{/each}
 							</div>
-							<div class="grid grid-cols-(--weeks) gap-0.5" style="--weeks: repeat({weeks.length}, 1fr)">
+							<div class="grid gap-0.5" style="grid-template-columns: repeat({weeks.length}, 10px)">
 								{#each weeks as week}
-									<div class="grid grid-rows-[repeat(7,1fr)] gap-0.5">
+									<div class="grid grid-rows-[repeat(7,10px)] gap-0.5">
 										{#each week as day}
 											{#if day.date === ''}
 												<div class="h-2.5 w-2.5"></div>
