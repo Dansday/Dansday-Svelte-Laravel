@@ -296,7 +296,7 @@
 
 			<div class="mb-5 flex gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-7">
 				{#each [{ label: 'this week', value: githubData.stats.week, color: 'text-[#39d353]', sub: githubData.stats.weekRange }, { label: 'this month', value: githubData.stats.month, color: 'text-[#26a641]', sub: githubData.stats.monthRange }, { label: 'all time', value: githubData.stats.allTime, color: 'text-[#3fb950]', sub: githubData.stats.allTimeRange }, { label: 'commits', value: githubData.stats.totalCommits, color: 'text-[#58a6ff]', sub: githubData.stats.yearRange }, { label: 'PRs', value: githubData.stats.totalPRs, color: 'text-[#bc8cff]', sub: githubData.stats.yearRange }, { label: 'reviews', value: githubData.stats.totalReviews, color: 'text-[#d2a8ff]', sub: githubData.stats.yearRange }, { label: 'issues', value: githubData.stats.totalIssues, color: 'text-[#f78166]', sub: githubData.stats.yearRange }] as card}
-					<div class="min-w-20 shrink-0 rounded border border-[#30363d] bg-[#161b22]/60 p-1.5 text-center sm:min-w-24 sm:p-2 lg:min-w-0 lg:shrink">
+					<div class="w-28 shrink-0 rounded border border-[#30363d] bg-[#161b22]/60 p-2 text-center lg:w-auto lg:shrink">
 						<div class="text-lg font-bold {card.color}">{(card.value ?? 0).toLocaleString()}</div>
 						<div class="text-xs text-[#8b949e]">{card.label}</div>
 						{#if card.sub}<div class="text-[10px] text-[#6e7681]">{card.sub}</div>{/if}
@@ -330,7 +330,9 @@
 							<div class="grid grid-rows-[auto_repeat(7,1fr)] gap-x-0.5" style="grid-template-columns: 2rem repeat({weeks.length}, 1fr)">
 								<span></span>
 								{#each monthLabels as ml}
-									<span class="row-start-1 flex items-end justify-center text-[10px] leading-none text-[#8b949e]" style="grid-column:{ml.col + 2}">{ml.label}</span>
+									<span class="row-start-1 flex items-end justify-center text-[10px] leading-none text-[#8b949e]" style="grid-column:{ml.col + 2}"
+										>{ml.label}</span
+									>
 								{/each}
 								<div class="row-start-2 -row-end-1 grid grid-rows-7 gap-[2px]">
 									<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Mon</span>
