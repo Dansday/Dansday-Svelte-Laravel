@@ -578,9 +578,7 @@ async function syncReviews(username: string, token: string, createdYear: number)
 
 async function syncAllActivity(username: string, token: string, repos: any[], createdYear: number) {
 	await Promise.all([
-		...repos.map((repo) =>
-			Promise.all([syncRepoCommits(username, token, repo), syncRepoPRs(username, token, repo)]).catch(() => {})
-		),
+		...repos.map((repo) => Promise.all([syncRepoCommits(username, token, repo), syncRepoPRs(username, token, repo)]).catch(() => {})),
 		syncReviews(username, token, createdYear).catch(() => {}),
 		syncIssues(username, token, createdYear).catch(() => {})
 	]);

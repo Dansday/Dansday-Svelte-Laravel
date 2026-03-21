@@ -343,17 +343,26 @@
 							{#each weeks as week, wi}
 								{#each week as day, di}
 									{#if day.date === ''}
-										<div class="aspect-square" style="grid-column:{wi+2};grid-row:{di+1}"></div>
+										<div class="aspect-square" style="grid-column:{wi + 2};grid-row:{di + 1}"></div>
 									{:else if day.future}
 										<div
 											role="gridcell"
 											tabindex="0"
 											aria-label="No contributions on {day.date}"
 											class="aspect-square cursor-pointer rounded-sm bg-white/15 opacity-40"
-											style="grid-column:{wi+2};grid-row:{di+1}"
-											onmouseenter={(e) => { hoveredDay = { date: day.date, count: 0 }; mouseX = e.clientX; mouseY = e.clientY; }}
-											onmousemove={(e) => { mouseX = e.clientX; mouseY = e.clientY; }}
-											onmouseleave={() => { hoveredDay = null; }}
+											style="grid-column:{wi + 2};grid-row:{di + 1}"
+											onmouseenter={(e) => {
+												hoveredDay = { date: day.date, count: 0 };
+												mouseX = e.clientX;
+												mouseY = e.clientY;
+											}}
+											onmousemove={(e) => {
+												mouseX = e.clientX;
+												mouseY = e.clientY;
+											}}
+											onmouseleave={() => {
+												hoveredDay = null;
+											}}
 										></div>
 									{:else}
 										<div
@@ -361,10 +370,19 @@
 											tabindex="0"
 											aria-label="{day.count} contribution{day.count !== 1 ? 's' : ''} on {day.date}"
 											class="aspect-square cursor-pointer rounded-sm {cellColor(day.count)} hover:brightness-125"
-											style="grid-column:{wi+2};grid-row:{di+1}"
-											onmouseenter={(e) => { hoveredDay = { date: day.date, count: day.count }; mouseX = e.clientX; mouseY = e.clientY; }}
-											onmousemove={(e) => { mouseX = e.clientX; mouseY = e.clientY; }}
-											onmouseleave={() => { hoveredDay = null; }}
+											style="grid-column:{wi + 2};grid-row:{di + 1}"
+											onmouseenter={(e) => {
+												hoveredDay = { date: day.date, count: day.count };
+												mouseX = e.clientX;
+												mouseY = e.clientY;
+											}}
+											onmousemove={(e) => {
+												mouseX = e.clientX;
+												mouseY = e.clientY;
+											}}
+											onmouseleave={() => {
+												hoveredDay = null;
+											}}
 										></div>
 									{/if}
 								{/each}
@@ -372,7 +390,6 @@
 						</div>
 					</div>
 				</div>
-			</div>
 				<div class="mt-2 flex items-center justify-end">
 					<div class="flex items-center gap-1.5 text-[10px] text-[#8b949e]">
 						<span>Less</span>
