@@ -94,10 +94,10 @@
 						data-sveltekit-preload-code="eager"
 						data-sveltekit-preload-data
 						data-active={isOnCurrentPath}
-						class={`text-ash-300 data-[active=true]:bg-ash-300 data-[active=true]:text-ash-800 flex items-center px-2 py-0.5 leading-none transition-all ${isOnCurrentPath ? '' : ''}`}
+						class="text-ash-300 data-[active=true]:bg-ash-300 data-[active=true]:text-ash-800 flex items-center px-2 py-0.5 leading-none"
 						aria-label={`${title} (Shortcut: ${key})`}
 					>
-						{parts.before}{#if parts.highlighted}<span class={`${isOnCurrentPath ? 'text-ash-800' : 'text-ash-100'} transition-all`}>{parts.highlighted}</span>
+						{parts.before}{#if parts.highlighted}<span class={isOnCurrentPath ? 'text-ash-800' : 'text-ash-100'}>{parts.highlighted}</span>
 						{/if}{parts.after}
 					</a>
 				</li>
