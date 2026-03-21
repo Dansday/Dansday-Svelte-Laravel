@@ -68,7 +68,7 @@
 
 	$effect(() => {
 		if (!calendarEl || !weeks.length) return;
-		requestAnimationFrame(() => {
+		requestAnimationFrame(() => requestAnimationFrame(() => {
 			if (!calendarEl) return;
 			const first = calendarEl.querySelector('[data-cell]') as HTMLElement | null;
 			if (!first) return;
@@ -76,7 +76,7 @@
 			const parentRect = calendarEl.getBoundingClientRect();
 			cellSize = rect.width;
 			cellTop = rect.top - parentRect.top;
-		});
+		}));
 	});
 	let tooltipEl = $state<HTMLElement | null>(null);
 	const tooltipStyle = $derived.by(() => {
@@ -211,7 +211,6 @@
 	const yearOptions = $derived(
 		githubData ? Array.from({ length: githubData.currentYear - githubData.createdYear + 1 }, (_, i) => githubData!.currentYear - i) : []
 	);
-	const maxRepoCount = $derived(githubData?.topRepos?.length ? Math.max(...githubData.topRepos.map((r) => r.commits)) : 1);
 
 	onMount(async () => {
 		try {
