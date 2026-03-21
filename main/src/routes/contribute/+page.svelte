@@ -58,7 +58,18 @@
 	let calendarTotal = $state(0);
 	let selectedYear = $state(new Date().getFullYear());
 	let calendarLoading = $state(false);
-	let hoveredDay = $state<{ date: string; count: number; x: number; y: number } | null>(null);
+	let hoveredDay = $state<{ date: string; count: number; el: HTMLElement } | null>(null);
+	let tooltipEl = $state<HTMLElement | null>(null);
+	const tooltipStyle = $derived.by(() => {
+		if (!hoveredDay || !tooltipEl) return 'display:none';
+		const rect = hoveredDay.el.getBoundingClientRect();
+		const scrollParent = hoveredDay.el.closest('.overflow-y-auto') as HTMLElement | null;
+		if (!scrollParent) return 'display:none';
+		const parentRect = scrollParent.getBoundingClientRect();
+		const x = rect.left + rect.width / 2 - parentRect.left + scrollParent.scrollLeft;
+		const y = rect.top - parentRect.top + scrollParent.scrollTop - 40;
+		return `left:${x}px;top:${y}px;transform:translateX(-50%)`;
+	});
 
 	function timeAgo(iso: string): string {
 		const diff = Date.now() - new Date(iso).getTime();
@@ -90,13 +101,15 @@
 	function buildWeeks(days: { date: string; count: number }[], year: number) {
 		const dayMap = new Map(days.map((d) => [d.date, d.count]));
 		const now = new Date();
+		const today = now.toISOString().slice(0, 10);
 		const isCurrentYear = year === now.getFullYear();
-		const endDate = isCurrentYear ? now : new Date(year, 11, 31);
+		const endDate = new Date(year, 11, 31);
 		const allDays: { date: string; count: number }[] = [];
 		const cursor = new Date(year, 0, 1);
 		while (cursor <= endDate) {
 			const ds = cursor.toISOString().slice(0, 10);
-			allDays.push({ date: ds, count: dayMap.get(ds) ?? 0 });
+			const isFuture = isCurrentYear && ds > today;
+			allDays.push({ date: ds, count: isFuture ? -1 : (dayMap.get(ds) ?? 0) });
 			cursor.setDate(cursor.getDate() + 1);
 		}
 		const weeks: { date: string; count: number }[][] = [];
@@ -116,10 +129,6 @@
 		if (week.length > 0) {
 			while (week.length < 7) week.push({ date: '', count: -1 });
 			weeks.push(week);
-		}
-		if (!isCurrentYear) {
-			const empty = Array.from({ length: 7 }, () => ({ date: '', count: -1 }));
-			while (weeks.length < 53) weeks.push([...empty]);
 		}
 		return weeks;
 	}
@@ -229,7 +238,7 @@
 
 <main class="relative flex min-h-0 flex-1 flex-col font-mono text-sm md:text-base">
 	<div class="absolute inset-0 -z-10 bg-[#080808]/80 backdrop-blur-sm"></div>
-	<div class="text-ash-100 z-10 flex-1 overflow-y-auto p-4 pb-12 sm:p-6">
+	<div class="text-ash-100 relative z-10 flex-1 overflow-y-auto p-4 pb-12 sm:p-6">
 		<!-- Header -->
 		<div class="mb-6">
 			<div class="text-base font-bold text-white">~/contribute</div>
@@ -303,7 +312,7 @@
 								<span></span>
 								<span>Fri</span>
 								<span></span>
-								<span></span>
+								<span>Sun</span>
 							</div>
 							<div class="min-w-0 flex-1">
 								<div class="relative mb-1 h-3.5">
@@ -320,7 +329,7 @@
 												{:else}
 													<div
 														class="aspect-square w-full cursor-pointer rounded-sm {cellColor(day.count)} hover:brightness-125"
-														onmouseenter={(e) => { const rect = (e.target as HTMLElement).getBoundingClientRect(); hoveredDay = { date: day.date, count: day.count, x: rect.left + rect.width / 2, y: rect.top }; }}
+														onmouseenter={(e) => { hoveredDay = { date: day.date, count: day.count, el: e.target as HTMLElement }; }}
 														onmouseleave={() => { hoveredDay = null; }}
 													></div>
 												{/if}
@@ -355,8 +364,9 @@
 
 			{#if hoveredDay}
 				<div
-					class="pointer-events-none fixed z-50 rounded bg-[#1b1f23] px-2 py-1.5 text-xs text-white shadow-lg border border-[#30363d]"
-					style="left: {hoveredDay.x}px; top: {hoveredDay.y - 40}px; transform: translateX(-50%)"
+					bind:this={tooltipEl}
+					class="pointer-events-none absolute z-50 whitespace-nowrap rounded bg-[#1b1f23] px-2 py-1.5 text-xs text-white shadow-lg border border-[#30363d]"
+					style={tooltipStyle}
 				>
 					<strong>{hoveredDay.count === 0 ? 'No' : hoveredDay.count} contribution{hoveredDay.count !== 1 ? 's' : ''}</strong> on {formatTooltipDate(hoveredDay.date)}
 				</div>
@@ -416,7 +426,7 @@
 												<span class="rounded border border-[#30363d] px-1 text-[10px] text-[#8b949e]">private</span>
 											{/if}
 										</div>
-										<span class="mt-0.5 line-clamp-1 block text-xs text-[#c9d1d9]">{pr.title}</span>
+										<span class="mt-0.5 line-clamp-1 block text-xs {pr.private ? 'text-[#8b949e]' : 'text-[#c9d1d9]'}">{pr.private ? mask(pr.title) : pr.title}</span>
 									</div>
 									<div class="flex shrink-0 items-center gap-2 text-xs">
 										<span class="text-[#3fb950]">+{pr.additions.toLocaleString()}</span>
