@@ -528,7 +528,7 @@
 	{#if hoveredDay}
 		<div
 			bind:this={tooltipEl}
-			class="pointer-events-none absolute z-[9999] rounded border border-[#30363d] bg-[#1b1f23] px-2 py-1.5 text-xs whitespace-nowrap text-white shadow-lg"
+			class="pointer-events-none absolute z-[9999] hidden rounded border border-[#30363d] bg-[#1b1f23] px-2 py-1.5 text-xs whitespace-nowrap text-white shadow-lg md:block"
 			style={tooltipStyle}
 		>
 			<strong>{hoveredDay.count === 0 ? 'No' : hoveredDay.count} contribution{hoveredDay.count !== 1 ? 's' : ''}</strong> on {formatTooltipDate(
