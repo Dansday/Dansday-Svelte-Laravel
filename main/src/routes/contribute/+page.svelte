@@ -327,67 +327,72 @@
 				<div class="flex gap-3">
 					<div class="min-w-0 flex-1 overflow-x-auto">
 						<div class="min-w-[500px]">
-							<div class="grid grid-rows-[auto_repeat(7,1fr)] gap-x-0.5" style="grid-template-columns: 2rem repeat({weeks.length}, 1fr)">
-								<span></span>
-								{#each monthLabels as ml}
-									<span class="row-start-1 flex items-end justify-center text-[10px] leading-none text-[#8b949e]" style="grid-column:{ml.col + 2}"
-										>{ml.label}</span
-									>
+							<div class="flex gap-x-0.5" style="padding-left:2rem">
+								{#each weeks as _, wi}
+									<div class="flex-1 text-center text-[10px] leading-none text-[#8b949e]">
+										{#each monthLabels as ml}{#if ml.col === wi}{ml.label}{/if}{/each}
+									</div>
 								{/each}
-								<div class="row-start-2 -row-end-1 grid grid-rows-7 gap-[2px]">
-									<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Mon</span>
-									<span></span>
-									<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Wed</span>
-									<span></span>
-									<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Fri</span>
-									<span></span>
-									<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Sun</span>
+							</div>
+							<div class="mt-0.5 flex gap-x-0.5">
+								<div class="w-8 shrink-0">
+									<div class="grid grid-rows-7 gap-0.5">
+										<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Mon</span>
+										<span></span>
+										<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Wed</span>
+										<span></span>
+										<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Fri</span>
+										<span></span>
+										<span class="flex items-center text-[10px] leading-none text-[#8b949e]">Sun</span>
+									</div>
 								</div>
-								{#each weeks as week, wi}
-									<div class="row-start-2 -row-end-1 grid grid-rows-7 gap-[2px]">
-										{#each week as day}
-											{#if day.date === ''}
-												<div class="aspect-square w-full"></div>
-											{:else if day.future}
-												<div
-													role="gridcell"
-													tabindex="0"
-													aria-label="No contributions on {day.date}"
-													class="aspect-square w-full cursor-pointer rounded-sm bg-white/15 opacity-40"
-													onmouseenter={(e) => {
-														hoveredDay = { date: day.date, count: 0 };
-														mouseX = e.clientX;
-														mouseY = e.clientY;
-													}}
-													onmousemove={(e) => {
-														mouseX = e.clientX;
-														mouseY = e.clientY;
-													}}
-													onmouseleave={() => {
-														hoveredDay = null;
-													}}
-												></div>
-											{:else}
-												<div
-													role="gridcell"
-													tabindex="0"
-													aria-label="{day.count} contribution{day.count !== 1 ? 's' : ''} on {day.date}"
-													class="aspect-square w-full cursor-pointer rounded-sm {cellColor(day.count)} hover:brightness-125"
-													onmouseenter={(e) => {
-														hoveredDay = { date: day.date, count: day.count };
-														mouseX = e.clientX;
-														mouseY = e.clientY;
-													}}
-													onmousemove={(e) => {
-														mouseX = e.clientX;
-														mouseY = e.clientY;
-													}}
-													onmouseleave={() => {
-														hoveredDay = null;
-													}}
-												></div>
-											{/if}
-										{/each}
+								{#each weeks as week}
+									<div class="flex-1">
+										<div class="grid grid-rows-7 gap-0.5">
+											{#each week as day}
+												{#if day.date === ''}
+													<div class="aspect-square w-full"></div>
+												{:else if day.future}
+													<div
+														role="gridcell"
+														tabindex="0"
+														aria-label="No contributions on {day.date}"
+														class="aspect-square w-full cursor-pointer rounded-sm bg-white/15 opacity-40"
+														onmouseenter={(e) => {
+															hoveredDay = { date: day.date, count: 0 };
+															mouseX = e.clientX;
+															mouseY = e.clientY;
+														}}
+														onmousemove={(e) => {
+															mouseX = e.clientX;
+															mouseY = e.clientY;
+														}}
+														onmouseleave={() => {
+															hoveredDay = null;
+														}}
+													></div>
+												{:else}
+													<div
+														role="gridcell"
+														tabindex="0"
+														aria-label="{day.count} contribution{day.count !== 1 ? 's' : ''} on {day.date}"
+														class="aspect-square w-full cursor-pointer rounded-sm {cellColor(day.count)} hover:brightness-125"
+														onmouseenter={(e) => {
+															hoveredDay = { date: day.date, count: day.count };
+															mouseX = e.clientX;
+															mouseY = e.clientY;
+														}}
+														onmousemove={(e) => {
+															mouseX = e.clientX;
+															mouseY = e.clientY;
+														}}
+														onmouseleave={() => {
+															hoveredDay = null;
+														}}
+													></div>
+												{/if}
+											{/each}
+										</div>
 									</div>
 								{/each}
 							</div>
