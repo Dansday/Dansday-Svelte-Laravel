@@ -408,7 +408,6 @@
 								{/each}
 							</div>
 						</div>
-						</div>
 						<div class="mt-2 flex items-center justify-end">
 							<div class="flex items-center gap-1.5 text-[10px] text-[#8b949e]">
 								<span>Less</span>
