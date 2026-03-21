@@ -82,7 +82,6 @@
 
 			const data = await response.json();
 			const fullText = data.response || '';
-			const lines = fullText.split('\n');
 			let typed = '';
 			let charIndex = 0;
 
