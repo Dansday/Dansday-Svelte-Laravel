@@ -327,22 +327,24 @@
 				<div class="flex gap-3">
 					<div class="min-w-0 flex-1 overflow-x-auto">
 						<div class="min-w-[500px]">
-							<div class="grid gap-x-0.5" style="grid-template-columns: 2rem repeat({weeks.length}, 1fr)">
-								<span></span>
+							<div class="flex gap-x-0.5">
+								<div class="flex-1"></div>
 								{#each weeks as _, wi}
-									<div class="text-center text-[10px] leading-none text-[#8b949e]">
+									<div class="flex-1 text-center text-[10px] leading-none text-[#8b949e]">
 										{#each monthLabels as ml}{#if ml.col === wi}{ml.label}{/if}{/each}
 									</div>
 								{/each}
 							</div>
-							<div class="mt-0.5 grid gap-x-0.5" style="grid-template-columns: 2rem repeat({weeks.length}, 1fr)">
-								<div class="grid h-full grid-rows-7 gap-0.5">
-									{#each ['Mon', '', 'Wed', '', 'Fri', '', 'Sun'] as label}
-										<div class="flex items-center text-[10px] leading-none text-[#8b949e]">{label}</div>
+							<div class="mt-0.5 flex gap-x-0.5">
+								<div class="flex-1 flex flex-col gap-0.5">
+									{#each weeks[0] ?? [] as _, i}
+										<div class="aspect-square w-full flex items-center">
+											<span class="text-[10px] leading-none text-[#8b949e]">{['Mon','','Wed','','Fri','','Sun'][i] ?? ''}</span>
+										</div>
 									{/each}
 								</div>
 								{#each weeks as week}
-									<div class="grid grid-rows-7 gap-0.5">
+									<div class="flex-1 grid grid-rows-7 gap-0.5">
 										{#each week as day}
 											{#if day.date === ''}
 												<div class="aspect-square w-full"></div>
