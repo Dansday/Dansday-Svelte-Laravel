@@ -2,11 +2,6 @@ import { redirect } from '@sveltejs/kit';
 import { fetchProjects } from '$lib/server/data';
 import type { PageServerLoad } from './$types';
 
-function slug(name: string): string {
-	return name
-		.toLowerCase()
-}
-
 export const load: PageServerLoad = async ({ parent }) => {
 	const data = await parent();
 	const section = (data.section ?? {}) as Record<string, unknown>;
@@ -27,7 +22,7 @@ export const load: PageServerLoad = async ({ parent }) => {
 				poster: (row.image as string) || '',
 				category_id: catId,
 				category_name: cat?.name ?? null,
-				category_slug: cat ? slug(cat.name) : null
+				category_slug: cat ? cat.name : null
 			};
 		});
 		return { items };
