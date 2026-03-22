@@ -20,7 +20,7 @@
 		>
 			All
 		</a>
-		{#each categoryFilterList as { name, slug } (slug)}
+		{#each categoryFilterList as { id, name, slug } (id)}
 			<a
 				href="/projects?category={encodeURIComponent(slug)}"
 				data-active={activeCategory === slug}
