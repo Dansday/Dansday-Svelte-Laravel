@@ -82,12 +82,12 @@ async function executeTool(name: string): Promise<string> {
 		}
 		case 'get_articles': {
 			const articles = await fetchArticles();
-			return toToon(articles.map((a) => ({ title: a.title, description: a.short_desc, slug: a.slug, created_at: a.created_at })));
+			return toToon(articles.map((a) => ({ title: a.title, short_description: a.short_desc, content: a.text, slug: a.slug, created_at: a.created_at })));
 		}
 		case 'get_projects': {
 			const { projects, projects_categories } = await fetchProjects();
 			const catMap = new Map(projects_categories.map((c) => [c.id, c.name]));
-			return toToon(projects.map((p) => ({ title: p.title, description: p.short_desc, category: catMap.get(p.category_id), created_at: p.created_at })));
+			return toToon(projects.map((p) => ({ title: p.title, description: p.short_desc, content: p.description, category: catMap.get(p.category_id), created_at: p.created_at })));
 		}
 		case 'get_activity': {
 			const rows = await query<{ repo: string; title: string; committed_at: string; is_private: number }>(
