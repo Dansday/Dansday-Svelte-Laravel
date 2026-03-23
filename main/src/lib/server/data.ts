@@ -55,12 +55,20 @@ export async function fetchAbouts(): Promise<{
 	};
 }
 
-export async function fetchArticles(): Promise<Row[]> {
-	return query<Row>("SELECT * FROM articles WHERE status = 'published' ORDER BY `created_at` DESC");
+function makeSlug(name: string) {
+	return name
+		.toLowerCase()
+		.replace(/\s+/g, '-')
+		.replace(/^-+|-+$/g, '');
 }
 
-export async function fetchArticle(slug: string): Promise<Record<string, unknown>> {
-	const post = await queryOne<Row>('SELECT * FROM articles WHERE slug = ? LIMIT 1', [slug]);
+export async function fetchArticles(): Promise<Row[]> {
+	return query<Row>('SELECT * FROM articles WHERE enable = 1 ORDER BY `created_at` DESC');
+}
+
+export async function fetchArticleBySlug(slug: string): Promise<Record<string, unknown>> {
+	const articles = await query<Row>('SELECT * FROM articles WHERE enable = 1', []);
+	const post = articles.find((a) => makeSlug(a.title as string) === slug) ?? null;
 	if (!post) throw new Error('Not found');
 	const category = await queryOne<Row>('SELECT name FROM article_category WHERE id = ? LIMIT 1', [post.category_id as number]);
 	const data: Record<string, unknown> = { ...post };
@@ -80,8 +88,15 @@ export async function fetchProjects(): Promise<{
 	return { projects, projects_categories };
 }
 
-export async function fetchProject(id: number): Promise<Record<string, unknown>> {
-	const project = await queryOne<Row>('SELECT * FROM project WHERE id = ? LIMIT 1', [id]);
+export async function fetchProjectBySlug(slug: string): Promise<Record<string, unknown>> {
+	const projects = await query<Row>('SELECT * FROM project WHERE enable = 1', []);
+	function makeSlug(name: string) {
+		return name
+			.toLowerCase()
+			.replace(/\s+/g, '-')
+			.replace(/^-+|-+$/g, '');
+	}
+	const project = projects.find((p) => makeSlug(p.title as string) === slug) ?? null;
 	if (!project) throw new Error('Not found');
 	const category = await queryOne<Row>('SELECT name FROM project_category WHERE id = ? LIMIT 1', [project.category_id as number]);
 	const data: Record<string, unknown> = { ...project };
