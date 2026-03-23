@@ -18,6 +18,65 @@ const toolSections: Record<string, string | undefined> = {
 	get_issues: 'contribute_enable'
 };
 
+const toolDefinitions: Record<string, OpenAI.Chat.ChatCompletionTool> = {
+	get_home: {
+		type: 'function',
+		function: {
+			name: 'get_home',
+			description: 'Get homepage title, description, site URL, and social links'
+		}
+	},
+	get_about: {
+		type: 'function',
+		function: {
+			name: 'get_about',
+			description: 'Get skills, education, employment history, services, and testimonials'
+		}
+	},
+	get_articles: {
+		type: 'function',
+		function: {
+			name: 'get_articles',
+			description: 'Get list of articles/blog posts with titles, descriptions, and dates'
+		}
+	},
+	get_projects: {
+		type: 'function',
+		function: {
+			name: 'get_projects',
+			description: 'Get list of projects with titles, descriptions, and categories'
+		}
+	},
+	get_activity: {
+		type: 'function',
+		function: {
+			name: 'get_activity',
+			description: 'Get GitHub commit activity with stats broken down by repo, year, month, and week'
+		}
+	},
+	get_prs: {
+		type: 'function',
+		function: {
+			name: 'get_prs',
+			description: 'Get GitHub pull request activity with additions, deletions, and stats'
+		}
+	},
+	get_reviews: {
+		type: 'function',
+		function: {
+			name: 'get_reviews',
+			description: 'Get GitHub PR review activity with stats broken down by repo, year, month, and week'
+		}
+	},
+	get_issues: {
+		type: 'function',
+		function: {
+			name: 'get_issues',
+			description: 'Get GitHub issue activity with stats broken down by repo, year, month, and week'
+		}
+	}
+};
+
 async function getEnabledToolNames(): Promise<string[]> {
 	const section = await fetchSection();
 	return Object.entries(toolSections)
@@ -39,7 +98,7 @@ function buildStats(rows: Record<string, any>[], dateKey: string) {
 
 	for (const row of rows) {
 		const date = String(row[dateKey] ?? '');
-		const repo = row.is_private ? 'private-repo' : (row.repo ?? 'unknown');
+		const repo = row.repo ?? 'unknown';
 		const year = date.slice(0, 4);
 		const month = date.slice(0, 7);
 		const week = getISOWeek(date);
@@ -91,71 +150,55 @@ async function executeTool(name: string): Promise<string> {
 			return toToon(projects.map((p) => ({ title: p.title, description: p.description, category: catMap.get(p.category_id) })));
 		}
 		case 'get_activity': {
-			const rows = await query<{ repo: string; title: string; committed_at: string; is_private: number }>(
-				'SELECT repo, title, committed_at, is_private FROM github_activity WHERE type = "commit" ORDER BY committed_at DESC'
+			const rows = await query<{ repo: string; title: string; committed_at: string }>(
+				'SELECT repo, title, committed_at FROM github_activity WHERE type = "commit" ORDER BY committed_at DESC'
 			);
-			const publicRows = rows.filter((r) => !r.is_private);
-			const privateCount = rows.length - publicRows.length;
 			const stats = buildStats(rows, 'committed_at');
 			return toToon({
 				totalCount: rows.length,
-				publicCount: publicRows.length,
-				privateCount,
 				yearlyStats: stats.yearly,
 				monthlyStats: stats.monthly,
 				weeklyStats: stats.weekly,
-				items: publicRows.map((r) => ({ repo: r.repo, title: r.title, date: r.committed_at }))
+				items: rows.map((r) => ({ repo: r.repo, title: r.title, date: r.committed_at }))
 			});
 		}
 		case 'get_prs': {
-			const rows = await query<{ repo: string; title: string; additions: number; deletions: number; committed_at: string; is_private: number }>(
-				'SELECT repo, title, additions, deletions, committed_at, is_private FROM github_activity WHERE type = "pr" ORDER BY committed_at DESC'
+			const rows = await query<{ repo: string; title: string; additions: number; deletions: number; committed_at: string }>(
+				'SELECT repo, title, additions, deletions, committed_at FROM github_activity WHERE type = "pr" ORDER BY committed_at DESC'
 			);
-			const publicRows = rows.filter((r) => !r.is_private);
-			const privateCount = rows.length - publicRows.length;
 			const stats = buildStats(rows, 'committed_at');
 			return toToon({
 				totalCount: rows.length,
-				publicCount: publicRows.length,
-				privateCount,
 				yearlyStats: stats.yearly,
 				monthlyStats: stats.monthly,
 				weeklyStats: stats.weekly,
-				items: publicRows.map((r) => ({ repo: r.repo, title: r.title, additions: r.additions, deletions: r.deletions, mergedAt: r.committed_at }))
+				items: rows.map((r) => ({ repo: r.repo, title: r.title, additions: r.additions, deletions: r.deletions, mergedAt: r.committed_at }))
 			});
 		}
 		case 'get_reviews': {
-			const rows = await query<{ repo: string; title: string; committed_at: string; is_private: number }>(
-				'SELECT repo, title, committed_at, is_private FROM github_activity WHERE type = "review" ORDER BY committed_at DESC'
+			const rows = await query<{ repo: string; title: string; committed_at: string }>(
+				'SELECT repo, title, committed_at FROM github_activity WHERE type = "review" ORDER BY committed_at DESC'
 			);
-			const publicRows = rows.filter((r) => !r.is_private);
-			const privateCount = rows.length - publicRows.length;
 			const stats = buildStats(rows, 'committed_at');
 			return toToon({
 				totalCount: rows.length,
-				publicCount: publicRows.length,
-				privateCount,
 				yearlyStats: stats.yearly,
 				monthlyStats: stats.monthly,
 				weeklyStats: stats.weekly,
-				items: publicRows.map((r) => ({ repo: r.repo, title: r.title, date: r.committed_at }))
+				items: rows.map((r) => ({ repo: r.repo, title: r.title, date: r.committed_at }))
 			});
 		}
 		case 'get_issues': {
-			const rows = await query<{ repo: string; title: string; committed_at: string; is_private: number }>(
-				'SELECT repo, title, committed_at, is_private FROM github_activity WHERE type = "issue" ORDER BY committed_at DESC'
+			const rows = await query<{ repo: string; title: string; committed_at: string }>(
+				'SELECT repo, title, committed_at FROM github_activity WHERE type = "issue" ORDER BY committed_at DESC'
 			);
-			const publicRows = rows.filter((r) => !r.is_private);
-			const privateCount = rows.length - publicRows.length;
 			const stats = buildStats(rows, 'committed_at');
 			return toToon({
 				totalCount: rows.length,
-				publicCount: publicRows.length,
-				privateCount,
 				yearlyStats: stats.yearly,
 				monthlyStats: stats.monthly,
 				weeklyStats: stats.weekly,
-				items: publicRows.map((r) => ({ repo: r.repo, title: r.title, date: r.committed_at }))
+				items: rows.map((r) => ({ repo: r.repo, title: r.title, date: r.committed_at }))
 			});
 		}
 		default:
@@ -176,6 +219,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		const openaiKey = generalData.ai_key as string | null;
 		const openaiModel = generalData.ai_model as string | null;
 		const terminalPrompt = (generalData.ai_terminal_prompt as string | null)?.trim() ?? '';
+		const terminalReasoning = (generalData.ai_terminal_reasoning as string | null) ?? 'none';
 
 		const hasUrl = Boolean(openaiUrl && openaiUrl.trim() !== '');
 		const hasKey = Boolean(openaiKey && openaiKey.trim() !== '');
@@ -187,7 +231,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			});
 		}
 
-		let baseURL = openaiUrl.trim().replace(/\/+$/, '');
+		let baseURL = (openaiUrl as string).trim().replace(/\/+$/, '');
 
 		if (baseURL.endsWith('/chat/completions')) {
 			baseURL = baseURL.replace('/chat/completions', '');
@@ -195,76 +239,66 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const openai = new OpenAI({
 			baseURL: baseURL,
-			apiKey: openaiKey.trim()
+			apiKey: (openaiKey as string).trim()
 		});
 
 		const today = new Date().toISOString().slice(0, 10);
 		const systemContent = terminalPrompt.replaceAll('{{today}}', today);
-		const systemMessages = [{ role: 'system' as const, content: systemContent }];
 
 		const enabledToolNames = await getEnabledToolNames();
+		const tools = enabledToolNames.map((name) => toolDefinitions[name]).filter(Boolean);
 
-		const toolResults = await Promise.all(
-			enabledToolNames.map(async (name: string) => {
-				const result = await executeTool(name);
-				return `[${name}]\n${result}`;
-			})
-		);
+		const loop: OpenAI.Chat.ChatCompletionMessageParam[] = [{ role: 'system', content: systemContent }, ...messages];
 
-		const contextMessage = {
-			role: 'system' as const,
-			content: `Here is all available data. Use ONLY this data to answer.\n\n${toolResults.join('\n\n')}`
-		};
+		let aiReply = 'No response from AI.';
 
-		const allMessages = [...systemMessages, contextMessage, ...messages] as OpenAI.Chat.ChatCompletionMessageParam[];
-
-		try {
+		for (let i = 0; i < 10; i++) {
 			const completion = await openai.chat.completions.create({
 				model: openaiModel.trim(),
-				messages: allMessages,
-				temperature: 0
+				messages: loop,
+				tools: tools.length > 0 ? tools : undefined,
+				tool_choice: tools.length > 0 ? 'auto' : undefined,
+				reasoning_effort: terminalReasoning === 'none' ? undefined : (terminalReasoning as any)
 			});
 
-			const aiReply = completion.choices?.[0]?.message?.content || 'No response from AI.';
+			const message = completion.choices?.[0]?.message;
+			if (!message) break;
 
-			if (loggerProvider) {
-				const logger = loggerProvider.getLogger('terminal');
-				const userMessage = messages[messages.length - 1]?.content ?? '';
-				logger.emit({
-					body: 'AI Terminal Interaction',
-					attributes: {
-						'terminal.user_input': userMessage,
-						'terminal.system_prompt': systemContent,
-						'terminal.context_data': contextMessage.content,
-						'terminal.ai_response': aiReply
-					}
-				});
+			loop.push(message);
+
+			if (!message.tool_calls || message.tool_calls.length === 0) {
+				aiReply = message.content || 'No response from AI.';
+				break;
 			}
 
-			return json({ response: aiReply });
-		} catch (error: any) {
-			console.error('OpenAI API Error:', error);
-			const errorReply = `Error: Failed to connect to AI service.\n${error.message}`;
+			const toolResults = await Promise.all(
+				message.tool_calls.map(async (tc: any) => {
+					const result = await executeTool(tc.function.name);
+					return {
+						role: 'tool' as const,
+						tool_call_id: tc.id,
+						content: result
+					};
+				})
+			);
 
-			if (loggerProvider) {
-				const logger = loggerProvider.getLogger('terminal');
-				const userMessage = messages[messages.length - 1]?.content ?? '';
-				logger.emit({
-					body: 'AI Terminal Error',
-					attributes: {
-						'terminal.user_input': userMessage,
-						'terminal.system_prompt': systemContent,
-						'terminal.context_data': contextMessage.content,
-						'terminal.ai_response': errorReply,
-						'error.message': error.message
-					}
-				});
-			}
+			loop.push(...toolResults);
+		}
 
-			return json({
-				response: errorReply
+		if (loggerProvider) {
+			const logger = loggerProvider.getLogger('terminal');
+			const userMessage = messages[messages.length - 1]?.content ?? '';
+			logger.emit({
+				body: 'AI Terminal Interaction',
+				attributes: {
+					'terminal.user_input': userMessage,
+					'terminal.system_prompt': systemContent,
+					'terminal.ai_response': aiReply
+				}
 			});
 		}
+
+		return json({ response: aiReply });
 	} catch (error: any) {
 		console.error('Terminal API Error:', error);
 		return json({ response: `Error: ${error.message}` });

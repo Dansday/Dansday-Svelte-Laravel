@@ -31,6 +31,7 @@ class AiGenerateController extends Controller
         $apiKey = '';
         $dbUrl = '';
         $systemPrompt = '';
+        $reasoning = 'none';
         try {
             $general = General::find(1);
             $fromDb = $general?->ai_model;
@@ -48,6 +49,10 @@ class AiGenerateController extends Controller
             $promptFromDb = $general?->ai_content_prompt;
             if (is_string($promptFromDb) && trim($promptFromDb) !== '') {
                 $systemPrompt = trim($promptFromDb);
+            }
+            $reasoningFromDb = $general?->ai_content_reasoning;
+            if (is_string($reasoningFromDb) && trim($reasoningFromDb) !== '') {
+                $reasoning = trim($reasoningFromDb);
             }
         } catch (\Throwable $e) {
 
@@ -70,14 +75,14 @@ class AiGenerateController extends Controller
                     'Content-Type' => 'application/json',
                 ])
                 ->withToken($apiKey)
-                ->post($endpoint, [
+                ->post($endpoint, array_filter([
                     'model' => $model,
-                    'messages' => array_filter([
+                    'messages' => array_values(array_filter([
                         $systemPrompt !== '' ? ['role' => 'system', 'content' => $systemPrompt] : null,
                         ['role' => 'user', 'content' => $prompt],
-                    ]),
-                    'temperature' => 0.7,
-                ]);
+                    ])),
+                    'reasoning_effort' => $reasoning !== 'none' ? $reasoning : null,
+                ], fn($v) => $v !== null));
 
             if (! $res->successful()) {
                 \Illuminate\Support\Facades\Log::warning('AI generate HTTP failed', [

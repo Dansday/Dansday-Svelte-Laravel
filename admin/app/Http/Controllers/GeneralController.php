@@ -225,11 +225,13 @@ class GeneralController extends Controller
     public function updateAi(Request $request)
     {
         $data = [
-            'ai_url'             => $request->input('ai_url'),
-            'ai_key'             => $request->input('ai_key'),
-            'ai_model'           => $request->input('ai_model'),
-            'ai_terminal_prompt' => $request->input('ai_terminal_prompt'),
-            'ai_content_prompt'  => $request->input('ai_content_prompt'),
+            'ai_url'                  => $request->input('ai_url'),
+            'ai_key'                  => $request->input('ai_key'),
+            'ai_model'                => $request->input('ai_model'),
+            'ai_terminal_prompt'      => $request->input('ai_terminal_prompt'),
+            'ai_terminal_reasoning'   => $request->input('ai_terminal_reasoning'),
+            'ai_content_prompt'       => $request->input('ai_content_prompt'),
+            'ai_content_reasoning'    => $request->input('ai_content_reasoning'),
         ];
 
         $general = General::find(1);
@@ -240,11 +242,13 @@ class GeneralController extends Controller
         }
 
         $validate = Validator::make($data, [
-            'ai_url'             => ['nullable', 'string', 'max:500'],
-            'ai_key'             => ['nullable', 'string', 'max:500'],
-            'ai_model'           => ['nullable', 'string', 'max:255'],
-            'ai_terminal_prompt' => ['nullable', 'string'],
-            'ai_content_prompt'  => ['nullable', 'string'],
+            'ai_url'                  => ['nullable', 'string', 'max:500'],
+            'ai_key'                  => ['nullable', 'string', 'max:500'],
+            'ai_model'                => ['nullable', 'string', 'max:255'],
+            'ai_terminal_prompt'      => ['nullable', 'string'],
+            'ai_terminal_reasoning'   => ['nullable', 'string', 'in:none,minimal,low,medium,high,xhigh'],
+            'ai_content_prompt'       => ['nullable', 'string'],
+            'ai_content_reasoning'    => ['nullable', 'string', 'in:none,minimal,low,medium,high,xhigh'],
         ]);
         if ($validate->fails()) {
             return redirect('/admin/ai')
@@ -254,10 +258,12 @@ class GeneralController extends Controller
         }
 
         $data_new = [
-            'ai_url'             => $data['ai_url'] ? trim($data['ai_url']) : null,
-            'ai_model'           => $data['ai_model'] ? trim((string) $data['ai_model']) : null,
-            'ai_terminal_prompt' => $data['ai_terminal_prompt'] ? trim($data['ai_terminal_prompt']) : null,
-            'ai_content_prompt'  => $data['ai_content_prompt'] ? trim($data['ai_content_prompt']) : null,
+            'ai_url'                  => $data['ai_url'] ? trim($data['ai_url']) : null,
+            'ai_model'                => $data['ai_model'] ? trim((string) $data['ai_model']) : null,
+            'ai_terminal_prompt'      => $data['ai_terminal_prompt'] ? trim($data['ai_terminal_prompt']) : null,
+            'ai_terminal_reasoning'   => $data['ai_terminal_reasoning'] ?? null,
+            'ai_content_prompt'       => $data['ai_content_prompt'] ? trim($data['ai_content_prompt']) : null,
+            'ai_content_reasoning'    => $data['ai_content_reasoning'] ?? null,
         ];
         if (!empty($data['ai_key'])) {
             $data_new['ai_key'] = trim($data['ai_key']);
