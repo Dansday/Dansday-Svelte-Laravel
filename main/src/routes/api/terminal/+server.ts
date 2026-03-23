@@ -7,6 +7,10 @@ import OpenAI from 'openai';
 import type { RequestHandler } from './$types';
 import loggerProvider from '../../../../otel/logger.js';
 
+function stripHtml(html: string): string {
+	return html.replace(/<[^>]*>/g, '').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+
 const toolSections: Record<string, string | undefined> = {
 	search: undefined,
 	get_home: undefined
@@ -196,12 +200,12 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 			const result: Record<string, any> = {};
 			if (skills.length > 0) result.skills = skills.map((s: any) => ({ title: s.title, type: s.type }));
 			if (experiences.length > 0)
-				result.experiences = experiences.map((e: any) => ({ title: e.title, type: e.type, period: e.period, description: e.description }));
-			if (services.length > 0) result.services = services.map((s: any) => ({ title: s.title, description: s.description }));
-			if (testimonials.length > 0) result.testimonials = testimonials.map((t: any) => ({ name: t.name, company: t.company, description: t.description }));
-			if (articles.length > 0) result.articles = articles.map((a: any) => ({ title: a.title, description: a.description, created_at: a.created_at }));
+				result.experiences = experiences.map((e: any) => ({ title: e.title, type: e.type, period: e.period, description: stripHtml(e.description) }));
+			if (services.length > 0) result.services = services.map((s: any) => ({ title: s.title, description: stripHtml(s.description) }));
+			if (testimonials.length > 0) result.testimonials = testimonials.map((t: any) => ({ name: t.name, company: t.company, description: stripHtml(t.description) }));
+			if (articles.length > 0) result.articles = articles.map((a: any) => ({ title: a.title, description: stripHtml(a.description), created_at: a.created_at }));
 			if (projects.length > 0)
-				result.projects = projects.map((p: any) => ({ title: p.title, description: p.description, category: catMap.get(p.category_id) }));
+				result.projects = projects.map((p: any) => ({ title: p.title, description: stripHtml(p.description), category: catMap.get(p.category_id) }));
 			if (activity.length > 0)
 				result.activity = {
 					totalCount: activity.length,
