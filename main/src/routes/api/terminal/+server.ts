@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
-import { fetchGeneral, fetchHome, fetchAbouts, fetchSection } from '$lib/server/data';
+import { fetchGeneral, fetchHome, fetchSection } from '$lib/server/data';
 import { query } from '$lib/server/db';
 import { encode as toToon } from '@toon-format/toon';
 import OpenAI from 'openai';
@@ -9,8 +9,7 @@ import loggerProvider from '../../../../otel/logger.js';
 
 const toolSections: Record<string, string | undefined> = {
 	search: undefined,
-	get_home: undefined,
-	get_about: 'about_enable'
+	get_home: undefined
 };
 
 const noParams = { type: 'object', properties: {} } as const;
@@ -45,10 +44,6 @@ const toolDefinitions: Record<string, OpenAI.Chat.ChatCompletionTool> = {
 	get_home: {
 		type: 'function',
 		function: { name: 'get_home', description: 'Get homepage title, description, site URL, and social links', parameters: noParams }
-	},
-	get_about: {
-		type: 'function',
-		function: { name: 'get_about', description: 'Get skills, education, employment history, services, and testimonials', parameters: noParams }
 	}
 };
 
@@ -136,8 +131,11 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 			const servicesOn = aboutOn && on('services_enable');
 			const testimonialOn = aboutOn && on('testimonial_enable');
 
+			const hasDateFilter = Boolean(args.startDate || args.endDate);
 			const ghTypes = ['commit', 'pr', 'review', 'issue'];
+			const aboutTypes = ['skill', 'experience', 'service', 'testimonial'];
 			const wantAll = !t;
+			const wantAbout = !hasDateFilter || !wantAll || aboutTypes.includes(t!);
 			const wantGh = contributeOn && (wantAll || ghTypes.includes(t!));
 			const ghTypeFilter = !wantAll && wantGh ? ` AND type = "${t}"` : '';
 
@@ -160,13 +158,13 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 							[...kwParams, ...dp]
 						)
 					: [],
-				skillsOn && (wantAll || t === 'skill')
+				wantAbout && skillsOn && (wantAll || t === 'skill')
 					? query<{ title: string; type: string }>(
 							'SELECT title, type FROM skill' + (hasKeyword ? ' WHERE title LIKE ?' : '') + ' ORDER BY `order` ASC',
 							hasKeyword ? [keyword] : []
 						)
 					: [],
-				experienceOn && (wantAll || t === 'experience')
+				wantAbout && experienceOn && (wantAll || t === 'experience')
 					? query<{ title: string; type: string; period: string; description: string }>(
 							'SELECT title, type, period, description FROM experience' +
 								(hasKeyword ? ' WHERE (title LIKE ? OR description LIKE ?)' : '') +
@@ -174,13 +172,13 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 							hasKeyword ? [keyword, keyword] : []
 						)
 					: [],
-				servicesOn && (wantAll || t === 'service')
+				wantAbout && servicesOn && (wantAll || t === 'service')
 					? query<{ title: string; description: string }>(
 							'SELECT title, description FROM service' + (hasKeyword ? ' WHERE (title LIKE ? OR description LIKE ?)' : '') + ' ORDER BY `order` ASC',
 							hasKeyword ? [keyword, keyword] : []
 						)
 					: [],
-				testimonialOn && (wantAll || t === 'testimonial')
+				wantAbout && testimonialOn && (wantAll || t === 'testimonial')
 					? query<{ name: string; company: string; description: string }>(
 							'SELECT name, company, description FROM testimonial' +
 								(hasKeyword ? ' WHERE (name LIKE ? OR company LIKE ? OR description LIKE ?)' : '') +
@@ -216,17 +214,6 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 			const [home, general] = await Promise.all([fetchHome(), fetchGeneral()]);
 			const siteUrl = (env.BASE_URL ?? '').replace(/\/+$/, '');
 			return toToon({ title: home.title, description: home.description, site_url: siteUrl, social_links: general.social_links });
-		}
-		case 'get_about': {
-			const about = await fetchAbouts();
-			return toToon({
-				design_skills: about.design_skills.map((s) => s.title),
-				dev_skills: about.dev_skills.map((s) => s.title),
-				education: about.edu_experiences.map((e) => ({ title: e.title, period: e.period, description: e.description })),
-				employment: about.emp_experiences.map((e) => ({ title: e.title, period: e.period, description: e.description })),
-				services: about.services.map((s) => ({ title: s.title, description: s.description })),
-				testimonials: about.testimonials.map((t) => ({ name: t.name, company: t.company, description: t.description }))
-			});
 		}
 		default:
 			return '{}';
