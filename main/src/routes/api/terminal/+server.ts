@@ -262,7 +262,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 
 		const today = new Date().toISOString().slice(0, 10);
-		const toolGuidance = `\n\nTool Usage:\n- Use "search" for ANY data question. It searches articles, projects, skills, experiences, services, testimonials, and GitHub activity.\n- Always convert relative dates to absolute dates using today (${today}). "last week" = Monday to Sunday of the previous week. "this month" = first day to today.\n- Use the "type" param to narrow results (e.g. type:"commit" for commit-only, type:"article" for articles-only).\n- Use "get_home" only for homepage/site info. Use "get_about" only for full profile/resume info.\n- If data is empty for a time range, say so — never invent data.`;
+		const toolGuidance = `\n\nTool Usage:\n- Use "search" for ANY data question. It searches articles, projects, skills, experiences, services, testimonials, and GitHub activity.\n- Always convert relative dates to absolute dates using today (${today}). "last week" = Monday to Sunday of the previous week. "this month" = first day to today.\n- For general questions like "what did you do in X" or "tell me about X", do NOT set the "type" param — omit it so you get both project info AND GitHub activity combined. Present both in your answer.\n- Only use "type" when the user explicitly asks for a specific type (e.g. "show my commits in X" → type:"commit", "list articles about X" → type:"article").\n- Use "get_home" only for homepage/site info. Use "get_about" only for full profile/resume info.\n- If data is empty for a time range, say so — never invent data.`;
 		const systemContent = terminalPrompt.replaceAll('{{today}}', today) + toolGuidance;
 
 		const section = await getEnabledSections();
