@@ -30,11 +30,11 @@ async function getActivityFromDb(offset: number, limit: number) {
 		repo: string;
 		title: string;
 		type: string;
-		committed_at: string;
+		created_at: string;
 		is_private: number;
 		additions: number | null;
 		deletions: number | null;
-	}>('SELECT repo, title, type, committed_at, is_private, additions, deletions FROM github_activity ORDER BY committed_at DESC LIMIT ? OFFSET ?', [
+	}>('SELECT repo, title, type, created_at, is_private, additions, deletions FROM github_activity ORDER BY created_at DESC LIMIT ? OFFSET ?', [
 		limit + 1,
 		offset
 	]);
@@ -45,7 +45,7 @@ async function getActivityFromDb(offset: number, limit: number) {
 			repo: r.repo,
 			title: r.title,
 			type: r.type,
-			date: r.committed_at,
+			date: r.created_at,
 			private: isPrivate,
 			additions: r.additions,
 			deletions: r.deletions
@@ -63,7 +63,7 @@ async function saveActivityToDb(
 	for (const item of items) {
 		params.push(item.repo, item.title, item.type, item.date, item.oid, item.private ? 1 : 0, item.additions ?? null, item.deletions ?? null);
 	}
-	await query(`INSERT IGNORE INTO github_activity (repo, title, type, committed_at, oid, is_private, additions, deletions) VALUES ${values}`, params);
+	await query(`INSERT IGNORE INTO github_activity (repo, title, type, created_at, oid, is_private, additions, deletions) VALUES ${values}`, params);
 }
 
 async function getLastSyncTime(): Promise<number> {
@@ -599,8 +599,8 @@ async function getTopRepos() {
 }
 
 async function getTopPRs() {
-	return query<{ repo: string; title: string; additions: number; deletions: number; committed_at: string; is_private: number }>(
-		'SELECT repo, title, additions, deletions, committed_at, is_private FROM github_activity WHERE type = "pr" ORDER BY (additions + deletions) DESC LIMIT 10'
+	return query<{ repo: string; title: string; additions: number; deletions: number; created_at: string; is_private: number }>(
+		'SELECT repo, title, additions, deletions, created_at, is_private FROM github_activity WHERE type = "pr" ORDER BY (additions + deletions) DESC LIMIT 10'
 	);
 }
 
@@ -613,7 +613,7 @@ async function fetchAndCacheStats(username: string, token: string) {
 		title: r.title,
 		additions: r.additions,
 		deletions: r.deletions,
-		mergedAt: r.committed_at,
+		mergedAt: r.created_at,
 		private: !!r.is_private
 	}));
 	const data = { username, ...stats, topRepos, topPRs };
