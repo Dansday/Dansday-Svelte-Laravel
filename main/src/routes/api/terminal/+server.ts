@@ -136,6 +136,7 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 			const aboutTypes = ['skill', 'experience', 'service', 'testimonial'];
 			const wantAll = !t;
 			const wantAbout = !hasDateFilter || !wantAll || aboutTypes.includes(t!);
+			const wantProjects = projectsOn && (!hasDateFilter || t === 'project');
 			const wantGh = contributeOn && (wantAll || ghTypes.includes(t!));
 			const ghTypeFilter = !wantAll && wantGh ? ` AND type = "${t}"` : '';
 
@@ -146,7 +147,7 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 							[...kwParams, ...dp]
 						)
 					: [],
-				projectsOn && (wantAll || t === 'project')
+				wantProjects && (wantAll || t === 'project')
 					? query<{ title: string; description: string; category_id: number; created_at: string }>(
 							'SELECT title, description, category_id, created_at FROM project WHERE enable = 1' + kwFilter + dateClause + ' ORDER BY created_at DESC',
 							[...kwParams, ...dp]
