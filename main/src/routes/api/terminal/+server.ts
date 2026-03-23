@@ -158,68 +158,68 @@ async function executeTool(name: string): Promise<string> {
 			return toToon(projects.map((p) => ({ title: p.title, description: p.description, category: catMap.get(p.category_id) })));
 		}
 		case 'get_activity': {
-			const rows = await query<{ repo: string; title: string; type: string; committed_at: string }>(
-				'SELECT repo, title, type, committed_at FROM github_activity ORDER BY committed_at DESC'
+			const rows = await query<{ repo: string; title: string; type: string; created_at: string }>(
+				'SELECT repo, title, type, created_at FROM github_activity ORDER BY created_at DESC'
 			);
-			const stats = buildStats(rows, 'committed_at');
+			const stats = buildStats(rows, 'created_at');
 			return toToon({
 				totalCount: rows.length,
 				yearlyStats: stats.yearly,
 				monthlyStats: stats.monthly,
 				weeklyStats: stats.weekly,
-				items: rows.map((r) => ({ repo: r.repo, title: r.title, type: r.type, date: r.committed_at }))
+				items: rows.map((r) => ({ repo: r.repo, title: r.title, type: r.type, date: r.created_at }))
 			});
 		}
 		case 'get_commits': {
-			const rows = await query<{ repo: string; title: string; committed_at: string }>(
-				'SELECT repo, title, committed_at FROM github_activity WHERE type = "commit" ORDER BY committed_at DESC'
+			const rows = await query<{ repo: string; title: string; created_at: string }>(
+				'SELECT repo, title, created_at FROM github_activity WHERE type = "commit" ORDER BY created_at DESC'
 			);
-			const stats = buildStats(rows, 'committed_at');
+			const stats = buildStats(rows, 'created_at');
 			return toToon({
 				totalCount: rows.length,
 				yearlyStats: stats.yearly,
 				monthlyStats: stats.monthly,
 				weeklyStats: stats.weekly,
-				items: rows.map((r) => ({ repo: r.repo, title: r.title, date: r.committed_at }))
+				items: rows.map((r) => ({ repo: r.repo, title: r.title, date: r.created_at }))
 			});
 		}
 		case 'get_prs': {
-			const rows = await query<{ repo: string; title: string; additions: number; deletions: number; committed_at: string }>(
-				'SELECT repo, title, additions, deletions, committed_at FROM github_activity WHERE type = "pr" ORDER BY committed_at DESC'
+			const rows = await query<{ repo: string; title: string; additions: number; deletions: number; created_at: string }>(
+				'SELECT repo, title, additions, deletions, created_at FROM github_activity WHERE type = "pr" ORDER BY created_at DESC'
 			);
-			const stats = buildStats(rows, 'committed_at');
+			const stats = buildStats(rows, 'created_at');
 			return toToon({
 				totalCount: rows.length,
 				yearlyStats: stats.yearly,
 				monthlyStats: stats.monthly,
 				weeklyStats: stats.weekly,
-				items: rows.map((r) => ({ repo: r.repo, title: r.title, additions: r.additions, deletions: r.deletions, mergedAt: r.committed_at }))
+				items: rows.map((r) => ({ repo: r.repo, title: r.title, additions: r.additions, deletions: r.deletions, mergedAt: r.created_at }))
 			});
 		}
 		case 'get_reviews': {
-			const rows = await query<{ repo: string; title: string; committed_at: string }>(
-				'SELECT repo, title, committed_at FROM github_activity WHERE type = "review" ORDER BY committed_at DESC'
+			const rows = await query<{ repo: string; title: string; created_at: string }>(
+				'SELECT repo, title, created_at FROM github_activity WHERE type = "review" ORDER BY created_at DESC'
 			);
-			const stats = buildStats(rows, 'committed_at');
+			const stats = buildStats(rows, 'created_at');
 			return toToon({
 				totalCount: rows.length,
 				yearlyStats: stats.yearly,
 				monthlyStats: stats.monthly,
 				weeklyStats: stats.weekly,
-				items: rows.map((r) => ({ repo: r.repo, title: r.title, date: r.committed_at }))
+				items: rows.map((r) => ({ repo: r.repo, title: r.title, date: r.created_at }))
 			});
 		}
 		case 'get_issues': {
-			const rows = await query<{ repo: string; title: string; committed_at: string }>(
-				'SELECT repo, title, committed_at FROM github_activity WHERE type = "issue" ORDER BY committed_at DESC'
+			const rows = await query<{ repo: string; title: string; created_at: string }>(
+				'SELECT repo, title, created_at FROM github_activity WHERE type = "issue" ORDER BY created_at DESC'
 			);
-			const stats = buildStats(rows, 'committed_at');
+			const stats = buildStats(rows, 'created_at');
 			return toToon({
 				totalCount: rows.length,
 				yearlyStats: stats.yearly,
 				monthlyStats: stats.monthly,
 				weeklyStats: stats.weekly,
-				items: rows.map((r) => ({ repo: r.repo, title: r.title, date: r.committed_at }))
+				items: rows.map((r) => ({ repo: r.repo, title: r.title, date: r.created_at }))
 			});
 		}
 		default:
