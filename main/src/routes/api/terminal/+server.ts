@@ -36,7 +36,10 @@ const searchParams = {
 		},
 		startDate: { type: 'string', description: 'Filter results from this date (YYYY-MM-DD).' },
 		endDate: { type: 'string', description: 'Filter results up to this date (YYYY-MM-DD).' },
-		count: { type: 'number', description: 'Max number of activity items to return. Default 50. Use higher values when the user asks for more detail (e.g. "first 200 commits").' }
+		count: {
+			type: 'number',
+			description: 'Max number of activity items to return. Default 50. Use higher values when the user asks for more detail (e.g. "first 200 commits").'
+		}
 	}
 } as const;
 
@@ -257,7 +260,10 @@ export const POST: RequestHandler = async ({ request }) => {
 			loop.push(message);
 
 			if (!message.tool_calls || message.tool_calls.length === 0) {
-				aiReply = (message.content || '').replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '').replace(/\(no output\)\s*/g, '').trim();
+				aiReply = (message.content || '')
+					.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+					.replace(/\(no output\)\s*/g, '')
+					.trim();
 				break;
 			}
 

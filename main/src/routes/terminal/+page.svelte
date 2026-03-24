@@ -188,18 +188,11 @@
 				/https?:\/\/[^\s<>"')\]]+/g,
 				(url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-[#729fcf] underline hover:text-[#93b8e0]">${url}</a>`
 			)
-			.replace(
-				/mailto:([^\s<>"')\]]+)/g,
-				(_, email) => `<a href="mailto:${email}" class="text-[#729fcf] underline hover:text-[#93b8e0]">${email}</a>`
-			);
+			.replace(/mailto:([^\s<>"')\]]+)/g, (_, email) => `<a href="mailto:${email}" class="text-[#729fcf] underline hover:text-[#93b8e0]">${email}</a>`);
 	}
 
 	function escapeHtml(text: string): string {
-		return text
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;')
-			.replace(/"/g, '&quot;');
+		return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 	}
 
 	function formatLine(line: string): string {

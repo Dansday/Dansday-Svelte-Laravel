@@ -1,6 +1,4 @@
 <script lang="ts">
-	import Face from './face.svelte';
-
 	interface $$Props {
 		siteName: string;
 		isFullscreen: boolean;
@@ -24,18 +22,24 @@
 	onmousedown={onMouseDown}
 	onkeydown={handleHeaderKeyDown}
 >
-	<div class="group absolute top-1/2 hidden -translate-y-1/2 items-center lg:flex">
-		<button class="grid h-6 w-6 place-items-center rounded-full" onclick={() => window.close()} aria-label="Close">
-			<div class="h-3 w-3 rounded-full bg-[#898989] transition-colors group-hover:bg-[#FF6057]"></div>
+	<p class="not-sr-only font-semibold select-none">{siteName}</p>
+	<div class="group hidden items-center lg:flex">
+		<button class="grid h-8 w-10 place-items-center transition-colors hover:bg-white/10" aria-label="Minimize">
+			<svg width="10" height="1" viewBox="0 0 10 1" fill="currentColor" class="text-[#898989] group-hover:text-white"><rect width="10" height="1" /></svg>
 		</button>
-		<button class="grid h-6 w-6 place-items-center rounded-full" aria-label="Minimize">
-			<div class="h-3 w-3 rounded-full bg-[#898989] transition-colors group-hover:bg-[#FEBC2D]"></div>
+		<button
+			class="grid h-8 w-10 place-items-center transition-colors hover:bg-white/10"
+			onclick={toggleFullscreen}
+			aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+		>
+			<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1" class="text-[#898989] group-hover:text-white"
+				><rect x="0.5" y="0.5" width="9" height="9" /></svg
+			>
 		</button>
-		<button class="grid h-6 w-6 place-items-center rounded-full" onclick={toggleFullscreen} aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}>
-			<div class="h-3 w-3 rounded-full bg-[#898989] transition-colors group-hover:bg-[#2BC840]"></div>
+		<button class="grid h-8 w-10 place-items-center transition-colors hover:bg-[#e81123]" onclick={() => window.close()} aria-label="Close">
+			<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.2" class="text-[#898989] group-hover:text-white"
+				><line x1="0" y1="0" x2="10" y2="10" /><line x1="10" y1="0" x2="0" y2="10" /></svg
+			>
 		</button>
 	</div>
-	<p class="not-sr-only mx-auto hidden font-semibold select-none lg:block">{siteName}</p>
-	<p class="not-sr-only mx-auto block font-semibold select-none lg:hidden">{siteName}</p>
-	<Face />
 </header>
