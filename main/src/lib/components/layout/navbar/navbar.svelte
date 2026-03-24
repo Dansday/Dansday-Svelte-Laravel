@@ -57,8 +57,6 @@
 	};
 
 	const hasSocialLinks = $derived(Array.isArray(socialLinks) && socialLinks.some((link) => link?.text?.trim()));
-
-
 </script>
 
 <nav class="overflow-x-auto text-sm select-none md:text-base lg:px-4 lg:py-3">
