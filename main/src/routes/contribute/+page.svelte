@@ -104,10 +104,6 @@
 		return `${Math.floor(mo / 12)}y ago`;
 	}
 
-	function mask(text: string): string {
-		return text.replace(/\S/g, '*');
-	}
-
 	function cellColor(count: number): string {
 		if (count === 0) return 'bg-white/15';
 		if (count <= 2) return 'bg-[#0e4429]';
@@ -461,9 +457,7 @@
 										<span class="text-xs text-[#f85149]">-{item.deletions}</span>
 									{/if}
 								</div>
-								<span class="mt-0.5 line-clamp-1 block text-xs {item.private ? 'text-[#8b949e]' : 'text-[#c9d1d9]'}"
-									>{item.private ? mask(item.title) : item.title}</span
-								>
+								<span class="mt-0.5 line-clamp-1 block text-xs text-[#c9d1d9]">{item.title}</span>
 							</div>
 							<div class="mt-0.5 shrink-0 text-xs text-[#8b949e]">{timeAgo(item.date)}</div>
 						</div>
@@ -494,9 +488,7 @@
 												<span class="rounded border border-[#30363d] px-1 text-xs text-[#8b949e]">private</span>
 											{/if}
 										</div>
-										<span class="mt-0.5 line-clamp-1 block text-xs {pr.private ? 'text-[#8b949e]' : 'text-[#c9d1d9]'}"
-											>{pr.private ? mask(pr.title) : pr.title}</span
-										>
+										<span class="mt-0.5 line-clamp-1 block text-xs text-[#c9d1d9]">{pr.title}</span>
 									</div>
 									<div class="flex shrink-0 items-center gap-2 text-xs">
 										<span class="text-[#3fb950]">+{(pr.additions ?? 0).toLocaleString()}</span>
