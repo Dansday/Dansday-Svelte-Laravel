@@ -1,13 +1,14 @@
 <script lang="ts">
 	interface $$Props {
 		siteName: string;
+		favicon: string;
 		isFullscreen: boolean;
 		onMouseDown: (e: MouseEvent) => void;
 		toggleFullscreen: () => void;
 		onMinimize: () => void;
 	}
 
-	let { siteName, isFullscreen, onMouseDown, toggleFullscreen, onMinimize }: $$Props = $props();
+	let { siteName, favicon, isFullscreen, onMouseDown, toggleFullscreen, onMinimize }: $$Props = $props();
 
 	function handleHeaderKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Enter' || event.key === ' ') {
@@ -23,7 +24,9 @@
 	onmousedown={onMouseDown}
 	onkeydown={handleHeaderKeyDown}
 >
-	<p class="not-sr-only flex items-center gap-2 font-semibold select-none"><i class="fa-brands fa-ubuntu text-[#E95420]"></i>{siteName}</p>
+	<p class="not-sr-only flex items-center gap-2 font-semibold select-none">
+		{#if favicon}<img src={favicon} alt="" class="h-4 w-4" />{/if}{siteName}
+	</p>
 	<div class="hidden items-center lg:flex">
 		<button class="group grid h-8 w-10 place-items-center hover:bg-white/10" onclick={onMinimize} aria-label="Minimize">
 			<svg width="10" height="1" viewBox="0 0 10 1" fill="currentColor" class="text-[#898989] group-hover:text-white"><rect width="10" height="1" /></svg>

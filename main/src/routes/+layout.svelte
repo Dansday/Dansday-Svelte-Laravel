@@ -123,9 +123,9 @@
 	class:container-shadow={!isFullscreen || !isMobile}
 	class:minimized={isMinimized && !isMobile}
 	style:transform="translate({position.x}px, {position.y}px)"
-	style:transition={dragging ? 'none' : 'all 0.3s ease-out'}
+	style:transition={dragging ? 'none' : 'all 0.2s cubic-bezier(0.4, 0, 0, 1)'}
 >
-	<Header siteName={data.siteName} {isFullscreen} {onMouseDown} {toggleFullscreen} {onMinimize} />
+	<Header siteName={data.siteName} favicon={data.defaultFavicon} {isFullscreen} {onMouseDown} {toggleFullscreen} {onMinimize} />
 	{@render children()}
 	<Navbar siteName={data.siteName} socialLinks={data.socialLinks} section={data.section} aiTerminalConfigured={data.aiTerminalConfigured} />
 </main>
@@ -135,9 +135,8 @@
 <div class="fixed bottom-0 left-0 z-50 hidden h-11 w-full items-center border-t border-white/10 bg-[#2c2c2c]/80 backdrop-blur-xl lg:flex" aria-label="Taskbar">
 	<div class="flex flex-1 items-center justify-center">
 		<button class="group relative grid h-10 w-10 place-items-center rounded hover:bg-white/10" onclick={toggleRestore} aria-label="Terminal">
-			<i class="fa-brands fa-ubuntu text-lg text-[#E95420]"></i>
-			<span class="absolute bottom-0.5 h-0.5 rounded-full transition-all duration-300 {isMinimized ? 'w-1.5 bg-[#898989] group-hover:w-3' : 'w-4 bg-[#4CC2FF]'}"
-			></span>
+			{#if data.defaultFavicon}<img src={data.defaultFavicon} alt="" class="h-5 w-5" />{/if}
+			<span class="absolute bottom-0.5 h-0.5 rounded-full transition-all duration-300 {isMinimized ? 'w-1.5 bg-[#898989]' : 'w-4 bg-[#4CC2FF]'}"></span>
 		</button>
 	</div>
 	<div class="text-ash-300 flex flex-col items-end rounded px-3 py-1 text-xs leading-tight hover:bg-white/10">
