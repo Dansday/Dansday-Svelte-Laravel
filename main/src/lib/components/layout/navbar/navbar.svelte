@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { navbarMenu } from './navbar-menu';
-	import NavbarListener from './navbar-listener.svelte';
 
 	interface SocialLink {
 		title?: string;
@@ -59,22 +58,8 @@
 
 	const hasSocialLinks = $derived(Array.isArray(socialLinks) && socialLinks.some((link) => link?.text?.trim()));
 
-	const getHighlightedParts = (title: string, key: string) => {
-		if (!title || !key || key.length !== 1) return { before: title, highlighted: null, after: null };
 
-		const index = title.toLowerCase().indexOf(key.toLowerCase());
-
-		if (index === -1) return { before: title, highlighted: null, after: null };
-
-		return {
-			before: title.substring(0, index),
-			highlighted: title.substring(index, index + 1),
-			after: title.substring(index + 1)
-		};
-	};
 </script>
-
-<NavbarListener />
 
 <nav class="overflow-x-auto text-sm select-none md:text-base lg:px-4 lg:py-3">
 	{#if hasSocialLinks}
@@ -84,8 +69,7 @@
 	{/if}
 	<div class="flex items-center justify-between gap-20 overflow-x-auto px-2 py-3 leading-none lg:px-0 lg:py-0">
 		<ul class="flex items-center">
-			{#each visibleMenu as { title, href, key }, i (i)}
-				{@const parts = getHighlightedParts(title, key)}
+			{#each visibleMenu as { title, href }, i (i)}
 				{@const isOnCurrentPath = isActive(href, currentPath)}
 
 				<li class="shrink-0">
@@ -95,10 +79,8 @@
 						data-sveltekit-preload-data
 						data-active={isOnCurrentPath}
 						class="text-ash-300 data-[active=true]:bg-ash-300 data-[active=true]:text-ash-800 flex items-center px-2 py-0.5 leading-none"
-						aria-label={`${title} (Shortcut: ${key})`}
 					>
-						{parts.before}{#if parts.highlighted}<span class={isOnCurrentPath ? 'text-ash-800' : 'text-ash-100'}>{parts.highlighted}</span>
-						{/if}{parts.after}
+						{title}
 					</a>
 				</li>
 			{/each}
