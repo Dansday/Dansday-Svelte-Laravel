@@ -178,9 +178,13 @@ async function fetchContributionStats(username: string, token: string) {
 	);
 
 	let allTime = 0;
-	for (const yc of yearResults) {
-		if (!yc) continue;
-		allTime += yc.contributionCalendar?.totalContributions ?? 0;
+	const yearTotals: Record<number, number> = {};
+	for (let i = 0; i < yearResults.length; i++) {
+		const yc = yearResults[i];
+		const yr = createdYear + i;
+		const total = yc?.contributionCalendar?.totalContributions ?? 0;
+		yearTotals[yr] = total;
+		allTime += total;
 	}
 
 	const thisYearData = user?.contributionsCollection;
@@ -222,7 +226,8 @@ async function fetchContributionStats(username: string, token: string) {
 		},
 		calendar: allDays,
 		createdYear,
-		currentYear: now.getFullYear()
+		currentYear: now.getFullYear(),
+		yearTotals
 	};
 }
 

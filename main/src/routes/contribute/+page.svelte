@@ -47,6 +47,7 @@
 		activity: { items: ActivityItem[]; hasMore: boolean };
 		topRepos: { repo: string; commits: number }[];
 		topPRs: { repo: string; prNumber: number; title: string; additions: number; deletions: number; mergedAt: string; private: boolean }[];
+		yearTotals: Record<number, number>;
 	}
 
 	let githubData = $state<GithubData | null>(null);
@@ -202,7 +203,11 @@
 	const weeks = $derived(calendarDays.length ? buildWeeks(calendarDays, selectedYear) : []);
 	const monthLabels = $derived(getMonthLabels(weeks));
 	const yearOptions = $derived(
-		githubData ? Array.from({ length: githubData.currentYear - githubData.createdYear + 1 }, (_, i) => githubData!.currentYear - i) : []
+		githubData
+			? Array.from({ length: githubData.currentYear - githubData.createdYear + 1 }, (_, i) => githubData!.currentYear - i).filter(
+					(year) => !githubData!.yearTotals || (githubData!.yearTotals[year] ?? 0) > 0
+				)
+			: []
 	);
 
 	onMount(async () => {
