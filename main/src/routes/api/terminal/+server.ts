@@ -257,7 +257,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			loop.push(message);
 
 			if (!message.tool_calls || message.tool_calls.length === 0) {
-				aiReply = message.content || 'No response from AI.';
+				aiReply = (message.content || 'No response from AI.').replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '').replace(/\(no output\)\s*/g, '').trim() || 'No response from AI.';
 				break;
 			}
 
