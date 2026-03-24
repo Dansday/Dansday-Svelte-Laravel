@@ -22,6 +22,7 @@
 	let clock = $state({ time: '', date: '' });
 
 	$effect(() => {
+		if (isMobile) return;
 		function tick() {
 			const now = new Date();
 			clock = {
@@ -60,6 +61,7 @@
 	}
 
 	$effect(() => {
+		if (isMobile) return;
 		const controller = new AbortController();
 
 		const handleMouseUp = () => (dragging = false);
@@ -130,7 +132,7 @@
 	<Navbar siteName={data.siteName} socialLinks={data.socialLinks} section={data.section} aiTerminalConfigured={data.aiTerminalConfigured} />
 </main>
 
-<div class="desktop-bg absolute top-0 left-0 h-full w-full" aria-hidden="true"></div>
+<div class="desktop-bg absolute top-0 left-0 hidden h-full w-full lg:block" aria-hidden="true"></div>
 
 <div class="fixed bottom-0 left-0 z-50 hidden h-11 w-full items-center border-t border-white/10 bg-[#2c2c2c]/80 backdrop-blur-xl lg:flex" aria-label="Taskbar">
 	<div class="flex flex-1 items-center justify-center">
@@ -145,9 +147,11 @@
 	</div>
 </div>
 
-{#await import('$lib/components/layout/particle.svelte') then { default: Particle }}
-	<Particle />
-{/await}
+{#if !isMobile}
+	{#await import('$lib/components/layout/particle.svelte') then { default: Particle }}
+		<Particle />
+	{/await}
+{/if}
 
 <style>
 	.desktop-bg {
