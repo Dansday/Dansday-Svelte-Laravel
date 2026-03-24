@@ -240,7 +240,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const loop: OpenAI.Chat.ChatCompletionMessageParam[] = [{ role: 'system', content: systemContent }, ...messages];
 
-		let aiReply = 'No response from AI.';
+		let aiReply = '';
 
 		for (let i = 0; i < 10; i++) {
 			const completion = await openai.chat.completions.create({
@@ -257,7 +257,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			loop.push(message);
 
 			if (!message.tool_calls || message.tool_calls.length === 0) {
-				aiReply = (message.content || 'No response from AI.').replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '').replace(/\(no output\)\s*/g, '').trim() || 'No response from AI.';
+				aiReply = (message.content || '').replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '').replace(/\(no output\)\s*/g, '').trim();
 				break;
 			}
 

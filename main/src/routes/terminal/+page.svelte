@@ -20,6 +20,9 @@
 	let inputElement: HTMLInputElement;
 	let containerElement: HTMLDivElement;
 	let isProcessing = $state(false);
+	let cachedEntries: string[] = [];
+	let tabIndex = $state(-1);
+	let tabPrefix = '';
 
 	const username = (general.terminal_username as string) ?? '';
 	const directory = '~';
@@ -84,12 +87,20 @@
 			const data = await response.json();
 			const fullText = data.response || '';
 
+			const outputLines = fullText.split('\n');
 			const updatedHistory = [...history];
 			updatedHistory[historyIndex] = {
 				...updatedHistory[historyIndex],
-				output: fullText.split('\n')
+				output: outputLines
 			};
 			history = updatedHistory;
+
+			if (cmd === 'ls' || cmd === 'dir') {
+				cachedEntries = parseLsOutput(outputLines);
+				tabIndex = -1;
+				tabPrefix = '';
+			}
+
 			scrollToBottom();
 		} catch (error) {
 			const updatedHistory = [...history];
@@ -105,6 +116,37 @@
 				scrollToBottom();
 				focusInput();
 			}, 10);
+		}
+	}
+
+	function parseLsOutput(output: string[]): string[] {
+		return output
+			.flatMap((line) => line.split(/\s{2,}/))
+			.map((e) => e.trim())
+			.filter((e) => e.length > 0 && !e.startsWith('total '));
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Tab') {
+			event.preventDefault();
+			if (cachedEntries.length === 0) return;
+
+			const parts = currentInput.split(' ');
+			const lastPart = parts[parts.length - 1];
+
+			if (tabIndex === -1) {
+				tabPrefix = lastPart.toLowerCase();
+			}
+
+			const matches = cachedEntries.filter((e) => e.toLowerCase().startsWith(tabPrefix));
+			if (matches.length === 0) return;
+
+			tabIndex = (tabIndex + 1) % matches.length;
+			parts[parts.length - 1] = matches[tabIndex];
+			currentInput = parts.join(' ');
+		} else {
+			tabIndex = -1;
+			tabPrefix = '';
 		}
 	}
 
@@ -177,6 +219,7 @@
 				<input
 					bind:this={inputElement}
 					bind:value={currentInput}
+					onkeydown={handleKeydown}
 					class="flex-1 bg-transparent text-white outline-none"
 					type="text"
 					spellcheck="false"
