@@ -119,7 +119,7 @@
 <main
 	bind:this={containerElement}
 	data-fullscreen={isFullscreen || isMobile}
-	class="from-ash-800 to-ash-700 z-10 flex h-dvh w-dvw flex-col overflow-hidden rounded-xl bg-linear-to-tr data-[fullscreen=true]:rounded-none lg:h-[75dvh] lg:w-[70dvw]"
+	class="from-ash-800 to-ash-700 z-10 flex h-dvh w-dvw flex-col overflow-hidden rounded-none bg-linear-to-tr data-[fullscreen=true]:rounded-none lg:h-[75dvh] lg:w-[70dvw] lg:rounded-xl"
 	class:container-shadow={!isFullscreen || !isMobile}
 	class:minimized={isMinimized && !isMobile}
 	style:transform="translate({position.x}px, {position.y}px)"
