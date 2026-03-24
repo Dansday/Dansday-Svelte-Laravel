@@ -19,6 +19,20 @@
 	let position = $state({ x: 0, y: 0 });
 	let containerElement = $state<HTMLElement | null>(null);
 	let isMobile = $derived(new MediaQuery('(max-width: 1024px)').current);
+	let clock = $state({ time: '', date: '' });
+
+	$effect(() => {
+		function tick() {
+			const now = new Date();
+			clock = {
+				time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+				date: now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+			};
+		}
+		tick();
+		const interval = setInterval(tick, 1000);
+		return () => clearInterval(interval);
+	});
 
 	function toggleFullscreen() {
 		if (isMobile) return;
@@ -118,15 +132,18 @@
 
 <div class="desktop-bg absolute top-0 left-0 h-full w-full" aria-hidden="true"></div>
 
-<div class="fixed bottom-0 left-0 z-50 hidden h-11 w-full items-center justify-center border-t border-white/10 bg-[#2c2c2c]/80 backdrop-blur-xl lg:flex" aria-label="Taskbar">
-	<button
-		class="group relative grid h-10 w-10 place-items-center rounded hover:bg-white/10"
-		onclick={toggleRestore}
-		aria-label="Terminal"
-	>
-		<i class="fa-brands fa-ubuntu text-lg text-[#E95420]"></i>
-		<span class="absolute bottom-0.5 h-0.5 rounded-full bg-[#4CC2FF] {isMinimized ? 'w-1.5 group-hover:w-3' : 'w-4'}"></span>
-	</button>
+<div class="fixed bottom-0 left-0 z-50 hidden h-11 w-full items-center border-t border-white/10 bg-[#2c2c2c]/80 backdrop-blur-xl lg:flex" aria-label="Taskbar">
+	<div class="flex flex-1 items-center justify-center">
+		<button class="group relative grid h-10 w-10 place-items-center rounded hover:bg-white/10" onclick={toggleRestore} aria-label="Terminal">
+			<i class="fa-brands fa-ubuntu text-lg text-[#E95420]"></i>
+			<span class="absolute bottom-0.5 h-0.5 rounded-full transition-all duration-300 {isMinimized ? 'w-1.5 bg-[#898989] group-hover:w-3' : 'w-4 bg-[#4CC2FF]'}"
+			></span>
+		</button>
+	</div>
+	<div class="text-ash-300 flex flex-col items-end px-3 text-xs leading-tight">
+		<span>{clock.time}</span>
+		<span>{clock.date}</span>
+	</div>
 </div>
 
 {#await import('$lib/components/layout/particle.svelte') then { default: Particle }}
@@ -139,7 +156,7 @@
 	}
 
 	.minimized {
-		transform: scale(0) translateY(100vh) !important;
+		transform: translateY(calc(100vh - 2.75rem)) scale(0.4) !important;
 		opacity: 0;
 		pointer-events: none;
 	}
