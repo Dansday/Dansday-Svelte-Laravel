@@ -195,10 +195,6 @@ async function executeTool(
 			const articlesFt = ftMatch(['title', 'description']);
 			const projectsFt = ftMatch(['title', 'description']);
 			const ghFt = ftMatchFilter(['repo', 'title']);
-			const skillFt = ftMatchFilter(['title']);
-			const expFt = ftMatchFilter(['title', 'description']);
-			const serviceFt = ftMatchFilter(['title', 'description']);
-			const testimonialFt = ftMatchFilter(['name', 'company', 'description']);
 			const t = args.type as string | undefined;
 			const on = (key: string) => section[key] !== false && section[key] !== 0;
 			const articlesOn = on('articles_enable');
@@ -249,25 +245,22 @@ async function executeTool(
 							[...ghTypeParams, ...ghFt.params, ...dp]
 						)
 					: [],
-				wantAbout && skillsOn && (wantAll || t === 'skill')
-					? query<{ title: string; type: string }>('SELECT id, title, type FROM skill WHERE 1=1' + skillFt.filter + ' ORDER BY `order` ASC', skillFt.params)
+				wantAbout && skillsOn
+					? query<{ title: string; type: string }>('SELECT id, title, type FROM skill ORDER BY `order` ASC')
 					: [],
-				wantAbout && experienceOn && (wantAll || t === 'experience')
+				wantAbout && experienceOn
 					? query<{ title: string; type: string; period: string; description: string }>(
-							'SELECT id, title, type, period, description FROM experience WHERE 1=1' + expFt.filter + ' ORDER BY `order` ASC',
-							expFt.params
+							'SELECT id, title, type, period, description FROM experience ORDER BY `order` ASC'
 						)
 					: [],
-				wantAbout && servicesOn && (wantAll || t === 'service')
+				wantAbout && servicesOn
 					? query<{ title: string; description: string }>(
-							'SELECT id, title, description FROM service WHERE 1=1' + serviceFt.filter + ' ORDER BY `order` ASC',
-							serviceFt.params
+							'SELECT id, title, description FROM service ORDER BY `order` ASC'
 						)
 					: [],
-				wantAbout && testimonialOn && (wantAll || t === 'testimonial')
+				wantAbout && testimonialOn
 					? query<{ name: string; company: string; description: string }>(
-							'SELECT id, name, company, description FROM testimonial WHERE 1=1' + testimonialFt.filter + ' ORDER BY `order` ASC',
-							testimonialFt.params
+							'SELECT id, name, company, description FROM testimonial ORDER BY `order` ASC'
 						)
 					: [],
 				query<{ id: number; name: string }>('SELECT id, name FROM project_categories ORDER BY id ASC')
