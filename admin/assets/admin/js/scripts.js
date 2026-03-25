@@ -171,7 +171,7 @@ $(document).ready(function () {
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-            .then(function (r) { return r.json(); })
+            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
             .then(function (data) {
                 if (data.errors && data.errors.length > 0 && data.embedded === 0) {
                     $status.removeClass('text-success').addClass('text-danger').text(data.errors[0]);

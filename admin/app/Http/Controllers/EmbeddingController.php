@@ -9,6 +9,7 @@ class EmbeddingController extends Controller
 {
     public function embedAll(): JsonResponse
     {
+        set_time_limit(300);
         $result = EmbeddingService::embedAll();
         return response()->json($result);
     }
