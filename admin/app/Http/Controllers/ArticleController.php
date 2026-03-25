@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Services\EmbeddingService;
 
 class ArticleController extends Controller
 {
@@ -83,6 +84,7 @@ class ArticleController extends Controller
         $post->author = $data['author'];
         $post->category_id = $data['category'];
         $post->save();
+        EmbeddingService::embedRow('articles', $post->id);
         return redirect('/admin/articles/posts')->with('ok-add', '');
     }
 
@@ -177,6 +179,7 @@ class ArticleController extends Controller
             'author'      => $data['author'],
             'category_id' => $data['category'],
         ]);
+        EmbeddingService::embedRow('articles', $id);
         return redirect('/admin/articles/posts')->with('ok-update', '');
     }
 
@@ -192,6 +195,7 @@ class ArticleController extends Controller
                 }
             }
             Article::where('id', $id)->delete();
+            EmbeddingService::deleteRow('articles', $id);
             return redirect('/admin/articles/posts')->with('ok-delete', '');
         }
         return redirect('/admin/articles/posts')->with('no-delete', '');

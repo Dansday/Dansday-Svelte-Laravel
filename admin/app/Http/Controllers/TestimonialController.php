@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Services\EmbeddingService;
 
 class TestimonialController extends Controller
 {
@@ -49,6 +50,7 @@ class TestimonialController extends Controller
             $testimonial->description = $data['description'];
             $testimonial->order = $data['order'];
             $testimonial->save();
+            EmbeddingService::embedRow('testimonial', $testimonial->id);
             return redirect('/admin/testimonials') -> with('ok-add', '');
         }
         return redirect('/admin/testimonials') -> with('error-validation', '');
@@ -95,6 +97,7 @@ class TestimonialController extends Controller
                 "order"=>$data['order'],
             );
             Testimonial::where("id", $id)->update($data_new);
+            EmbeddingService::embedRow('testimonial', $id);
             return redirect('/admin/testimonials') -> with('ok-update', '');
         }
         return redirect('/admin/testimonials') -> with('error-validation', '');
@@ -139,6 +142,7 @@ class TestimonialController extends Controller
        $validate = Testimonial::where("id", $id)->get();
        if(!empty($validate)){
             Testimonial::where("id", $validate[0]['id'])->delete();
+            EmbeddingService::deleteRow('testimonial', $validate[0]['id']);
             $testimonials = DB::table('testimonial')
                ->orderBy('order', 'asc')
                ->get() ;
