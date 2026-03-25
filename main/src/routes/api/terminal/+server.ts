@@ -480,7 +480,7 @@ export const POST: RequestHandler = async ({ request }) => {
 					]
 				});
 				const summary = summaryCompletion.choices?.[0]?.message?.content?.trim() ?? '';
-				conversationMessages = [...(summary ? [{ role: 'system' as const, content: `Previous conversation summary: ${summary}` }] : []), ...recentMessages];
+				conversationMessages = [...(summary ? [{ role: 'user' as const, content: `[Previous conversation summary: ${summary}]` }, { role: 'assistant' as const, content: 'Understood.' }] : []), ...recentMessages];
 			} else {
 				conversationMessages = recentMessages;
 			}
@@ -488,6 +488,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			conversationMessages = messages;
 		}
 
+		conversationMessages = conversationMessages.filter((m: any) => m.role !== 'system');
 		const loop: OpenAI.Chat.ChatCompletionMessageParam[] = [{ role: 'system', content: systemContent }, ...conversationMessages];
 
 		let aiReply = '';
