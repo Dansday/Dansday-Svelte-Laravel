@@ -232,6 +232,9 @@ class GeneralController extends Controller
             'ai_terminal_reasoning'   => $request->input('ai_terminal_reasoning'),
             'ai_content_prompt'       => $request->input('ai_content_prompt'),
             'ai_content_reasoning'    => $request->input('ai_content_reasoning'),
+            'embedding_url'           => $request->input('embedding_url'),
+            'embedding_key'           => $request->input('embedding_key'),
+            'embedding_model'         => $request->input('embedding_model'),
         ];
 
         $general = General::find(1);
@@ -239,6 +242,11 @@ class GeneralController extends Controller
         $currentKeyMask = ($general && !empty($general->ai_key)) ? preg_replace('/./', '*', $general->ai_key) : null;
         if ($currentKeyMask && $data['ai_key'] === $currentKeyMask) {
             $data['ai_key'] = null;
+        }
+
+        $currentEmbKeyMask = ($general && !empty($general->embedding_key)) ? preg_replace('/./', '*', $general->embedding_key) : null;
+        if ($currentEmbKeyMask && $data['embedding_key'] === $currentEmbKeyMask) {
+            $data['embedding_key'] = null;
         }
 
         $validate = Validator::make($data, [
@@ -249,6 +257,9 @@ class GeneralController extends Controller
             'ai_terminal_reasoning'   => ['nullable', 'string', 'in:none,minimal,low,medium,high,xhigh'],
             'ai_content_prompt'       => ['nullable', 'string'],
             'ai_content_reasoning'    => ['nullable', 'string', 'in:none,minimal,low,medium,high,xhigh'],
+            'embedding_url'           => ['nullable', 'string', 'max:500'],
+            'embedding_key'           => ['nullable', 'string', 'max:500'],
+            'embedding_model'         => ['nullable', 'string', 'max:255'],
         ]);
         if ($validate->fails()) {
             return redirect('/admin/ai')
@@ -264,9 +275,14 @@ class GeneralController extends Controller
             'ai_terminal_reasoning'   => $data['ai_terminal_reasoning'] ?? null,
             'ai_content_prompt'       => $data['ai_content_prompt'] ? trim($data['ai_content_prompt']) : null,
             'ai_content_reasoning'    => $data['ai_content_reasoning'] ?? null,
+            'embedding_url'           => $data['embedding_url'] ? trim($data['embedding_url']) : null,
+            'embedding_model'         => $data['embedding_model'] ? trim((string) $data['embedding_model']) : null,
         ];
         if (!empty($data['ai_key'])) {
             $data_new['ai_key'] = trim($data['ai_key']);
+        }
+        if (!empty($data['embedding_key'])) {
+            $data_new['embedding_key'] = trim($data['embedding_key']);
         }
 
         General::where('id', 1)->update($data_new);

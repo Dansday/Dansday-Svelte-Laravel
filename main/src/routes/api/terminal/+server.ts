@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { fetchGeneral, fetchHome, fetchSection } from '$lib/server/data';
 import { query } from '$lib/server/db';
+import { embedQuery, semanticSearch, type SemanticResult } from '$lib/server/embedding';
 import { encode as toToon } from '@toon-format/toon';
 import OpenAI from 'openai';
 import type { RequestHandler } from './$types';
@@ -138,7 +139,7 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 			const queries = await Promise.all([
 				articlesOn && (wantAll || t === 'article')
 					? query<{ title: string; description: string; created_at: string; relevance?: number }>(
-							'SELECT title, description, created_at' +
+							'SELECT id, title, description, created_at' +
 								articlesFt.scoreCol +
 								' FROM articles WHERE enable = 1' +
 								articlesFt.filter +
@@ -149,7 +150,7 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 					: [],
 				wantProjects && (wantAll || t === 'project')
 					? query<{ title: string; description: string; category_id: number; created_at: string; relevance?: number }>(
-							'SELECT title, description, category_id, created_at' +
+							'SELECT id, title, description, category_id, created_at' +
 								projectsFt.scoreCol +
 								' FROM projects WHERE enable = 1' +
 								projectsFt.filter +
@@ -165,23 +166,23 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 						)
 					: [],
 				wantAbout && skillsOn && (wantAll || t === 'skill')
-					? query<{ title: string; type: string }>('SELECT title, type FROM skill WHERE 1=1' + skillFt.filter + ' ORDER BY `order` ASC', skillFt.params)
+					? query<{ title: string; type: string }>('SELECT id, title, type FROM skill WHERE 1=1' + skillFt.filter + ' ORDER BY `order` ASC', skillFt.params)
 					: [],
 				wantAbout && experienceOn && (wantAll || t === 'experience')
 					? query<{ title: string; type: string; period: string; description: string }>(
-							'SELECT title, type, period, description FROM experience WHERE 1=1' + expFt.filter + ' ORDER BY `order` ASC',
+							'SELECT id, title, type, period, description FROM experience WHERE 1=1' + expFt.filter + ' ORDER BY `order` ASC',
 							expFt.params
 						)
 					: [],
 				wantAbout && servicesOn && (wantAll || t === 'service')
 					? query<{ title: string; description: string }>(
-							'SELECT title, description FROM service WHERE 1=1' + serviceFt.filter + ' ORDER BY `order` ASC',
+							'SELECT id, title, description FROM service WHERE 1=1' + serviceFt.filter + ' ORDER BY `order` ASC',
 							serviceFt.params
 						)
 					: [],
 				wantAbout && testimonialOn && (wantAll || t === 'testimonial')
 					? query<{ name: string; company: string; description: string }>(
-							'SELECT name, company, description FROM testimonial WHERE 1=1' + testimonialFt.filter + ' ORDER BY `order` ASC',
+							'SELECT id, name, company, description FROM testimonial WHERE 1=1' + testimonialFt.filter + ' ORDER BY `order` ASC',
 							testimonialFt.params
 						)
 					: [],
@@ -191,17 +192,64 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 			const [articles, projects, activity, skills, experiences, services, testimonials, categories] = queries;
 			const catMap = new Map((categories as any[]).map((c: any) => [c.id, c.name]));
 
+			let semanticHits: SemanticResult[] = [];
+			if (hasKeyword) {
+				try {
+					const queryVector = await embedQuery(rawKeyword);
+					if (queryVector) {
+						semanticHits = await semanticSearch(queryVector, 20, 0.3);
+					}
+				} catch {
+					// Embedding search failed, continue with BM25 only
+				}
+			}
+
+			const semanticIds = (table: string) => semanticHits.filter((h) => h.table_name === table).map((h) => h.row_id);
+
+			const mergeSemanticRows = (
+				tableName: string,
+				existing: any[],
+				selectSql: string
+			): Promise<any[]> => {
+				const sIds = semanticIds(tableName);
+				if (sIds.length === 0) return Promise.resolve(existing);
+				const existingIds = new Set(existing.map((r: any) => r.id));
+				const missingIds = sIds.filter((id) => !existingIds.has(id));
+				if (missingIds.length === 0) return Promise.resolve(existing);
+				const placeholders = missingIds.map(() => '?').join(',');
+				return query(`${selectSql} WHERE id IN (${placeholders})`, missingIds).then((extra: any[]) => [...existing, ...extra]);
+			};
+
+			const mergedArticles = hasKeyword
+				? await mergeSemanticRows('articles', articles as any[], 'SELECT id, title, description, created_at FROM articles')
+				: articles;
+			const mergedProjects = hasKeyword
+				? await mergeSemanticRows('projects', projects as any[], 'SELECT id, title, description, category_id, created_at FROM projects')
+				: projects;
+			const mergedSkills = hasKeyword
+				? await mergeSemanticRows('skill', skills as any[], 'SELECT id, title, type FROM skill')
+				: skills;
+			const mergedExperiences = hasKeyword
+				? await mergeSemanticRows('experience', experiences as any[], 'SELECT id, title, type, period, description FROM experience')
+				: experiences;
+			const mergedServices = hasKeyword
+				? await mergeSemanticRows('service', services as any[], 'SELECT id, title, description FROM service')
+				: services;
+			const mergedTestimonials = hasKeyword
+				? await mergeSemanticRows('testimonial', testimonials as any[], 'SELECT id, name, company, description FROM testimonial')
+				: testimonials;
+
 			const result: Record<string, any> = {};
-			if (skills.length > 0) result.skills = skills.map((s: any) => ({ title: s.title, type: s.type }));
-			if (experiences.length > 0)
-				result.experiences = experiences.map((e: any) => ({ title: e.title, type: e.type, period: e.period, description: stripHtml(e.description) }));
-			if (services.length > 0) result.services = services.map((s: any) => ({ title: s.title, description: stripHtml(s.description) }));
-			if (testimonials.length > 0)
-				result.testimonials = testimonials.map((t: any) => ({ name: t.name, company: t.company, description: stripHtml(t.description) }));
-			if (articles.length > 0)
-				result.articles = articles.map((a: any) => ({ title: a.title, description: stripHtml(a.description), created_at: a.created_at }));
-			if (projects.length > 0)
-				result.projects = projects.map((p: any) => ({ title: p.title, description: stripHtml(p.description), category: catMap.get(p.category_id) }));
+			if (mergedSkills.length > 0) result.skills = (mergedSkills as any[]).map((s: any) => ({ title: s.title, type: s.type }));
+			if (mergedExperiences.length > 0)
+				result.experiences = (mergedExperiences as any[]).map((e: any) => ({ title: e.title, type: e.type, period: e.period, description: stripHtml(e.description) }));
+			if (mergedServices.length > 0) result.services = (mergedServices as any[]).map((s: any) => ({ title: s.title, description: stripHtml(s.description) }));
+			if (mergedTestimonials.length > 0)
+				result.testimonials = (mergedTestimonials as any[]).map((t: any) => ({ name: t.name, company: t.company, description: stripHtml(t.description) }));
+			if (mergedArticles.length > 0)
+				result.articles = (mergedArticles as any[]).map((a: any) => ({ title: a.title, description: stripHtml(a.description), created_at: a.created_at }));
+			if (mergedProjects.length > 0)
+				result.projects = (mergedProjects as any[]).map((p: any) => ({ title: p.title, description: stripHtml(p.description), category: catMap.get(p.category_id) }));
 			const activityLimit = Math.min(Math.max(args.count ?? 50, 1), 500);
 			if (activity.length > 0)
 				result.activity = {

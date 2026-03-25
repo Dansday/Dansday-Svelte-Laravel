@@ -74,6 +74,36 @@
                                 </div>
                             </div>
                         </div>
+                        <hr class="my-4">
+                        <h6 class="font-weight-bold text-primary mb-3">Embedding (Optional)</h6>
+                        <p class="text-muted small mb-3">Configure an embedding API for semantic search. Leave all fields empty to use keyword search only.</p>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group mb-4">
+                                    <label for="embedding_url" class="form-label">Embedding API URL</label>
+                                    <input class="form-control @error('embedding_url') is-invalid @enderror" type="url" name="embedding_url" value="{{ old('embedding_url', $general->embedding_url ?? '') }}" placeholder="https://..." autocomplete="off" />
+                                    <div class="form-text">Base URL for the embedding API endpoint.</div>
+                                    @error('embedding_url')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-4">
+                                    <label for="embedding_key" class="form-label">Embedding API Key</label>
+                                    <input class="form-control @error('embedding_key') is-invalid @enderror" type="password" name="embedding_key" value="{{ ($general->embedding_key ?? '') !== '' ? preg_replace('/./', '*', $general->embedding_key) : '' }}" autocomplete="new-password" />
+                                    <div class="form-text">API key for the embedding service. Leave blank to keep current.</div>
+                                    @error('embedding_key')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-4">
+                                    <label for="embedding_model" class="form-label">Embedding Model</label>
+                                    <input class="form-control @error('embedding_model') is-invalid @enderror" type="text" name="embedding_model" value="{{ old('embedding_model', $general->embedding_model ?? '') }}" placeholder="text-embedding-3-small" autocomplete="off" />
+                                    <div class="form-text">Model name for generating embeddings.</div>
+                                    @error('embedding_model')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="mt-3">
                             <button type="submit" class="btn btn-primary">{{ __('content.update') }}</button>
                         </div>
