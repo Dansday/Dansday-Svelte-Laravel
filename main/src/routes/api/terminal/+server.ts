@@ -492,14 +492,17 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		let aiReply = '';
 
+		const useThinking = terminalReasoning !== 'none';
+
 		for (let i = 0; i < 10; i++) {
 			const completion = await openai.chat.completions.create({
 				model: openaiModel.trim(),
 				messages: loop,
 				tools: tools.length > 0 ? tools : undefined,
 				tool_choice: tools.length > 0 ? 'auto' : undefined,
-				reasoning_effort: terminalReasoning === 'none' ? undefined : (terminalReasoning as any),
-				frequency_penalty: 1.2
+				reasoning_effort: useThinking ? (terminalReasoning as any) : undefined,
+				frequency_penalty: 1.2,
+				...(useThinking ? { chat_template_kwargs: { thinking: true } } as any : {})
 			});
 
 			const message = completion.choices?.[0]?.message;
@@ -510,6 +513,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			if (!message.tool_calls || message.tool_calls.length === 0) {
 				aiReply = (message.content || '')
 					.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+					.replace(/<think>[\s\S]*?<\/think>/gi, '')
 					.replace(/\(no output\)\s*/g, '')
 					.trim();
 				break;
