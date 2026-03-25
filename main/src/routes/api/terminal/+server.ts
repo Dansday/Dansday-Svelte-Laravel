@@ -87,31 +87,32 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 	switch (name) {
 		case 'search': {
 			const rawKeyword = (args.keyword ?? '').trim();
-			const words = rawKeyword.split(/\s+/).filter((w: string) => w.length > 0);
-			const hasKeyword = words.length > 0;
+			const hasKeyword = rawKeyword.length > 0;
 			const df = buildDateFilter(args);
 			const dateClause = df.clause;
 			const dp = df.params;
 
-			let kwFilter = '';
-			let kwParams: string[] = [];
-			let kwRepoFilter = '';
-			const multiWordWhere = (fields: string[]) => {
-				if (!hasKeyword) return { clause: '', params: [] as string[] };
-				const conditions = words
-					.map(() => fields.map((f) => `${f} LIKE ?`).join(' OR '))
-					.map((c) => `(${c})`)
-					.join(' OR ');
-				const params = words.flatMap((w: string) => fields.map(() => `%${w}%`));
-				return { clause: ` AND (${conditions})`, params };
+			// BM25 full-text search using MATCH AGAINST in boolean mode
+			// Append * to each word for prefix matching (e.g. "indonesia" matches "indonesian")
+			const ftQuery = rawKeyword.split(/\s+/).filter((w: string) => w.length > 0).map((w: string) => `${w}*`).join(' ');
+			const ftMatch = (fields: string[]) => {
+				if (!hasKeyword) return { filter: '', scoreCol: '', params: [] as string[] };
+				const matchExpr = `MATCH(${fields.join(', ')}) AGAINST(? IN BOOLEAN MODE)`;
+				return { filter: ` AND ${matchExpr}`, scoreCol: `, ${matchExpr} AS relevance`, params: [ftQuery, ftQuery] };
 			};
-			if (hasKeyword) {
-				const td = multiWordWhere(['title', 'description']);
-				kwFilter = td.clause;
-				kwParams = td.params;
-				const rt = multiWordWhere(['repo', 'title']);
-				kwRepoFilter = rt.clause;
-			}
+			const ftMatchFilter = (fields: string[]) => {
+				if (!hasKeyword) return { filter: '', params: [] as string[] };
+				const matchExpr = `MATCH(${fields.join(', ')}) AGAINST(? IN BOOLEAN MODE)`;
+				return { filter: ` AND ${matchExpr}`, params: [ftQuery] };
+			};
+
+			const articlesFt = ftMatch(['title', 'description']);
+			const projectsFt = ftMatch(['title', 'description']);
+			const ghFt = ftMatchFilter(['repo', 'title']);
+			const skillFt = ftMatchFilter(['title']);
+			const expFt = ftMatchFilter(['title', 'description']);
+			const serviceFt = ftMatchFilter(['title', 'description']);
+			const testimonialFt = ftMatchFilter(['name', 'company', 'description']);
 			const t = args.type as string | undefined;
 			const on = (key: string) => section[key] !== false && section[key] !== 0;
 			const articlesOn = on('articles_enable');
@@ -135,55 +136,48 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 
 			const queries = await Promise.all([
 				articlesOn && (wantAll || t === 'article')
-					? query<{ title: string; description: string; created_at: string }>(
-							'SELECT title, description, created_at FROM articles WHERE enable = 1' + kwFilter + dateClause + ' ORDER BY created_at DESC',
-							[...kwParams, ...dp]
+					? query<{ title: string; description: string; created_at: string; relevance?: number }>(
+							'SELECT title, description, created_at' + articlesFt.scoreCol + ' FROM articles WHERE enable = 1' + articlesFt.filter + dateClause +
+								(hasKeyword ? ' ORDER BY relevance DESC' : ' ORDER BY created_at DESC'),
+							[...articlesFt.params, ...dp]
 						)
 					: [],
 				wantProjects && (wantAll || t === 'project')
-					? query<{ title: string; description: string; category_id: number; created_at: string }>(
-							'SELECT title, description, category_id, created_at FROM projects WHERE enable = 1' + kwFilter + dateClause + ' ORDER BY created_at DESC',
-							[...kwParams, ...dp]
+					? query<{ title: string; description: string; category_id: number; created_at: string; relevance?: number }>(
+							'SELECT title, description, category_id, created_at' + projectsFt.scoreCol + ' FROM projects WHERE enable = 1' + projectsFt.filter + dateClause +
+								(hasKeyword ? ' ORDER BY relevance DESC' : ' ORDER BY created_at DESC'),
+							[...projectsFt.params, ...dp]
 						)
 					: [],
 				wantGh
 					? query<{ repo: string; title: string; type: string; created_at: string }>(
-							'SELECT repo, title, type, created_at FROM github_activity WHERE 1=1' + ghTypeFilter + kwRepoFilter + dateClause + ' ORDER BY created_at DESC',
-							[...ghTypeParams, ...kwParams, ...dp]
+							'SELECT repo, title, type, created_at FROM github_activity WHERE 1=1' + ghTypeFilter + ghFt.filter + dateClause + ' ORDER BY created_at DESC',
+							[...ghTypeParams, ...ghFt.params, ...dp]
 						)
 					: [],
 				wantAbout && skillsOn && (wantAll || t === 'skill')
-					? (() => {
-							const kw = multiWordWhere(['title']);
-							return query<{ title: string; type: string }>('SELECT title, type FROM skill WHERE 1=1' + kw.clause + ' ORDER BY `order` ASC', kw.params);
-						})()
+					? query<{ title: string; type: string }>(
+							'SELECT title, type FROM skill WHERE 1=1' + skillFt.filter + ' ORDER BY `order` ASC',
+							skillFt.params
+						)
 					: [],
 				wantAbout && experienceOn && (wantAll || t === 'experience')
-					? (() => {
-							const kw = multiWordWhere(['title', 'description']);
-							return query<{ title: string; type: string; period: string; description: string }>(
-								'SELECT title, type, period, description FROM experience WHERE 1=1' + kw.clause + ' ORDER BY `order` ASC',
-								kw.params
-							);
-						})()
+					? query<{ title: string; type: string; period: string; description: string }>(
+							'SELECT title, type, period, description FROM experience WHERE 1=1' + expFt.filter + ' ORDER BY `order` ASC',
+							expFt.params
+						)
 					: [],
 				wantAbout && servicesOn && (wantAll || t === 'service')
-					? (() => {
-							const kw = multiWordWhere(['title', 'description']);
-							return query<{ title: string; description: string }>(
-								'SELECT title, description FROM service WHERE 1=1' + kw.clause + ' ORDER BY `order` ASC',
-								kw.params
-							);
-						})()
+					? query<{ title: string; description: string }>(
+							'SELECT title, description FROM service WHERE 1=1' + serviceFt.filter + ' ORDER BY `order` ASC',
+							serviceFt.params
+						)
 					: [],
 				wantAbout && testimonialOn && (wantAll || t === 'testimonial')
-					? (() => {
-							const kw = multiWordWhere(['name', 'company', 'description']);
-							return query<{ name: string; company: string; description: string }>(
-								'SELECT name, company, description FROM testimonial WHERE 1=1' + kw.clause + ' ORDER BY `order` ASC',
-								kw.params
-							);
-						})()
+					? query<{ name: string; company: string; description: string }>(
+							'SELECT name, company, description FROM testimonial WHERE 1=1' + testimonialFt.filter + ' ORDER BY `order` ASC',
+							testimonialFt.params
+						)
 					: [],
 				query<{ id: number; name: string }>('SELECT id, name FROM project_categories ORDER BY id ASC')
 			]);
