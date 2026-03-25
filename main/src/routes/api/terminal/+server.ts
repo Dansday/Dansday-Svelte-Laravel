@@ -91,9 +91,6 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 			const df = buildDateFilter(args);
 			const dateClause = df.clause;
 			const dp = df.params;
-
-			// BM25 full-text search using MATCH AGAINST in boolean mode
-			// Append * to each word for prefix matching (e.g. "indonesia" matches "indonesian")
 			const ftQuery = rawKeyword
 				.split(/\s+/)
 				.filter((w: string) => w.length > 0)
