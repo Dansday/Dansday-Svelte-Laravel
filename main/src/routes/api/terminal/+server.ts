@@ -298,26 +298,6 @@ export const POST: RequestHandler = async ({ request }) => {
 			conversationMessages = messages;
 		}
 
-		if (conversationMessages.length >= 3) {
-			const lastMsg = conversationMessages[conversationMessages.length - 1];
-			if (lastMsg.role === 'user' && typeof lastMsg.content === 'string' && lastMsg.content.split(/\s+/).length <= 8) {
-				const recentContext = conversationMessages.slice(-5).map((m: any) =>
-					`${m.role}: ${typeof m.content === 'string' ? m.content : ''}`
-				).join('\n');
-				const rewriteCompletion = await openai.chat.completions.create({
-					model: openaiModel!.trim(),
-					messages: [
-						{ role: 'system', content: 'You are a query rewriter. Given a short conversation and the latest user message, rewrite ONLY the last user message into a fully self-contained question that includes the necessary context from the conversation. Output ONLY the rewritten question, nothing else. If the message is already clear and self-contained, return it unchanged.' },
-						{ role: 'user', content: `Conversation:\n${recentContext}\n\nRewrite the last user message to be self-contained:` }
-					]
-				});
-				const rewritten = rewriteCompletion.choices?.[0]?.message?.content?.trim();
-				if (rewritten) {
-					conversationMessages[conversationMessages.length - 1] = { role: 'user', content: rewritten };
-				}
-			}
-		}
-
 		const loop: OpenAI.Chat.ChatCompletionMessageParam[] = [{ role: 'system', content: systemContent }, ...conversationMessages];
 
 		let aiReply = '';
@@ -327,7 +307,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				model: openaiModel.trim(),
 				messages: loop,
 				tools: tools.length > 0 ? tools : undefined,
-				tool_choice: tools.length > 0 ? (i === 0 ? 'required' : 'auto') : undefined,
+				tool_choice: tools.length > 0 ? 'auto' : undefined,
 				reasoning_effort: terminalReasoning === 'none' ? undefined : (terminalReasoning as any)
 			});
 
