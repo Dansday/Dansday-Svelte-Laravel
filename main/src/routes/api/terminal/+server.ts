@@ -177,7 +177,8 @@ async function executeTool(
 			const dateClause = df.clause;
 			const dp = df.params;
 			const ftQuery = rawKeyword
-				.split(/\s+/)
+				.split(/[\s\-]+/)
+				.map((w: string) => w.replace(/[+><~*"@()]/g, ''))
 				.filter((w: string) => w.length > 0)
 				.map((w: string) => `${w}*`)
 				.join(' ');
