@@ -121,44 +121,4 @@
 
 </div>
 
-
-<script>
-$(document).on('click', '#embed-all-btn', function () {
-    var $btn = $(this);
-    var $status = $('#embed-all-status');
-    var originalHtml = $btn.html();
-
-    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Generating...');
-    $status.text('');
-
-    fetch('{{ route("admin.embed.all") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-        if (data.errors && data.errors.length > 0 && data.embedded === 0) {
-            $status.removeClass('text-success').addClass('text-danger').text(data.errors[0]);
-        } else {
-            var msg = 'Done! ' + data.embedded + ' embedded, ' + data.skipped + ' skipped.';
-            if (data.errors && data.errors.length > 0) {
-                msg += ' (' + data.errors.length + ' errors)';
-            }
-            $status.removeClass('text-danger').addClass('text-success').text(msg);
-        }
-    })
-    .catch(function () {
-        $status.removeClass('text-success').addClass('text-danger').text('Request failed.');
-    })
-    .finally(function () {
-        $btn.prop('disabled', false).html(originalHtml);
-    });
-});
-</script>
-
 @endsection
