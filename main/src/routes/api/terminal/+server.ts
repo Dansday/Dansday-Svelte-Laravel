@@ -86,14 +86,32 @@ function buildDateFilter(args: Record<string, any>): { clause: string; params: a
 async function executeTool(name: string, args: Record<string, any> = {}, section: Record<string, any> = {}): Promise<string> {
 	switch (name) {
 		case 'search': {
-			const hasKeyword = Boolean(args.keyword);
-			const keyword = `%${args.keyword ?? ''}%`;
+			const rawKeyword = (args.keyword ?? '').trim();
+			const words = rawKeyword.split(/\s+/).filter((w: string) => w.length > 0);
+			const hasKeyword = words.length > 0;
 			const df = buildDateFilter(args);
 			const dateClause = df.clause;
 			const dp = df.params;
-			const kwFilter = hasKeyword ? ' AND (title LIKE ? OR description LIKE ?)' : '';
-			const kwParams = hasKeyword ? [keyword, keyword] : [];
-			const kwRepoFilter = hasKeyword ? ' AND (repo LIKE ? OR title LIKE ?)' : '';
+
+			let kwFilter = '';
+			let kwParams: string[] = [];
+			let kwRepoFilter = '';
+			const multiWordWhere = (fields: string[]) => {
+				if (!hasKeyword) return { clause: '', params: [] as string[] };
+				const conditions = words
+					.map(() => fields.map((f) => `${f} LIKE ?`).join(' OR '))
+					.map((c) => `(${c})`)
+					.join(' OR ');
+				const params = words.flatMap((w: string) => fields.map(() => `%${w}%`));
+				return { clause: ` AND (${conditions})`, params };
+			};
+			if (hasKeyword) {
+				const td = multiWordWhere(['title', 'description']);
+				kwFilter = td.clause;
+				kwParams = td.params;
+				const rt = multiWordWhere(['repo', 'title']);
+				kwRepoFilter = rt.clause;
+			}
 			const t = args.type as string | undefined;
 			const on = (key: string) => section[key] !== false && section[key] !== 0;
 			const articlesOn = on('articles_enable');
@@ -112,7 +130,8 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 			const wantAbout = !hasDateFilter || !wantAll || aboutTypes.includes(t!);
 			const wantProjects = projectsOn && (!hasDateFilter || t === 'project');
 			const wantGh = contributeOn && (wantAll || ghTypes.includes(t!));
-			const ghTypeFilter = !wantAll && wantGh ? ` AND type = "${t}"` : '';
+			const ghTypeFilter = !wantAll && wantGh ? ' AND type = ?' : '';
+			const ghTypeParams = !wantAll && wantGh ? [t] : [];
 
 			const queries = await Promise.all([
 				articlesOn && (wantAll || t === 'article')
@@ -130,36 +149,41 @@ async function executeTool(name: string, args: Record<string, any> = {}, section
 				wantGh
 					? query<{ repo: string; title: string; type: string; created_at: string }>(
 							'SELECT repo, title, type, created_at FROM github_activity WHERE 1=1' + ghTypeFilter + kwRepoFilter + dateClause + ' ORDER BY created_at DESC',
-							[...kwParams, ...dp]
+							[...ghTypeParams, ...kwParams, ...dp]
 						)
 					: [],
 				wantAbout && skillsOn && (wantAll || t === 'skill')
-					? query<{ title: string; type: string }>(
-							'SELECT title, type FROM skill' + (hasKeyword ? ' WHERE title LIKE ?' : '') + ' ORDER BY `order` ASC',
-							hasKeyword ? [keyword] : []
-						)
+					? (() => {
+							const kw = multiWordWhere(['title']);
+							return query<{ title: string; type: string }>('SELECT title, type FROM skill WHERE 1=1' + kw.clause + ' ORDER BY `order` ASC', kw.params);
+						})()
 					: [],
 				wantAbout && experienceOn && (wantAll || t === 'experience')
-					? query<{ title: string; type: string; period: string; description: string }>(
-							'SELECT title, type, period, description FROM experience' +
-								(hasKeyword ? ' WHERE (title LIKE ? OR description LIKE ?)' : '') +
-								' ORDER BY `order` ASC',
-							hasKeyword ? [keyword, keyword] : []
-						)
+					? (() => {
+							const kw = multiWordWhere(['title', 'description']);
+							return query<{ title: string; type: string; period: string; description: string }>(
+								'SELECT title, type, period, description FROM experience WHERE 1=1' + kw.clause + ' ORDER BY `order` ASC',
+								kw.params
+							);
+						})()
 					: [],
 				wantAbout && servicesOn && (wantAll || t === 'service')
-					? query<{ title: string; description: string }>(
-							'SELECT title, description FROM service' + (hasKeyword ? ' WHERE (title LIKE ? OR description LIKE ?)' : '') + ' ORDER BY `order` ASC',
-							hasKeyword ? [keyword, keyword] : []
-						)
+					? (() => {
+							const kw = multiWordWhere(['title', 'description']);
+							return query<{ title: string; description: string }>(
+								'SELECT title, description FROM service WHERE 1=1' + kw.clause + ' ORDER BY `order` ASC',
+								kw.params
+							);
+						})()
 					: [],
 				wantAbout && testimonialOn && (wantAll || t === 'testimonial')
-					? query<{ name: string; company: string; description: string }>(
-							'SELECT name, company, description FROM testimonial' +
-								(hasKeyword ? ' WHERE (name LIKE ? OR company LIKE ? OR description LIKE ?)' : '') +
-								' ORDER BY `order` ASC',
-							hasKeyword ? [keyword, keyword, keyword] : []
-						)
+					? (() => {
+							const kw = multiWordWhere(['name', 'company', 'description']);
+							return query<{ name: string; company: string; description: string }>(
+								'SELECT name, company, description FROM testimonial WHERE 1=1' + kw.clause + ' ORDER BY `order` ASC',
+								kw.params
+							);
+						})()
 					: [],
 				query<{ id: number; name: string }>('SELECT id, name FROM project_categories ORDER BY id ASC')
 			]);
@@ -241,7 +265,40 @@ export const POST: RequestHandler = async ({ request }) => {
 		const enabledToolNames = getEnabledToolNames(section);
 		const tools = enabledToolNames.map((name) => toolDefinitions[name]).filter(Boolean);
 
-		const loop: OpenAI.Chat.ChatCompletionMessageParam[] = [{ role: 'system', content: systemContent }, ...messages];
+		// Summarize older messages to retain context while controlling token usage
+		const maxRecent = 10;
+		let conversationMessages: OpenAI.Chat.ChatCompletionMessageParam[];
+		if (messages.length > maxRecent) {
+			const olderMessages = messages.slice(0, -maxRecent);
+			const recentMessages = messages.slice(-maxRecent);
+
+			// Extract only user/assistant text content for summarization
+			const conversationText = olderMessages
+				.filter((m: any) => (m.role === 'user' || m.role === 'assistant') && m.content)
+				.map((m: any) => `${m.role}: ${typeof m.content === 'string' ? m.content : JSON.stringify(m.content)}`)
+				.join('\n');
+
+			if (conversationText.trim()) {
+				const summaryCompletion = await openai.chat.completions.create({
+					model: openaiModel!.trim(),
+					messages: [
+						{ role: 'system', content: 'Summarize this conversation history in 2-4 concise sentences. Focus on what was discussed, what questions were asked, and what answers were given. Keep it factual and brief.' },
+						{ role: 'user', content: conversationText }
+					]
+				});
+				const summary = summaryCompletion.choices?.[0]?.message?.content?.trim() ?? '';
+				conversationMessages = [
+					...(summary ? [{ role: 'system' as const, content: `Previous conversation summary: ${summary}` }] : []),
+					...recentMessages
+				];
+			} else {
+				conversationMessages = recentMessages;
+			}
+		} else {
+			conversationMessages = messages;
+		}
+
+		const loop: OpenAI.Chat.ChatCompletionMessageParam[] = [{ role: 'system', content: systemContent }, ...conversationMessages];
 
 		let aiReply = '';
 
@@ -250,7 +307,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				model: openaiModel.trim(),
 				messages: loop,
 				tools: tools.length > 0 ? tools : undefined,
-				tool_choice: tools.length > 0 ? 'auto' : undefined,
+				tool_choice: tools.length > 0 ? (i === 0 ? { type: 'function' as const, function: { name: 'search' } } : 'auto') : undefined,
 				reasoning_effort: terminalReasoning === 'none' ? undefined : (terminalReasoning as any)
 			});
 
