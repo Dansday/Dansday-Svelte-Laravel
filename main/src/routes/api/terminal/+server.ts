@@ -493,6 +493,15 @@ export const POST: RequestHandler = async ({ request }) => {
 		let aiReply = '';
 
 		const useThinking = terminalReasoning !== 'none';
+		const modelLower = (openaiModel ?? '').toLowerCase();
+		const thinkingKwargs = (() => {
+			if (!useThinking) return {};
+			if (modelLower.includes('glm')) return { chat_template_kwargs: { enable_thinking: true, clear_thinking: false } };
+			if (modelLower.includes('nemotron')) return { chat_template_kwargs: { enable_thinking: true }, reasoning_budget: -1 };
+			if (modelLower.includes('qwen')) return { chat_template_kwargs: { enable_thinking: true } };
+			if (modelLower.includes('deepseek') || modelLower.includes('kimi')) return { chat_template_kwargs: { thinking: true } };
+			return {};
+		})();
 
 		for (let i = 0; i < 10; i++) {
 			const completion = await openai.chat.completions.create({
@@ -502,7 +511,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				tool_choice: tools.length > 0 ? 'auto' : undefined,
 				reasoning_effort: useThinking ? (terminalReasoning as any) : undefined,
 				frequency_penalty: 1.2,
-				...(useThinking ? { chat_template_kwargs: { thinking: true } } as any : {})
+				...thinkingKwargs as any
 			});
 
 			const message = completion.choices?.[0]?.message;
