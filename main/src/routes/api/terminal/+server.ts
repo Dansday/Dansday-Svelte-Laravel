@@ -72,7 +72,8 @@ function stripHtml(html: string): string {
 }
 
 const toolSections: Record<string, string | undefined> = {
-	search: undefined
+	search: undefined,
+	count: undefined
 };
 
 
@@ -93,6 +94,23 @@ const searchParams = {
 	}
 } as const;
 
+const countParams = {
+	type: 'object',
+	properties: {
+		keyword: {
+			type: 'string',
+			description: 'Search keyword to filter results. Omit to count all.'
+		},
+		type: {
+			type: 'string',
+			enum: ['article', 'project', 'commit', 'pr', 'review', 'issue', 'skill', 'experience', 'service', 'testimonial'],
+			description: 'Filter by data type. Omit to count all types.'
+		},
+		startDate: { type: 'string', description: 'Count from this date (YYYY-MM-DD).' },
+		endDate: { type: 'string', description: 'Count up to this date (YYYY-MM-DD).' }
+	}
+} as const;
+
 const toolDefinitions: Record<string, OpenAI.Chat.ChatCompletionTool> = {
 	search: {
 		type: 'function',
@@ -101,6 +119,15 @@ const toolDefinitions: Record<string, OpenAI.Chat.ChatCompletionTool> = {
 			description:
 				'Search across all data: articles, projects, skills, experiences, services, testimonials, GitHub activity, and site info (social links, email, site URL). Supports keyword filtering and/or date filtering.',
 			parameters: searchParams
+		}
+	},
+	count: {
+		type: 'function',
+		function: {
+			name: 'count',
+			description:
+				'Count data items (articles, projects, skills, experiences, services, testimonials, GitHub activity). Use this when the user asks "how many" or needs a number. Returns counts grouped by type.',
+			parameters: countParams
 		}
 	}
 };
@@ -213,13 +240,7 @@ async function executeTool(
 					: [],
 				wantGh
 					? query<{ repo: string; title: string; type: string; created_at: string }>(
-							'SELECT id, repo, title, type, created_at FROM github_activity WHERE 1=1' + ghTypeFilter + ghFt.filter + dateClause + ' ORDER BY created_at DESC LIMIT 100',
-							[...ghTypeParams, ...ghFt.params, ...dp]
-						)
-					: [],
-				wantGh
-					? query<{ cnt: number }>(
-							'SELECT COUNT(*) as cnt FROM github_activity WHERE 1=1' + ghTypeFilter + ghFt.filter + dateClause,
+							'SELECT id, repo, title, type, created_at FROM github_activity WHERE 1=1' + ghTypeFilter + ghFt.filter + dateClause + ' ORDER BY created_at DESC',
 							[...ghTypeParams, ...ghFt.params, ...dp]
 						)
 					: [],
@@ -244,7 +265,7 @@ async function executeTool(
 				query<{ id: number; name: string }>('SELECT id, name FROM project_categories ORDER BY id ASC')
 			]);
 
-			const [articles, projects, activity, activityCount, skills, experiences, services, testimonials, categories] = queries;
+			const [articles, projects, activity, skills, experiences, services, testimonials, categories] = queries;
 			const catMap = new Map((categories as any[]).map((c: any) => [c.id, c.name]));
 
 			let semanticHits: SemanticResult[] = [];
@@ -359,19 +380,101 @@ async function executeTool(
 					description: stripHtml(p.description),
 					category: catMap.get(p.category_id)
 				}));
-			if (mergedActivity.length > 0) {
-				const total = (activityCount as any[])?.[0]?.cnt ?? mergedActivity.length;
+			if (mergedActivity.length > 0)
 				result.activity = {
-					totalCount: total,
-					showing: mergedActivity.length,
-					note: total > mergedActivity.length ? `Only showing ${mergedActivity.length} of ${total} total results` : undefined,
 					items: mergedActivity.map((r: any) => ({ repo: r.repo, title: r.title, type: r.type, date: r.created_at }))
 				};
-			}
 
 			const [home, generalInfo] = await Promise.all([fetchHome(), fetchGeneral()]);
 			const siteUrl = (env.BASE_URL ?? '').replace(/\/+$/, '');
 			result.site = { title: home.title, description: home.description, site_url: siteUrl, social_links: generalInfo.social_links };
+
+			return toToon(result);
+		}
+		case 'count': {
+			const rawKeyword = (args.keyword ?? '').trim();
+			const hasKeyword = rawKeyword.length > 0;
+			const df = buildDateFilter(args);
+			const dateClause = df.clause;
+			const dp = df.params;
+			const ftQuery = rawKeyword
+				.split(/[\s\-]+/)
+				.map((w: string) => w.replace(/[+><~*"@()]/g, ''))
+				.filter((w: string) => w.length > 0)
+				.map((w: string) => `${w}*`)
+				.join(' ');
+			const t = args.type as string | undefined;
+			const on = (key: string) => section[key] !== false && section[key] !== 0;
+			const aboutOn = on('about_enable');
+			const ghTypes = ['commit', 'pr', 'review', 'issue'];
+			const aboutTypes = ['skill', 'experience', 'service', 'testimonial'];
+			const wantAll = !t;
+			const result: Record<string, any> = {};
+
+			if (wantAll || t === 'article') {
+				if (on('articles_enable')) {
+					const ftFilter = hasKeyword ? ` AND MATCH(title, description) AGAINST(? IN BOOLEAN MODE)` : '';
+					const ftParams = hasKeyword ? [ftQuery] : [];
+					const rows = await query<{ cnt: number }>('SELECT COUNT(*) as cnt FROM articles WHERE enable = 1' + ftFilter + dateClause, [...ftParams, ...dp]);
+					result.articles = (rows as any[])[0]?.cnt ?? 0;
+				}
+			}
+
+			if (wantAll || t === 'project') {
+				if (on('projects_enable')) {
+					const ftFilter = hasKeyword ? ` AND MATCH(title, description) AGAINST(? IN BOOLEAN MODE)` : '';
+					const ftParams = hasKeyword ? [ftQuery] : [];
+					const rows = await query<{ cnt: number }>('SELECT COUNT(*) as cnt FROM projects WHERE enable = 1' + ftFilter + dateClause, [...ftParams, ...dp]);
+					result.projects = (rows as any[])[0]?.cnt ?? 0;
+				}
+			}
+
+			if (wantAll || aboutTypes.includes(t!)) {
+				if (aboutOn && on('skills_enable') && (wantAll || t === 'skill')) {
+					const rows = await query<{ cnt: number }>('SELECT COUNT(*) as cnt FROM skill');
+					result.skills = (rows as any[])[0]?.cnt ?? 0;
+				}
+				if (aboutOn && on('experience_enable') && (wantAll || t === 'experience')) {
+					const rows = await query<{ cnt: number }>('SELECT COUNT(*) as cnt FROM experience');
+					result.experiences = (rows as any[])[0]?.cnt ?? 0;
+				}
+				if (aboutOn && on('services_enable') && (wantAll || t === 'service')) {
+					const rows = await query<{ cnt: number }>('SELECT COUNT(*) as cnt FROM service');
+					result.services = (rows as any[])[0]?.cnt ?? 0;
+				}
+				if (aboutOn && on('testimonial_enable') && (wantAll || t === 'testimonial')) {
+					const rows = await query<{ cnt: number }>('SELECT COUNT(*) as cnt FROM testimonial');
+					result.testimonials = (rows as any[])[0]?.cnt ?? 0;
+				}
+			}
+
+			if (wantAll || ghTypes.includes(t!)) {
+				if (on('contribute_enable')) {
+					const ghFtFilter = hasKeyword ? ` AND MATCH(repo, title) AGAINST(? IN BOOLEAN MODE)` : '';
+					const ghFtParams = hasKeyword ? [ftQuery] : [];
+					const typeFilter = !wantAll && t ? ' AND type = ?' : '';
+					const typeParams = !wantAll && t ? [t] : [];
+					const [totalRows, byTypeRows, byRepoRows] = await Promise.all([
+						query<{ cnt: number }>(
+							'SELECT COUNT(*) as cnt FROM github_activity WHERE 1=1' + typeFilter + ghFtFilter + dateClause,
+							[...typeParams, ...ghFtParams, ...dp]
+						),
+						query<{ type: string; cnt: number }>(
+							'SELECT type, COUNT(*) as cnt FROM github_activity WHERE 1=1' + typeFilter + ghFtFilter + dateClause + ' GROUP BY type ORDER BY cnt DESC',
+							[...typeParams, ...ghFtParams, ...dp]
+						),
+						query<{ repo: string; cnt: number }>(
+							'SELECT repo, COUNT(*) as cnt FROM github_activity WHERE 1=1' + typeFilter + ghFtFilter + dateClause + ' GROUP BY repo ORDER BY cnt DESC LIMIT 10',
+							[...typeParams, ...ghFtParams, ...dp]
+						)
+					]);
+					result.activity = {
+						total: (totalRows as any[])[0]?.cnt ?? 0,
+						byType: (byTypeRows as any[]).map((r: any) => ({ type: r.type, count: r.cnt })),
+						topRepos: (byRepoRows as any[]).map((r: any) => ({ repo: r.repo, count: r.cnt }))
+					};
+				}
+			}
 
 			return toToon(result);
 		}
