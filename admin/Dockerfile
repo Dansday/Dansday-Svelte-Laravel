@@ -96,6 +96,8 @@ RUN mkdir -p /etc/caddy && cat > /etc/caddy/Caddyfile <<'CADDYEOF'
 }
 CADDYEOF
 
+RUN echo "memory_limit=512M" > /usr/local/etc/php/conf.d/memory.ini
+
 EXPOSE 2222
 
 ENV APP_ENV=production

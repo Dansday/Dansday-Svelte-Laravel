@@ -111,7 +111,7 @@ class SimilarContentService
                 $endpoint .= '/embeddings';
             }
 
-            $res = Http::timeout(15)
+            $res = Http::connectTimeout(5)->timeout(15)
                 ->withHeaders(['Accept' => 'application/json', 'Content-Type' => 'application/json'])
                 ->withToken($key)
                 ->post($endpoint, ['model' => $model, 'input' => $text]);
@@ -121,22 +121,26 @@ class SimilarContentService
             $queryVector = data_get($res->json(), 'data.0.embedding');
             if (!$queryVector || !is_array($queryVector)) return [];
 
-            $embeddings = DB::select('SELECT table_name, row_id, vector FROM embeddings');
-
+            $tableNames = array_keys(self::$searchTables);
             $scored = [];
-            foreach ($embeddings as $emb) {
-                if (!isset(self::$searchTables[$emb->table_name])) continue;
-                $vector = json_decode($emb->vector, true);
-                if (!$vector) continue;
-                $similarity = self::cosineSimilarity($queryVector, $vector);
-                if ($similarity >= 0.3) {
-                    $scored[] = [
-                        'table_name' => $emb->table_name,
-                        'row_id' => $emb->row_id,
-                        'similarity' => $similarity,
-                    ];
-                }
-            }
+            DB::table('embeddings')
+                ->whereIn('table_name', $tableNames)
+                ->select('table_name', 'row_id', 'vector')
+                ->orderBy('id')
+                ->chunk(100, function ($rows) use ($queryVector, &$scored) {
+                    foreach ($rows as $emb) {
+                        $vector = json_decode($emb->vector, true);
+                        if (!$vector) continue;
+                        $similarity = self::cosineSimilarity($queryVector, $vector);
+                        if ($similarity >= 0.3) {
+                            $scored[] = [
+                                'table_name' => $emb->table_name,
+                                'row_id' => $emb->row_id,
+                                'similarity' => $similarity,
+                            ];
+                        }
+                    }
+                });
 
             usort($scored, fn($a, $b) => $b['similarity'] <=> $a['similarity']);
             $scored = array_slice($scored, 0, 20);
