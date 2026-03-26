@@ -20,10 +20,6 @@ interface CachedEmbedding {
 	norm: number;
 }
 
-const CACHE_TTL_MS = 5 * 60 * 1000;
-let embeddingCache: CachedEmbedding[] = [];
-let cacheTimestamp = 0;
-
 function vectorNorm(v: number[]): number {
 	let sum = 0;
 	for (let i = 0; i < v.length; i++) sum += v[i] * v[i];
@@ -31,37 +27,16 @@ function vectorNorm(v: number[]): number {
 }
 
 async function getEmbeddings(): Promise<CachedEmbedding[]> {
-	if (embeddingCache.length > 0 && Date.now() - cacheTimestamp < CACHE_TTL_MS) {
-		return embeddingCache;
-	}
 	const rows = await query<{ table_name: string; row_id: number; vector: string }>('SELECT table_name, row_id, vector FROM embeddings');
-	embeddingCache = rows.map((r) => {
+	return rows.map((r) => {
 		const vector = JSON.parse(r.vector) as number[];
 		return { table_name: r.table_name, row_id: r.row_id, vector, norm: vectorNorm(vector) };
 	});
-	cacheTimestamp = Date.now();
-	return embeddingCache;
 }
 
-const QUERY_CACHE_TTL_MS = 60 * 1000;
-const queryVectorCache = new Map<string, { vector: number[]; timestamp: number }>();
-
 async function embedQuery(openai: OpenAI, model: string, text: string): Promise<number[] | null> {
-	const cacheKey = `${model}:${text}`;
-	const cached = queryVectorCache.get(cacheKey);
-	if (cached && Date.now() - cached.timestamp < QUERY_CACHE_TTL_MS) {
-		return cached.vector;
-	}
 	const response = await openai.embeddings.create({ model, input: text });
-	const vector = response.data[0].embedding;
-	if (vector) {
-		queryVectorCache.set(cacheKey, { vector, timestamp: Date.now() });
-		if (queryVectorCache.size > 100) {
-			const oldest = queryVectorCache.keys().next().value;
-			if (oldest) queryVectorCache.delete(oldest);
-		}
-	}
-	return vector;
+	return response.data[0].embedding ?? null;
 }
 
 function cosineSimilarityWithNorm(a: number[], b: number[], normB: number): number {
