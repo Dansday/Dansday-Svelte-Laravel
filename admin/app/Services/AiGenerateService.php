@@ -27,7 +27,7 @@ class AiGenerateService
         $prompt = $context !== '' ? $context : 'Generate content.';
 
         $systemPrompt = self::resolvePrompt($general, $type);
-        $reasoning = self::resolveReasoning($general, $type);
+        $reasoning = self::resolveReasoning($general);
 
         $similarContext = '';
         try {
@@ -134,9 +134,11 @@ class AiGenerateService
         return trim($general->ai_article_prompt ?? '');
     }
 
-    private static function resolveReasoning(object $general, string $type): string
+    private static function resolveReasoning(object $general): string
     {
         $reasoning = trim($general->ai_content_reasoning ?? '');
-        return $reasoning !== '' ? $reasoning : 'none';
+        if ($reasoning !== '' && $reasoning !== 'none') return $reasoning;
+        $fallback = trim($general->ai_terminal_reasoning ?? '');
+        return $fallback !== '' ? $fallback : 'none';
     }
 }
