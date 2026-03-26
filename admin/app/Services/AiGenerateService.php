@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Sbsaga\Toon\Facades\Toon;
 
 class AiGenerateService
 {
@@ -102,6 +103,8 @@ class AiGenerateService
         $section = self::getEnabledSections();
 
         try {
+            $systemPrompt = str_replace('{{today}}', date('Y-m-d'), $systemPrompt);
+
             $messages = [];
             if ($systemPrompt !== '') {
                 $messages[] = ['role' => 'system', 'content' => $systemPrompt];
@@ -541,14 +544,16 @@ class AiGenerateService
                 }
 
                 if (!empty($rows)) {
-                    $result['activity'] = array_map(fn($r) => array_filter([
-                        'repo' => $r['repo'],
-                        'title' => $r['title'],
-                        'type' => $r['type'],
-                        'date' => $r['created_at'],
-                        'additions' => $r['additions'],
-                        'deletions' => $r['deletions'],
-                    ], fn($v) => $v !== null), $rows);
+                    $result['activity'] = [
+                        'items' => array_map(fn($r) => array_filter([
+                            'repo' => $r['repo'],
+                            'title' => $r['title'],
+                            'type' => $r['type'],
+                            'date' => $r['created_at'],
+                            'additions' => $r['additions'],
+                            'deletions' => $r['deletions'],
+                        ], fn($v) => $v !== null), $rows),
+                    ];
                 }
             } catch (\Throwable $e) {
                 Log::warning('Search activity failed: ' . $e->getMessage());
@@ -628,7 +633,7 @@ class AiGenerateService
             ];
         } catch (\Throwable $e) {}
 
-        return json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        return Toon::encode($result);
     }
 
     private static function toolCount(array $args, array $section): string
@@ -729,7 +734,7 @@ class AiGenerateService
             }
         }
 
-        return json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        return Toon::encode($result);
     }
 
     private static function buildEmbeddingClient(object $general): ?array

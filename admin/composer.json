@@ -15,7 +15,8 @@
         "open-telemetry/exporter-otlp": "*",
         "open-telemetry/opentelemetry-auto-laravel": "*",
         "open-telemetry/sdk": "*",
-        "php-http/guzzle7-adapter": "*"
+        "php-http/guzzle7-adapter": "*",
+        "sbsaga/toon": "^1.2"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
