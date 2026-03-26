@@ -105,4 +105,4 @@ ENV LOG_CHANNEL=stderr
 
 RUN cp public/uploads/img/image_default.png /tmp/image_default.png
 
-CMD ["sh", "-c", "cp -n /tmp/image_default.png public/uploads/img/image_default.png 2>/dev/null; php artisan optimize:clear && php artisan migrate --force && frankenphp run --config /etc/caddy/Caddyfile --adapter caddyfile"]
+CMD ["sh", "-c", "mkdir -p public/uploads/img && cp -n /tmp/image_default.png public/uploads/img/image_default.png; php artisan optimize:clear && php artisan migrate --force && frankenphp run --config /etc/caddy/Caddyfile --adapter caddyfile"]
