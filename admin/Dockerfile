@@ -96,7 +96,7 @@ RUN mkdir -p /etc/caddy && cat > /etc/caddy/Caddyfile <<'CADDYEOF'
 }
 CADDYEOF
 
-RUN echo "memory_limit=512M" > /usr/local/etc/php/conf.d/memory.ini
+RUN printf "memory_limit=512M\nmax_execution_time=600\n" > /usr/local/etc/php/conf.d/custom.ini
 
 EXPOSE 2222
 

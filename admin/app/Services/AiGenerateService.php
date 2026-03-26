@@ -59,7 +59,7 @@ class AiGenerateService
                 $endpoint .= '/chat/completions';
             }
 
-            $res = Http::timeout(60)
+            $res = Http::connectTimeout(10)->timeout(600)
                 ->withHeaders([
                     'Accept' => 'application/json',
                     'Content-Type' => 'application/json',
