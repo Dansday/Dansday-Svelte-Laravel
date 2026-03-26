@@ -58,19 +58,35 @@
                                     @error('ai_terminal_reasoning')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 <div class="form-group mb-4">
-                                    <label for="ai_content_prompt" class="form-label">{{ __('content.ai_content_prompt') ?? 'Content Generation System Prompt' }}</label>
-                                    <textarea class="form-control @error('ai_content_prompt') is-invalid @enderror" name="ai_content_prompt" id="ai_content_prompt" rows="7">{{ old('ai_content_prompt', $general->ai_content_prompt ?? '') }}</textarea>
-                                    <div class="form-text">{{ __('content.ai_content_prompt_desc') ?? 'System prompt for content generation. Leave blank to use the default.' }}</div>
-                                    @error('ai_content_prompt')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    <label for="ai_article_prompt" class="form-label">{{ __('content.ai_article_prompt') }}</label>
+                                    <textarea class="form-control @error('ai_article_prompt') is-invalid @enderror" name="ai_article_prompt" id="ai_article_prompt" rows="7">{{ old('ai_article_prompt', $general->ai_article_prompt ?? '') }}</textarea>
+                                    <div class="form-text">{{ __('content.ai_article_prompt_desc') }}</div>
+                                    @error('ai_article_prompt')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                <div class="form-group">
-                                    <label for="ai_content_reasoning" class="form-label">{{ __('content.ai_content_reasoning') ?? 'Content Generation Reasoning Effort' }}</label>
-                                    <select class="form-control @error('ai_content_reasoning') is-invalid @enderror" name="ai_content_reasoning" id="ai_content_reasoning">
+                                <div class="form-group mb-4">
+                                    <label for="ai_article_reasoning" class="form-label">{{ __('content.ai_article_reasoning') }}</label>
+                                    <select class="form-control @error('ai_article_reasoning') is-invalid @enderror" name="ai_article_reasoning" id="ai_article_reasoning">
                                         @foreach(['none' => 'None – Disable reasoning', 'minimal' => 'Minimal – Lowest reasoning effort', 'low' => 'Low – Low reasoning effort', 'medium' => 'Medium – Default reasoning effort', 'high' => 'High – High reasoning effort', 'xhigh' => 'XHigh – Maximum reasoning effort'] as $value => $label)
-                                            <option value="{{ $value }}" {{ old('ai_content_reasoning', $general->ai_content_reasoning ?? 'none') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                            <option value="{{ $value }}" {{ old('ai_article_reasoning', $general->ai_article_reasoning ?? 'none') === $value ? 'selected' : '' }}>{{ $label }}</option>
                                         @endforeach
                                     </select>
-                                    @error('ai_content_reasoning')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    @error('ai_article_reasoning')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                                <div class="form-group mb-4">
+                                    <label for="ai_project_prompt" class="form-label">{{ __('content.ai_project_prompt') }}</label>
+                                    <textarea class="form-control @error('ai_project_prompt') is-invalid @enderror" name="ai_project_prompt" id="ai_project_prompt" rows="7">{{ old('ai_project_prompt', $general->ai_project_prompt ?? '') }}</textarea>
+                                    <div class="form-text">{{ __('content.ai_project_prompt_desc') }}</div>
+                                    @error('ai_project_prompt')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                                <div class="form-group">
+                                    <label for="ai_project_reasoning" class="form-label">{{ __('content.ai_project_reasoning') }}</label>
+                                    <select class="form-control @error('ai_project_reasoning') is-invalid @enderror" name="ai_project_reasoning" id="ai_project_reasoning">
+                                        @foreach(['none' => 'None – Disable reasoning', 'minimal' => 'Minimal – Lowest reasoning effort', 'low' => 'Low – Low reasoning effort', 'medium' => 'Medium – Default reasoning effort', 'high' => 'High – High reasoning effort', 'xhigh' => 'XHigh – Maximum reasoning effort'] as $value => $label)
+                                            <option value="{{ $value }}" {{ old('ai_project_reasoning', $general->ai_project_reasoning ?? 'none') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    <div class="form-text">{{ __('content.ai_project_reasoning_desc') }}</div>
+                                    @error('ai_project_reasoning')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                             </div>
                         </div>
