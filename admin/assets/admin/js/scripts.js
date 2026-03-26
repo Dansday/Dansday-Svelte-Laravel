@@ -118,6 +118,13 @@ $(document).ready(function () {
             promptContext = $('input[name="' + inputName + '"], textarea[name="' + inputName + '"]').val().trim();
         }
 
+        var titleVal = $('input[name="title"]').val() || '';
+        var shortVal = $('input[name="short_desc"]').val() || '';
+        var prefix = '';
+        if (titleVal.trim()) prefix += 'Title: ' + titleVal.trim() + '\n';
+        if (shortVal.trim()) prefix += 'Short Description: ' + shortVal.trim() + '\n';
+        if (prefix) promptContext = prefix + '\n' + promptContext;
+
         if (!promptContext) {
             alert('Please enter some text in the content editor to use as a prompt for AI.');
             return;

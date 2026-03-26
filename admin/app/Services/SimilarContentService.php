@@ -22,7 +22,7 @@ class SimilarContentService
             'label' => 'Project',
         ],
         'github_activity' => [
-            'select' => 'SELECT id, repo, title, type, created_at',
+            'select' => 'SELECT id, repo, title, type, additions, deletions, created_at',
             'ftFields' => ['repo', 'title'],
             'where' => '1=1',
             'label' => 'GitHub',
@@ -226,27 +226,63 @@ class SimilarContentService
     {
         if (empty($results)) return '';
 
-        $lines = ['Similar existing content for reference/follow-up:'];
-        foreach ($results as $i => $row) {
+        $grouped = [];
+        foreach ($results as $row) {
             $table = $row['_table'] ?? '';
-            $label = self::$searchTables[$table]['label'] ?? 'Item';
-
-            if ($table === 'github_activity') {
-                $ghType = $row['type'] ?? '';
-                $repo = strip_tags($row['repo'] ?? '');
-                $title = strip_tags($row['title'] ?? '');
-                $date = $row['created_at'] ?? '';
-                $lines[] = ($i + 1) . ". [{$label} {$ghType}] {$repo}: {$title} ({$date})";
-            } else {
-                $title = strip_tags($row['title'] ?? '');
-                $desc = strip_tags($row['description'] ?? '');
-                $desc = preg_replace('/\s+/', ' ', $desc);
-                if (strlen($desc) > 300) {
-                    $desc = substr($desc, 0, 300) . '...';
-                }
-                $lines[] = ($i + 1) . ". [{$label}] {$title}: {$desc}";
-            }
+            $grouped[$table][] = $row;
         }
-        return implode("\n", $lines);
+
+        $sections = [];
+
+        if (!empty($grouped['articles'])) {
+            $items = [];
+            foreach ($grouped['articles'] as $row) {
+                $items[] = [
+                    'title' => strip_tags($row['title'] ?? ''),
+                    'description' => self::stripHtml($row['description'] ?? ''),
+                    'created_at' => $row['created_at'] ?? '',
+                ];
+            }
+            $sections['articles'] = $items;
+        }
+
+        if (!empty($grouped['projects'])) {
+            $items = [];
+            foreach ($grouped['projects'] as $row) {
+                $items[] = [
+                    'title' => strip_tags($row['title'] ?? ''),
+                    'description' => self::stripHtml($row['description'] ?? ''),
+                    'created_at' => $row['created_at'] ?? '',
+                ];
+            }
+            $sections['projects'] = $items;
+        }
+
+        if (!empty($grouped['github_activity'])) {
+            $items = [];
+            foreach ($grouped['github_activity'] as $row) {
+                $item = [
+                    'repo' => strip_tags($row['repo'] ?? ''),
+                    'title' => strip_tags($row['title'] ?? ''),
+                    'type' => $row['type'] ?? '',
+                    'date' => $row['created_at'] ?? '',
+                ];
+                if (($row['additions'] ?? null) !== null) $item['additions'] = $row['additions'];
+                if (($row['deletions'] ?? null) !== null) $item['deletions'] = $row['deletions'];
+                $items[] = $item;
+            }
+            $sections['activity'] = $items;
+        }
+
+        if (empty($sections)) return '';
+
+        return "Similar existing content for reference/follow-up:\n" . json_encode($sections, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    }
+
+    private static function stripHtml(string $html): string
+    {
+        $text = strip_tags($html);
+        $text = html_entity_decode($text, ENT_QUOTES, 'UTF-8');
+        return preg_replace('/\s+/', ' ', trim($text));
     }
 }
