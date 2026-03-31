@@ -630,58 +630,32 @@ export const POST: RequestHandler = async ({ request }) => {
 			loop.push(...toolResults);
 		}
 
-		const stream = await openai.chat.completions.create({
+		const completion = await openai.chat.completions.create({
 			...completionParams,
-			messages: loop,
-			stream: true
+			messages: loop
 		} as any);
 
-		const encoder = new TextEncoder();
-		let fullResponse = '';
-		const readable = new ReadableStream({
-			async start(controller) {
-				try {
-					for await (const chunk of stream as any) {
-						const content = (chunk as any).choices?.[0]?.delta?.content ?? '';
-						if (content) {
-							fullResponse += content;
-							controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
-						}
-					}
-					controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-					controller.close();
+		const fullResponse = completion.choices?.[0]?.message?.content ?? '';
 
-					if (loggerProvider) {
-						const logger = loggerProvider.getLogger('terminal');
-						const userMessage = messages[messages.length - 1]?.content ?? '';
-						const cleaned = fullResponse
-							.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
-							.replace(/<think>[\s\S]*?<\/think>/gi, '')
-							.replace(/\(no output\)\s*/g, '')
-							.trim();
-						logger.emit({
-							body: 'AI Terminal Interaction',
-							attributes: {
-								'terminal.user_input': userMessage,
-								'terminal.system_prompt': systemContent,
-								'terminal.ai_response': cleaned
-							}
-						});
-					}
-				} catch (err) {
-					controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Stream error' })}\n\n`));
-					controller.close();
+		if (loggerProvider) {
+			const logger = loggerProvider.getLogger('terminal');
+			const userMessage = messages[messages.length - 1]?.content ?? '';
+			const cleaned = fullResponse
+				.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+				.replace(/<think>[\s\S]*?<\/think>/gi, '')
+				.replace(/\(no output\)\s*/g, '')
+				.trim();
+			logger.emit({
+				body: 'AI Terminal Interaction',
+				attributes: {
+					'terminal.user_input': userMessage,
+					'terminal.system_prompt': systemContent,
+					'terminal.ai_response': cleaned
 				}
-			}
-		});
+			});
+		}
 
-		return new Response(readable, {
-			headers: {
-				'Content-Type': 'text/event-stream',
-				'Cache-Control': 'no-cache',
-				'Connection': 'keep-alive'
-			}
-		});
+		return json({ response: fullResponse });
 	} catch (error: any) {
 		console.error('Terminal API Error:', error);
 		return json({ response: `Error: ${error.message}` });
