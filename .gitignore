@@ -6,9 +6,8 @@ admin/vendor/
 # Build / output
 main/.svelte-kit/
 main/.pnpm-store/
+main/build/
 pnpm-lock.yaml
-package-lock.json
-composer.lock
 
 # Env
 .env
