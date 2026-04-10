@@ -48,8 +48,14 @@
 		yearTotals: Record<number, number>;
 	}
 
-	type SortKey = 'newest' | 'oldest' | 'name' | 'impact_desc' | 'impact_asc';
+	type SortKey = 'newest' | 'oldest' | 'name' | 'name_desc' | 'impact_desc' | 'impact_asc';
 	let sortKey = $state<SortKey>('newest');
+
+	function toggleSort(group: 'date' | 'name' | 'impact') {
+		if (group === 'date') changeSort(sortKey === 'newest' ? 'oldest' : 'newest');
+		else if (group === 'name') changeSort(sortKey === 'name' ? 'name_desc' : 'name');
+		else changeSort(sortKey === 'impact_desc' ? 'impact_asc' : 'impact_desc');
+	}
 
 	async function changeSort(key: SortKey) {
 		if (!githubData || key === sortKey) return;
@@ -481,15 +487,26 @@
 						Live activity
 						<span class="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#39d353]"></span>
 					</div>
-					<div class="ml-auto flex flex-wrap gap-1">
-						{#each [{ key: 'name', label: 'Name' }, { key: 'newest', label: 'Newest' }, { key: 'oldest', label: 'Oldest' }, { key: 'impact_desc', label: 'Impact ↑' }, { key: 'impact_asc', label: 'Impact ↓' }] as btn}
-							<button
-								onclick={() => changeSort(btn.key as SortKey)}
-								class="rounded border px-2 py-0.5 text-xs transition-colors {sortKey === btn.key
-									? 'border-[#238636] bg-[#238636] text-white'
-									: 'border-[#30363d] text-[#8b949e] hover:border-[#8b949e] hover:text-white'}">{btn.label}</button
-							>
-						{/each}
+					<div class="flex gap-1">
+						<button
+							onclick={() => toggleSort('name')}
+							class="rounded border px-2 py-0.5 text-xs transition-colors {sortKey === 'name' || sortKey === 'name_desc'
+								? 'border-[#238636] bg-[#238636] text-white'
+								: 'border-[#30363d] text-[#8b949e] hover:border-[#8b949e] hover:text-white'}"
+							>Name {sortKey === 'name' ? '↑' : sortKey === 'name_desc' ? '↓' : '↑'}</button
+						>
+						<button
+							onclick={() => toggleSort('date')}
+							class="rounded border px-2 py-0.5 text-xs transition-colors {sortKey === 'newest' || sortKey === 'oldest'
+								? 'border-[#238636] bg-[#238636] text-white'
+								: 'border-[#30363d] text-[#8b949e] hover:border-[#8b949e] hover:text-white'}">Date {sortKey === 'oldest' ? '↑' : '↓'}</button
+						>
+						<button
+							onclick={() => toggleSort('impact')}
+							class="rounded border px-2 py-0.5 text-xs transition-colors {sortKey === 'impact_desc' || sortKey === 'impact_asc'
+								? 'border-[#238636] bg-[#238636] text-white'
+								: 'border-[#30363d] text-[#8b949e] hover:border-[#8b949e] hover:text-white'}">Impact {sortKey === 'impact_asc' ? '↑' : '↓'}</button
+						>
 					</div>
 				</div>
 				<div class="flex flex-col gap-1">

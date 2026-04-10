@@ -29,6 +29,7 @@ const sortOrders: Record<string, string> = {
 	newest: 'created_at DESC',
 	oldest: 'created_at ASC',
 	name: 'repo ASC',
+	name_desc: 'repo DESC',
 	impact_desc: '(COALESCE(additions,0) + COALESCE(deletions,0)) DESC',
 	impact_asc: '(COALESCE(additions,0) + COALESCE(deletions,0)) ASC'
 };
