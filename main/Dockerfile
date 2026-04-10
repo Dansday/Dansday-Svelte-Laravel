@@ -5,13 +5,13 @@ WORKDIR /app
 
 ENV NODE_OPTIONS=""
 
-COPY package.json ./
-RUN npm install --include=dev
+COPY package.json package-lock.json ./
+RUN npm ci --include=dev
 
 COPY . .
 RUN npm run build
 
-RUN npm prune --production
+RUN npm prune --omit=dev
 
 # ── Stage 2: Runtime ─────────────────────────────────────────────
 FROM node:25.8.1-alpine AS runner
