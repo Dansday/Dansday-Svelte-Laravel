@@ -16,26 +16,26 @@ class AiGenerateService
                 'type' => 'function',
                 'function' => [
                     'name' => 'search',
-                    'description' => 'Search across all data: articles, projects, skills, experiences, services, testimonials, GitHub activity (commits, PRs, reviews, issues), and site info (social links, email, site URL). Supports keyword filtering and/or date filtering.',
+                    'description' => 'Recall my own work and background: my articles, projects, skills, experience, services, testimonials, GitHub activity (commits, PRs, reviews, issues), and contact info. Use keyword and/or date filters. Try multiple keyword variations and different types before concluding that something is not part of my work.',
                     'parameters' => [
                         'type' => 'object',
                         'properties' => [
                             'keyword' => [
                                 'type' => 'string',
-                                'description' => 'Search keyword to match against titles and descriptions. Omit to return all results.',
+                                'description' => 'Keyword to recall by matching titles and descriptions. Omit to list everything.',
                             ],
                             'type' => [
                                 'type' => 'string',
                                 'enum' => ['article', 'project', 'commit', 'pr', 'review', 'issue', 'skill', 'experience', 'service', 'testimonial'],
-                                'description' => 'Filter by data type. Omit to search all types.',
+                                'description' => 'Narrow recall to one kind of work. Omit to recall across everything.',
                             ],
                             'startDate' => [
                                 'type' => 'string',
-                                'description' => 'Filter results from this date (YYYY-MM-DD).',
+                                'description' => 'Recall items from this date onward (YYYY-MM-DD).',
                             ],
                             'endDate' => [
                                 'type' => 'string',
-                                'description' => 'Filter results up to this date (YYYY-MM-DD).',
+                                'description' => 'Recall items up to this date (YYYY-MM-DD).',
                             ],
                         ],
                     ],
@@ -45,26 +45,26 @@ class AiGenerateService
                 'type' => 'function',
                 'function' => [
                     'name' => 'count',
-                    'description' => 'Count data items (articles, projects, skills, experiences, services, testimonials, GitHub activity). Use this when you need totals or numbers. Returns counts grouped by type.',
+                    'description' => 'Count items of my own work (articles, projects, skills, experience, services, testimonials, GitHub activity). Use when totals or volume of work matters. Returns counts grouped by kind.',
                     'parameters' => [
                         'type' => 'object',
                         'properties' => [
                             'keyword' => [
                                 'type' => 'string',
-                                'description' => 'Search keyword to filter results. Omit to count all.',
+                                'description' => 'Keyword to narrow the count. Omit to count everything.',
                             ],
                             'type' => [
                                 'type' => 'string',
                                 'enum' => ['article', 'project', 'commit', 'pr', 'review', 'issue', 'skill', 'experience', 'service', 'testimonial'],
-                                'description' => 'Filter by data type. Omit to count all types.',
+                                'description' => 'Narrow count to one kind of work. Omit to count across everything.',
                             ],
                             'startDate' => [
                                 'type' => 'string',
-                                'description' => 'Count from this date (YYYY-MM-DD).',
+                                'description' => 'Count items from this date onward (YYYY-MM-DD).',
                             ],
                             'endDate' => [
                                 'type' => 'string',
-                                'description' => 'Count up to this date (YYYY-MM-DD).',
+                                'description' => 'Count items up to this date (YYYY-MM-DD).',
                             ],
                         ],
                     ],
@@ -119,7 +119,7 @@ class AiGenerateService
                     'model' => $model,
                     'messages' => $messages,
                     'tools' => $tools,
-                    'tool_choice' => 'auto',
+                    'tool_choice' => $i === 0 ? 'required' : 'auto',
                     ...$baseParams,
                 ], fn($v) => $v !== null);
 
@@ -208,6 +208,18 @@ class AiGenerateService
             default:
                 return '{}';
         }
+    }
+
+    private static function emptyResultHint(array $args, string $toolName): string
+    {
+        $keyword = trim($args['keyword'] ?? '');
+        $type = trim($args['type'] ?? '');
+        $tried = [];
+        if ($keyword !== '') $tried[] = "keyword=\"{$keyword}\"";
+        if ($type !== '') $tried[] = "type=\"{$type}\"";
+        $triedStr = empty($tried) ? 'no filters' : implode(', ', $tried);
+
+        return "No items matched {$triedStr}. Do NOT mention a database, records, storage, the search tool, or that nothing was found. Either call {$toolName} again with broader or different keywords (drop the type filter, try synonyms or related terms), or simply write the article authentically in first person without disclaimers or meta-commentary about missing data.";
     }
 
     private static function getEnabledSections(): array
@@ -633,6 +645,15 @@ class AiGenerateService
             ];
         } catch (\Throwable $e) {}
 
+        $contentKeys = ['articles', 'projects', 'activity', 'skills', 'experiences', 'services', 'testimonials'];
+        $hasContent = false;
+        foreach ($contentKeys as $k) {
+            if (!empty($result[$k])) { $hasContent = true; break; }
+        }
+        if (!$hasContent) {
+            $result['hint'] = self::emptyResultHint($args, 'search');
+        }
+
         return Toon::encode($result);
     }
 
@@ -732,6 +753,15 @@ class AiGenerateService
                     $result['testimonials'] = $rows[0]->cnt ?? 0;
                 } catch (\Throwable $e) {}
             }
+        }
+
+        $hasContent = false;
+        foreach ($result as $k => $v) {
+            if (is_numeric($v) && $v > 0) { $hasContent = true; break; }
+            if (is_array($v) && !empty($v)) { $hasContent = true; break; }
+        }
+        if (!$hasContent) {
+            $result['hint'] = self::emptyResultHint($args, 'count');
         }
 
         return Toon::encode($result);
