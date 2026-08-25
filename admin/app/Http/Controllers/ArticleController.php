@@ -53,7 +53,7 @@ class ArticleController extends Controller
             'author'      => ['string', 'max:55'],
             'category'    => ['string', 'max:55'],
             'description' => ['required'],
-            'image'       => ['required', 'file', 'mimes:jpg,jpeg,png'],
+            'image'       => ['nullable', 'file', 'mimes:jpg,jpeg,png'],
         ]);
         if ($validate->fails()) {
             return redirect('/admin/articles/post')
@@ -63,7 +63,9 @@ class ArticleController extends Controller
         }
 
         $disk = Storage::disk('uploads');
-        $route_image = $data['image']->storeAs('img/articles', 'post_image_' . mt_rand(10, 9999) . '.' . $data['image']->guessExtension(), 'uploads');
+        $route_image = $data['image']
+            ? 'uploads/' . $data['image']->storeAs('img/articles', 'post_image_' . mt_rand(10, 9999) . '.' . $data['image']->guessExtension(), 'uploads')
+            : '';
 
         $tempFiles = $disk->files('img/temp');
         foreach ($tempFiles as $tempPath) {
@@ -80,7 +82,7 @@ class ArticleController extends Controller
         $post->title = $data['title'];
         $post->short_desc = $data['short_desc'];
         $post->description = str_replace([$disk->url('img/temp'), 'uploads/img/temp'], [$disk->url('img/articles'), 'uploads/img/articles'], $data['description']);
-        $post->image = 'uploads/' . $route_image;
+        $post->image = $route_image;
         $post->author = $data['author'];
         $post->category_id = $data['category'];
         $post->save();

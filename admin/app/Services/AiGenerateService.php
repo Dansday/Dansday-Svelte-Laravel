@@ -225,7 +225,7 @@ class AiGenerateService
     private static function getEnabledSections(): array
     {
         try {
-            $row = DB::table('section')->where('id', 1)->first();
+            $row = DB::table('page_section')->where('id', 1)->first();
             if (!$row) return [];
             return (array) $row;
         } catch (\Throwable $e) {
