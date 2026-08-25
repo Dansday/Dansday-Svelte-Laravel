@@ -57,7 +57,6 @@ return [
     'analytics_code_desc'       => 'Type the tracking ID from your account. For example UA-12345678-9.',
     'articles'                  => 'Articles',
     'articles_section'         => 'Articles section',
-    'author'                    => 'Author',
     'abouts_section'            => 'Abouts section',
     'cancel'                    => 'Cancel',
     'categories'                => 'Categories',

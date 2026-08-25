@@ -21,13 +21,8 @@ class McpToken extends Model
         'revoked_at'   => 'datetime',
     ];
 
-    /** Prefix that makes a leaked token recognisable in logs and secret scanners. */
     public const PREFIX = 'mcp_live_';
 
-    /**
-     * Mint a new token. Returns [model, plainTextToken]; the plain text is only
-     * available here and is never stored.
-     */
     public static function mint(string $name): array
     {
         $plain = self::PREFIX . Str::random(48);
@@ -45,9 +40,6 @@ class McpToken extends Model
         return hash('sha256', $plain);
     }
 
-    /**
-     * Resolve a plain-text token to an active (non-revoked) token record.
-     */
     public static function findActive(string $plain): ?self
     {
         if ($plain === '') {

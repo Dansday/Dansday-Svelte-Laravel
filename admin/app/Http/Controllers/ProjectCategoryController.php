@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Validator;
 
 class ProjectCategoryController extends Controller
 {
-
     public function index()
     {
         $categories = ProjectCategory::all();

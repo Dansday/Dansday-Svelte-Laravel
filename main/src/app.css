@@ -44,7 +44,6 @@
 	}
 
 	::-moz-selection {
-		/* Code for Firefox */
 		color: #ffffffb3;
 		background: #4444444d;
 	}

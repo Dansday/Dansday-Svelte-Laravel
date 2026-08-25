@@ -41,7 +41,6 @@ class ArticleController extends Controller
             'enable'      => $request->input('enable'),
             'title'       => $request->input('title'),
             'short_desc'  => $request->input('short_desc'),
-            'author'      => $request->input('author'),
             'category'    => $request->input('category'),
             'description' => $request->input('description'),
             'image'       => $request->file('image'),
@@ -50,7 +49,6 @@ class ArticleController extends Controller
         $validate = Validator::make($data, [
             'title'       => ['required', 'string', 'max:55'],
             'short_desc'  => ['nullable', 'string', 'max:255'],
-            'author'      => ['string', 'max:55'],
             'category'    => ['string', 'max:55'],
             'description' => ['required'],
             'image'       => ['nullable', 'file', 'mimes:jpg,jpeg,png'],
@@ -83,7 +81,6 @@ class ArticleController extends Controller
         $post->short_desc = $data['short_desc'];
         $post->description = str_replace([$disk->url('img/temp'), 'uploads/img/temp'], [$disk->url('img/articles'), 'uploads/img/articles'], $data['description']);
         $post->image = $route_image;
-        $post->author = $data['author'];
         $post->category_id = $data['category'];
         $post->save();
         EmbeddingService::embedRow('articles', $post->id);
@@ -111,7 +108,6 @@ class ArticleController extends Controller
             'enable'        => $request->input('enable'),
             'title'         => $request->input('title'),
             'short_desc'    => $request->input('short_desc'),
-            'author'        => $request->input('author'),
             'category'      => $request->input('category'),
             'description'   => $request->input('description'),
             'image'         => $request->file('image'),
@@ -121,7 +117,6 @@ class ArticleController extends Controller
         $validate = Validator::make($data, [
             'title'       => ['required', 'string', 'max:55'],
             'short_desc'  => ['nullable', 'string', 'max:255'],
-            'author'      => ['string', 'max:55'],
             'category'    => ['string', 'max:55'],
             'description' => ['required'],
         ]);
@@ -178,7 +173,6 @@ class ArticleController extends Controller
             'short_desc'  => $data['short_desc'],
             'description' => str_replace([$disk->url('img/temp'), 'uploads/img/temp'], [$disk->url('img/articles'), 'uploads/img/articles'], $data['description']),
             'image'       => $route_image,
-            'author'      => $data['author'],
             'category_id' => $data['category'],
         ]);
         EmbeddingService::embedRow('articles', $id);

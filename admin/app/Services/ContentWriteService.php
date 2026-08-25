@@ -20,23 +20,13 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
-/**
- * Shared write path for content that both the admin panel and the MCP tools
- * mutate. Every mutation keeps the embeddings index in sync so that AI recall
- * (search/count) never goes stale.
- *
- * Field limits mirror the validation already enforced by the HTTP controllers.
- */
 class ContentWriteService
 {
-    /* ---------------------------------------------------------------- articles */
-
     public static function createArticle(array $input): array
     {
         self::validate($input, [
             'title'       => ['required', 'string', 'max:55'],
             'short_desc'  => ['nullable', 'string', 'max:255'],
-            'author'      => ['nullable', 'string', 'max:55'],
             'description' => ['required', 'string'],
         ]);
 
@@ -46,10 +36,8 @@ class ContentWriteService
         $article->short_desc = $input['short_desc'] ?? null;
         $article->description = self::sanitizeHtml($input['description']);
         $article->image      = self::normalizeImage($input['image'] ?? null);
-        $article->author     = self::nonEmpty($input['author'] ?? null) ?? self::defaultAuthor();
         $article->category_id = self::resolveCategoryId('article', $input, true);
 
-        // Set before save() so Eloquent's auto-timestamps leave it alone.
         if ($created = self::parseDate($input, 'created_at')) {
             $article->created_at = $created;
         }
@@ -70,7 +58,6 @@ class ContentWriteService
         self::validate($input, [
             'title'       => ['sometimes', 'required', 'string', 'max:55'],
             'short_desc'  => ['nullable', 'string', 'max:255'],
-            'author'      => ['nullable', 'string', 'max:55'],
             'description' => ['sometimes', 'required', 'string'],
         ]);
 
@@ -79,11 +66,10 @@ class ContentWriteService
         if (array_key_exists('title', $input))       $update['title'] = $input['title'];
         if (array_key_exists('short_desc', $input))  $update['short_desc'] = $input['short_desc'];
         if (array_key_exists('description', $input)) $update['description'] = self::sanitizeHtml($input['description']);
-        if (array_key_exists('author', $input))      $update['author'] = self::nonEmpty($input['author']) ?? self::defaultAuthor();
 
         if (array_key_exists('image', $input)) {
             $update['image'] = self::normalizeImage($input['image']);
-            // Don't leave the replaced file orphaned on disk.
+
             if ($update['image'] !== $article->image) {
                 self::deleteUpload($article->image);
             }
@@ -138,15 +124,13 @@ class ContentWriteService
             'short_desc'  => $row->short_desc,
             'description' => $row->description,
             'image'       => $row->image,
-            'author'      => $row->author,
+            'created_by'  => self::siteOwnerName(),
             'category_id' => $row->category_id,
             'category'    => DB::table('article_categories')->where('id', $row->category_id)->value('name'),
             'created_at'  => (string) $row->created_at,
             'updated_at'  => (string) $row->updated_at,
         ];
     }
-
-    /* ---------------------------------------------------------------- projects */
 
     public static function createProject(array $input): array
     {
@@ -159,7 +143,7 @@ class ContentWriteService
         $project = new Project();
         $project->enable      = self::boolInput($input, 'enable', true) ? 1 : 0;
         $project->title       = $input['title'];
-        // projects.short_desc is NOT NULL, so fall back to an empty string.
+
         $project->short_desc  = $input['short_desc'] ?? '';
         $project->description = self::sanitizeHtml($input['description']);
         $project->image       = self::normalizeImage($input['image'] ?? null);
@@ -196,7 +180,7 @@ class ContentWriteService
 
         if (array_key_exists('image', $input)) {
             $update['image'] = self::normalizeImage($input['image']);
-            // Don't leave the replaced file orphaned on disk.
+
             if ($update['image'] !== $project->image) {
                 self::deleteUpload($project->image);
             }
@@ -251,6 +235,7 @@ class ContentWriteService
             'short_desc'  => $row->short_desc,
             'description' => $row->description,
             'image'       => $row->image,
+            'created_by'  => self::siteOwnerName(),
             'category_id' => $row->category_id,
             'category'    => DB::table('project_categories')->where('id', $row->category_id)->value('name'),
             'created_at'  => (string) $row->created_at,
@@ -258,9 +243,6 @@ class ContentWriteService
         ];
     }
 
-    /* -------------------------------------------------------------- categories */
-
-    /** @param string $kind 'article' or 'project' */
     public static function createCategory(string $kind, array $input): array
     {
         self::validate($input, ['name' => ['required', 'string', 'max:55']]);
@@ -318,7 +300,6 @@ class ContentWriteService
             throw new ContentWriteException("No {$kind} category with id {$id}.");
         }
 
-        // The schema has a real foreign key here, so refuse before MySQL throws.
         $contentTable = $kind === 'article' ? 'articles' : 'projects';
         $inUse = DB::table($contentTable)->where('category_id', $id)->count();
         if ($inUse > 0) {
@@ -345,8 +326,6 @@ class ContentWriteService
             'count' => DB::table($contentTable)->where('category_id', $c->id)->count(),
         ])->all();
     }
-
-    /* ------------------------------------------------------------------ abouts */
 
     public static function createSkill(array $input): array
     {
@@ -544,12 +523,6 @@ class ContentWriteService
         return self::showAbout('testimonial', $id);
     }
 
-    /**
-     * Delete an about item and close the gap in its ordering, matching what the
-     * admin controllers do.
-     *
-     * @param string $kind skill|experience|service|testimonial
-     */
     public static function deleteAbout(string $kind, int $id): array
     {
         $table = self::aboutTable($kind);
@@ -562,7 +535,6 @@ class ContentWriteService
         DB::table($table)->where('id', $id)->delete();
         EmbeddingService::deleteRow($kind, $id);
 
-        // Resequence siblings so orders stay contiguous.
         $scope = property_exists($row, 'type') ? ['type' => $row->type] : [];
         self::resequence($table, $scope);
 
@@ -589,10 +561,6 @@ class ContentWriteService
         return self::mapAbout($kind, (array) $row);
     }
 
-    /**
-     * Move an about item to an explicit position within its type, shifting the
-     * rest to keep ordering contiguous.
-     */
     public static function reorderAbout(string $kind, int $id, int $position): array
     {
         $table = self::aboutTable($kind);
@@ -621,8 +589,6 @@ class ContentWriteService
 
         return self::showAbout($kind, $id);
     }
-
-    /* ------------------------------------------------------------------- pages */
 
     public static function showHome(): array
     {
@@ -654,7 +620,6 @@ class ContentWriteService
         return self::showHome();
     }
 
-    /** Section visibility toggles, i.e. which blocks the public site renders. */
     public const SECTION_FLAGS = [
         'about_enable', 'experience_enable', 'skills_enable', 'testimonial_enable',
         'services_enable', 'projects_enable', 'articles_enable', 'terminal_enable',
@@ -707,8 +672,6 @@ class ContentWriteService
         return self::showSections();
     }
 
-    /* ----------------------------------------------------------------- helpers */
-
     private static function validate(array $input, array $rules): void
     {
         $validator = Validator::make($input, $rules);
@@ -717,9 +680,6 @@ class ContentWriteService
         }
     }
 
-    /**
-     * Accept the many shapes an LLM may send a boolean in.
-     */
     private static function boolInput(array $input, string $key, bool $default): bool
     {
         if (! array_key_exists($key, $input) || $input[$key] === null) {
@@ -739,43 +699,26 @@ class ContentWriteService
         return $value === '' ? null : $value;
     }
 
-    /**
-     * Article and project bodies are rendered as raw HTML by the public site, and
-     * this write path deliberately skips the XSS middleware (its strip_tags pass
-     * would mangle the escaped angle brackets in code samples). So strip the
-     * actively dangerous constructs here instead, and leave normal markup —
-     * including entities inside <pre>/<code> — untouched.
-     */
     private static function sanitizeHtml(string $html): string
     {
         $dangerous = 'script|style|iframe|object|embed|form';
 
-        // Whole blocks, content included.
         $html = preg_replace('#<\s*(' . $dangerous . ')\b[^>]*>.*?<\s*/\s*\1\s*>#is', '', $html) ?? $html;
-        // Any unpaired opening or closing tag left behind.
+
         $html = preg_replace('#<\s*/?\s*(' . $dangerous . ')\b[^>]*>#i', '', $html) ?? $html;
-        // Inline event handlers: onclick=, onerror=, …
+
         $html = preg_replace('/\son\w+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html) ?? $html;
-        // javascript: URLs in href/src.
+
         $html = preg_replace('/\b(href|src)\s*=\s*(["\'])\s*javascript:[^"\']*\2/i', '$1=$2#$2', $html) ?? $html;
 
         return $html;
     }
 
-    private static function defaultAuthor(): string
+    private static function siteOwnerName(): string
     {
         return self::nonEmpty(User::find(1)?->name) ?? 'Admin';
     }
 
-    /**
-     * Parse an optional created_at. Accepts 'YYYY-MM-DD', optionally with a
-     * time, and tolerates an ISO-8601 'T' separator and trailing zone.
-     *
-     * Deliberately strict rather than handing the value to Carbon::parse():
-     * that accepts far too much and misreads it silently — "2024" becomes today
-     * at 20:24, "x" and " " become now, "march" becomes the 25th of March. A
-     * publish date that is quietly wrong is worse than one that is rejected.
-     */
     private static function parseDate(array $input, string $key): ?string
     {
         if (! array_key_exists($key, $input) || $input[$key] === null) {
@@ -787,7 +730,6 @@ class ContentWriteService
             return null;
         }
 
-        // Drop a trailing Z or ±HH:MM so ISO-8601 timestamps are accepted.
         $candidate = preg_replace('/(?:Z|[+-]\d{2}:?\d{2})$/', '', $raw);
 
         $pattern = '/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/';
@@ -813,11 +755,6 @@ class ContentWriteService
         );
     }
 
-    /**
-     * Images are optional. A value may be an absolute URL or an uploads-relative
-     * path; anything outside the uploads tree is rejected so a stray value can't
-     * point the site at an arbitrary local file.
-     */
     private static function normalizeImage(?string $image): string
     {
         $image = trim((string) $image);
@@ -852,11 +789,6 @@ class ContentWriteService
         }
     }
 
-    /**
-     * Resolve a category from either an explicit id or a name.
-     *
-     * @param string $kind 'article' or 'project'
-     */
     private static function resolveCategoryId(string $kind, array $input, bool $required): ?int
     {
         $table = self::categoryTable($kind);
@@ -935,10 +867,6 @@ class ContentWriteService
         };
     }
 
-    /**
-     * The testimonial body column is `text` per the migration, but tolerate a
-     * `description` column in case an install was altered by hand.
-     */
     private static function testimonialBodyColumn(): string
     {
         static $column = null;

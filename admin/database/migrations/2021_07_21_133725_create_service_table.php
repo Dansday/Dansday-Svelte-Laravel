@@ -6,11 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateServiceTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
         Schema::create('service', function (Blueprint $table) {
@@ -24,11 +19,6 @@ class CreateServiceTable extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
         Schema::dropIfExists('service');

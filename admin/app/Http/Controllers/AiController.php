@@ -40,7 +40,6 @@ class AiController extends Controller
 
         $general = General::find(1);
 
-        // The form shows keys masked, so an unchanged mask means "keep the current key".
         $currentKeyMask = ($general && !empty($general->ai_key)) ? preg_replace('/./', '*', $general->ai_key) : null;
         if ($currentKeyMask && $data['ai_key'] === $currentKeyMask) {
             $data['ai_key'] = null;

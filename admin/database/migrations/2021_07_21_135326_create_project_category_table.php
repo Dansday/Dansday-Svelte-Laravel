@@ -6,26 +6,16 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateProjectCategoryTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
         Schema::create('project_categories', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            
+
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
         Schema::dropIfExists('project_categories');

@@ -1,6 +1,3 @@
-# No MySQL/Redis in this stack; use external DB and Redis and set DB_* / REDIS_* in env.
-# Main and admin are separate services; both expose 80 (reverse proxy routes by path or domain).
-
 services:
   main:
     build:
