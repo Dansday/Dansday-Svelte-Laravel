@@ -1,5 +1,5 @@
 import { env } from '$env/dynamic/private';
-import { fetchSection, fetchArticles, fetchProjects } from '$lib/server/data';
+import { fetchSection, fetchArticlesWithCategories, fetchProjects } from '$lib/server/data';
 import type { RequestHandler } from './$types';
 
 function slug(name: string) {
@@ -34,7 +34,7 @@ export const GET: RequestHandler = async () => {
 	let section: Record<string, unknown> = {};
 	let articleUrlData: Array<{ loc: string; lastmod?: string; changefreq: string; priority: number }> = [];
 	let projectUrlData: Array<{ loc: string; lastmod?: string; changefreq: string; priority: number }> = [];
-	let categoryUrlData: Array<{ loc: string; changefreq: string; priority: number }> = [];
+	let categoryUrlData: Array<{ loc: string; lastmod?: string; changefreq: string; priority: number }> = [];
 
 	try {
 		section = (await fetchSection()) as Record<string, unknown>;
@@ -42,7 +42,17 @@ export const GET: RequestHandler = async () => {
 
 	if (notDisabled(section.articles_enable)) {
 		try {
-			const articles = await fetchArticles();
+			const { articles, articles_categories } = await fetchArticlesWithCategories();
+			const articleCategories = (articles_categories ?? []) as Array<{ id: number; name: string }>;
+			const articleList = (articles ?? []) as Array<{ category_id?: number }>;
+			const usedArticleCategorySlugs = new Set(articleCategories.filter((c) => articleList.some((a) => a.category_id === c.id)).map((c) => slug(c.name)));
+			categoryUrlData = categoryUrlData.concat(
+				Array.from(usedArticleCategorySlugs).map((s) => ({
+					loc: `${baseUrl}/articles/category/${s}`,
+					changefreq: 'daily',
+					priority: 0.7
+				}))
+			);
 			articleUrlData = articles.map((row) => ({
 				loc: `${baseUrl}/articles/${slug(row.title as string)}`,
 				lastmod:
@@ -63,11 +73,13 @@ export const GET: RequestHandler = async () => {
 			const categories = (projects_categories ?? []) as Array<{ id: number; name: string }>;
 			const projectList = (projects ?? []) as Array<{ category_id?: number }>;
 			const usedCategorySlugs = new Set(categories.filter((c) => projectList.some((p) => p.category_id === c.id)).map((c) => slug(c.name)));
-			categoryUrlData = Array.from(usedCategorySlugs).map((s) => ({
-				loc: `${baseUrl}/projects/category/${s}`,
-				changefreq: 'daily',
-				priority: 0.7
-			}));
+			categoryUrlData = categoryUrlData.concat(
+				Array.from(usedCategorySlugs).map((s) => ({
+					loc: `${baseUrl}/projects/category/${s}`,
+					changefreq: 'daily',
+					priority: 0.7
+				}))
+			);
 			projectUrlData = (projects ?? []).map((row) => ({
 				loc: `${baseUrl}/projects/${slug(row.title as string)}`,
 				lastmod: row.updated_at != null ? new Date(row.updated_at as string).toISOString() : undefined,

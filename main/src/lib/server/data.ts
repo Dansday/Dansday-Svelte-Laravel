@@ -66,6 +66,17 @@ export async function fetchArticles(): Promise<Row[]> {
 	return query<Row>('SELECT * FROM articles WHERE enable = 1 ORDER BY `created_at` DESC');
 }
 
+export async function fetchArticlesWithCategories(): Promise<{
+	articles: Row[];
+	articles_categories: Row[];
+}> {
+	const [articles, articles_categories] = await Promise.all([
+		query<Row>('SELECT * FROM articles WHERE enable = 1 ORDER BY `created_at` DESC'),
+		query<Row>('SELECT * FROM article_categories ORDER BY id ASC')
+	]);
+	return { articles, articles_categories };
+}
+
 export async function fetchArticleBySlug(slug: string): Promise<Record<string, unknown>> {
 	const articles = await query<Row>('SELECT * FROM articles WHERE enable = 1', []);
 	const post = articles.find((a) => makeSlug(a.title as string) === slug) ?? null;

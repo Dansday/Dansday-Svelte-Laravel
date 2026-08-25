@@ -53,6 +53,10 @@ export const load: LayoutServerLoad = async () => {
 			title: siteName ? `Projects | ${siteName}` : 'Projects',
 			description: (general.description as string) ?? ''
 		};
+		const articlesListMeta = {
+			title: siteName ? `Articles | ${siteName}` : 'Articles',
+			description: (general.description as string) ?? ''
+		};
 		const homeTitleAscii = toAsciiBanner(homeRecord.title as string);
 		return {
 			siteName,
@@ -71,6 +75,7 @@ export const load: LayoutServerLoad = async () => {
 			testimonials,
 			services,
 			projectsListMeta,
+			articlesListMeta,
 			aiTerminalConfigured
 		};
 	} catch {
@@ -92,6 +97,7 @@ export const load: LayoutServerLoad = async () => {
 			testimonials: [],
 			services: [],
 			projectsListMeta: { title: 'Projects', description: '' },
+			articlesListMeta: { title: 'Articles', description: '' },
 			aiTerminalConfigured: false
 		};
 	}
