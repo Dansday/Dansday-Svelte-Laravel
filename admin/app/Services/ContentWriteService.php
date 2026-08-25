@@ -768,21 +768,49 @@ class ContentWriteService
     }
 
     /**
-     * Parse an optional created_at. Accepts 'YYYY-MM-DD' or a full datetime.
+     * Parse an optional created_at. Accepts 'YYYY-MM-DD', optionally with a
+     * time, and tolerates an ISO-8601 'T' separator and trailing zone.
+     *
+     * Deliberately strict rather than handing the value to Carbon::parse():
+     * that accepts far too much and misreads it silently — "2024" becomes today
+     * at 20:24, "x" and " " become now, "march" becomes the 25th of March. A
+     * publish date that is quietly wrong is worse than one that is rejected.
      */
     private static function parseDate(array $input, string $key): ?string
     {
-        if (! array_key_exists($key, $input) || $input[$key] === null || $input[$key] === '') {
+        if (! array_key_exists($key, $input) || $input[$key] === null) {
             return null;
         }
 
-        try {
-            return Carbon::parse((string) $input[$key])->toDateTimeString();
-        } catch (\Throwable) {
-            throw new ContentWriteException(
-                "Could not read {$key} \"{$input[$key]}\". Use YYYY-MM-DD or YYYY-MM-DD HH:MM:SS."
-            );
+        $raw = trim((string) $input[$key]);
+        if ($raw === '') {
+            return null;
         }
+
+        // Drop a trailing Z or ±HH:MM so ISO-8601 timestamps are accepted.
+        $candidate = preg_replace('/(?:Z|[+-]\d{2}:?\d{2})$/', '', $raw);
+
+        $pattern = '/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/';
+        if (! preg_match($pattern, $candidate, $m)) {
+            throw self::badDate($key, $raw);
+        }
+
+        [$year, $month, $day] = [(int) $m[1], (int) $m[2], (int) $m[3]];
+        [$hour, $minute, $second] = [(int) ($m[4] ?? 0), (int) ($m[5] ?? 0), (int) ($m[6] ?? 0)];
+
+        if (! checkdate($month, $day, $year) || $hour > 23 || $minute > 59 || $second > 59) {
+            throw self::badDate($key, $raw);
+        }
+
+        return Carbon::create($year, $month, $day, $hour, $minute, $second)->toDateTimeString();
+    }
+
+    private static function badDate(string $key, string $raw): ContentWriteException
+    {
+        return new ContentWriteException(
+            "Could not read {$key} \"{$raw}\". Use an absolute date: YYYY-MM-DD or YYYY-MM-DD HH:MM:SS. "
+            . "Relative values like \"today\" or \"last tuesday\" are not accepted — work out the date first."
+        );
     }
 
     /**
