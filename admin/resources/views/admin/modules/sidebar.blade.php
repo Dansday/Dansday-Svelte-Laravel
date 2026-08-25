@@ -107,6 +107,13 @@
         </a>
     </li>
 
+    <li class="nav-item {{ request()->is('admin/mcp*') ? 'active' : '' }}">
+        <a class="nav-link css3animate padding-sm" href="{{ url('admin/mcp') }}">
+            <i class="fas fa-plug css3animate"></i>
+            <span>{{ __('menu.mcp') }}</span>
+        </a>
+    </li>
+
     <li class="nav-item {{ request()->is('admin/terminal*') ? 'active' : '' }}">
         <a class="nav-link css3animate padding-sm" href="{{ url('admin/terminal') }}">
             <i class="fas fa-terminal css3animate"></i>

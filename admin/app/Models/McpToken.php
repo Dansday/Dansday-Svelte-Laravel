@@ -63,4 +63,18 @@ class McpToken extends Model
     {
         $this->forceFill(['last_used_at' => now()])->saveQuietly();
     }
+
+    public function revoke(): void
+    {
+        if ($this->revoked_at) {
+            return;
+        }
+
+        $this->forceFill(['revoked_at' => now()])->save();
+    }
+
+    public function isActive(): bool
+    {
+        return $this->revoked_at === null;
+    }
 }

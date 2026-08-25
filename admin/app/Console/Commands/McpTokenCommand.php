@@ -72,12 +72,12 @@ class McpTokenCommand extends Command
             return self::FAILURE;
         }
 
-        if ($token->revoked_at) {
+        if (! $token->isActive()) {
             $this->info("Token {$id} (\"{$token->name}\") is already revoked.");
             return self::SUCCESS;
         }
 
-        $token->forceFill(['revoked_at' => now()])->save();
+        $token->revoke();
         $this->info("Revoked token {$id} (\"{$token->name}\").");
 
         return self::SUCCESS;

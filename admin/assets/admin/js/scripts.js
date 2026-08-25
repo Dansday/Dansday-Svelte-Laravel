@@ -226,6 +226,31 @@ $(document).ready(function () {
         }, 3000);
     }
 
+    $(document).on('click', '.mcp-copy', function () {
+        var $btn = $(this);
+        var input = document.querySelector($btn.data('copy-target'));
+        if (!input) return;
+
+        var originalHtml = $btn.html();
+        var done = function () {
+            $btn.html('<i class="fas fa-check"></i> ' + ($btn.data('copied-label') || 'Copied'));
+            setTimeout(function () { $btn.html(originalHtml); }, 1500);
+        };
+
+        // navigator.clipboard needs a secure context, so keep the legacy path for plain HTTP.
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(input.value).then(done).catch(function () {
+                input.select();
+                document.execCommand('copy');
+                done();
+            });
+        } else {
+            input.select();
+            document.execCommand('copy');
+            done();
+        }
+    });
+
 
     $(".summernote").each(function () {
         var $this = $(this),

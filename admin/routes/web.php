@@ -79,10 +79,23 @@ Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
 Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
     Route::get('admin/general', [App\Http\Controllers\GeneralController::class, 'index']);
     Route::put('admin/general', [App\Http\Controllers\GeneralController::class, 'update']);
-    Route::get('admin/ai', [App\Http\Controllers\GeneralController::class, 'aiIndex']);
-    Route::put('admin/ai', [App\Http\Controllers\GeneralController::class, 'updateAi']);
-    Route::get('admin/terminal', [App\Http\Controllers\GeneralController::class, 'terminalIndex']);
-    Route::put('admin/terminal', [App\Http\Controllers\GeneralController::class, 'updateTerminal']);
+});
+
+Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
+    Route::get('admin/ai', [App\Http\Controllers\AiController::class, 'index']);
+    Route::put('admin/ai', [App\Http\Controllers\AiController::class, 'update']);
+});
+
+Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
+    Route::get('admin/mcp', [App\Http\Controllers\McpController::class, 'index']);
+    Route::post('admin/mcp/tokens', [App\Http\Controllers\McpController::class, 'store']);
+    Route::put('admin/mcp/tokens/{id}', [App\Http\Controllers\McpController::class, 'revoke']);
+    Route::delete('admin/mcp/tokens/{id}', [App\Http\Controllers\McpController::class, 'destroy']);
+});
+
+Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
+    Route::get('admin/terminal', [App\Http\Controllers\TerminalController::class, 'index']);
+    Route::put('admin/terminal', [App\Http\Controllers\TerminalController::class, 'update']);
 });
 
 Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
