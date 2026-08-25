@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\Storage;
 
-/** Allowed path prefixes for uploads disk (relative to uploads root). Deletes are only allowed under these. */
 const UPLOADS_ALLOWED_PREFIXES = [
     'img/articles/',
     'img/projects/',
@@ -13,9 +12,6 @@ const UPLOADS_ALLOWED_PREFIXES = [
 ];
 
 if (! function_exists('uploads_path_for_disk')) {
-    /**
-     * Normalize path for the uploads disk: strip leading "uploads/" and disallow path traversal.
-     */
     function uploads_path_for_disk(?string $path): string
     {
         if ($path === null || $path === '') {
@@ -31,9 +27,6 @@ if (! function_exists('uploads_path_for_disk')) {
 }
 
 if (! function_exists('uploads_path_safe_to_delete')) {
-    /**
-     * Return true only if the path is under an allowed uploads prefix (for safe delete).
-     */
     function uploads_path_safe_to_delete(?string $path): bool
     {
         $path = uploads_path_for_disk($path);
@@ -50,9 +43,6 @@ if (! function_exists('uploads_path_safe_to_delete')) {
 }
 
 if (! function_exists('upload_url')) {
-    /**
-     * Public URL for a file on the uploads disk.
-     */
     function upload_url(?string $path): string
     {
         $disk = Storage::disk('uploads');

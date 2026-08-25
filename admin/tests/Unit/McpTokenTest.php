@@ -5,16 +5,10 @@ namespace Tests\Unit;
 use App\Models\McpToken;
 use Tests\TestCase;
 
-/**
- * Token handling that can be checked without touching the database. Minting,
- * listing and revoking all hit MySQL, so those are exercised by hand in the
- * panel rather than here.
- */
 class McpTokenTest extends TestCase
 {
     public function test_tokens_carry_a_recognisable_prefix(): void
     {
-        // Makes a leaked token obvious in logs and to secret scanners.
         $this->assertSame('mcp_live_', McpToken::PREFIX);
     }
 
@@ -35,7 +29,6 @@ class McpTokenTest extends TestCase
 
     public function test_an_empty_bearer_token_is_rejected_without_a_lookup(): void
     {
-        // The middleware passes '' straight through when the header is absent.
         $this->assertNull(McpToken::findActive(''));
     }
 

@@ -12,8 +12,8 @@ return [
              'attributes' => [
              ],
          ],
-   ],    
-   
+   ],
+
     'class' => '',
 
     'attributes' => [

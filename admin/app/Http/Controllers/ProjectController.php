@@ -77,7 +77,7 @@ class ProjectController extends Controller
         $project = new Project();
         $project->enable = ($data['enable'] == 'on') ? 1 : 0;
         $project->title = $data['title'];
-        // projects.short_desc is NOT NULL, so an omitted summary must become ''.
+
         $project->short_desc = $data['short_desc'] ?? '';
         $project->description = str_replace([$disk->url('img/temp'), 'uploads/img/temp'], [$disk->url('img/projects'), 'uploads/img/projects'], $data['description']);
         $project->image = $route_image;

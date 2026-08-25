@@ -6,11 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateSkillTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
         Schema::create('skill', function (Blueprint $table) {
@@ -23,11 +18,6 @@ class CreateSkillTable extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
         Schema::dropIfExists('skill');

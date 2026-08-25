@@ -4,10 +4,6 @@ namespace App\Mcp\Tools;
 
 use App\Services\ContentWriteService;
 
-/**
- * The "Abouts" group in the admin sidebar: skills, experiences, services and
- * testimonials. Each is an ordered list rendered on the about page.
- */
 class AboutTools
 {
     public static function definitions(): array
