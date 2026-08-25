@@ -62,6 +62,21 @@ class McpToolRegistryTest extends TestCase
         }
     }
 
+    public function test_empty_property_bags_serialise_as_json_objects(): void
+    {
+        $tools = json_decode(json_encode(ToolRegistry::schema()));
+
+        foreach ($tools as $tool) {
+            $this->assertInstanceOf(
+                \stdClass::class,
+                $tool->inputSchema->properties,
+                "Tool \"{$tool->name}\" serialises inputSchema.properties as a JSON array. "
+                . 'MCP clients require an object there and reject the entire tools/list response, '
+                . 'which takes every other tool down with it.'
+            );
+        }
+    }
+
     public function test_required_arguments_are_declared_as_properties(): void
     {
         foreach (ToolRegistry::schema() as $tool) {

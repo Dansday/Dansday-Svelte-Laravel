@@ -11,6 +11,9 @@ pnpm-lock.yaml
 
 # Env
 .env
+
+# Local tooling
+.claude/
 # Laravel / PHP
 admin/.phpunit.result.cache
 admin/.phpunit.cache
