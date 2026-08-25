@@ -163,5 +163,4 @@ class ServiceController extends Controller
             return redirect('/admin/services') -> with('no-delete', '');
        }
    }
-
 }

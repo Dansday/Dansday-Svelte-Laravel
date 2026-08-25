@@ -43,7 +43,7 @@ class SkillController extends Controller
                 "title" => ['required', 'string', 'max:55'],
             ]);
             if($validate->fails()){
-                return redirect('/admin/skills') 
+                return redirect('/admin/skills')
                     -> with('error-validation', '')
                     -> with('error-modal', '')
                     -> withErrors($validate)
@@ -87,7 +87,7 @@ class SkillController extends Controller
                 "title" => ['required', 'string', 'max:55'],
             ]);
             if($validate->fails()){
-                return redirect('/admin/skills/'.$id) 
+                return redirect('/admin/skills/'.$id)
                     -> with('error-validation', '')
                     -> withErrors($validate)
                     -> withInput();

@@ -51,7 +51,6 @@ class ArticleTools
                         'short_desc'  => ['type' => 'string', 'description' => 'Summary shown in listings and meta tags, max 255 characters.'],
                         'category'    => ['type' => 'string', 'description' => 'Category name. Either this or category_id is required.'],
                         'category_id' => ['type' => 'integer', 'description' => 'Category id. Takes precedence over category.'],
-                        'author'      => ['type' => 'string', 'description' => 'Author name. Defaults to the site owner.'],
                         'image'       => ['type' => 'string', 'description' => 'Optional cover image: an absolute URL, or a path under uploads/img/. Omit for no image.'],
                         'enable'      => ['type' => 'boolean', 'description' => 'Publish immediately. Default true.'],
                         'created_at'  => ['type' => 'string', 'description' => 'Publication date as an absolute value: YYYY-MM-DD or YYYY-MM-DD HH:MM:SS. Relative values like "today" are rejected. Defaults to now.'],
@@ -72,7 +71,6 @@ class ArticleTools
                         'short_desc'  => ['type' => 'string', 'description' => 'New summary, max 255 characters.'],
                         'category'    => ['type' => 'string', 'description' => 'Move to this category, by name.'],
                         'category_id' => ['type' => 'integer', 'description' => 'Move to this category, by id.'],
-                        'author'      => ['type' => 'string', 'description' => 'New author name.'],
                         'image'       => ['type' => 'string', 'description' => 'New cover image URL or uploads/img/ path. Pass an empty string to remove the image.'],
                         'enable'      => ['type' => 'boolean', 'description' => 'Publish or unpublish.'],
                         'created_at'  => ['type' => 'string', 'description' => 'New publication date as an absolute value: YYYY-MM-DD or YYYY-MM-DD HH:MM:SS. Relative values like "today" are rejected.'],
@@ -103,7 +101,7 @@ class ArticleTools
 
         $query = DB::table('articles as a')
             ->leftJoin('article_categories as c', 'c.id', '=', 'a.category_id')
-            ->select('a.id', 'a.title', 'a.short_desc', 'a.author', 'a.image', 'a.enable', 'a.created_at', 'c.name as category');
+            ->select('a.id', 'a.title', 'a.short_desc', 'a.image', 'a.enable', 'a.created_at', 'c.name as category');
 
         if ($keyword = trim($args['keyword'] ?? '')) {
             $like = '%' . $keyword . '%';
@@ -130,7 +128,6 @@ class ArticleTools
                 'title'      => $r->title,
                 'short_desc' => $r->short_desc,
                 'category'   => $r->category,
-                'author'     => $r->author,
                 'has_image'  => ! empty($r->image),
                 'enable'     => (bool) $r->enable,
                 'created_at' => (string) $r->created_at,

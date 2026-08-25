@@ -7,11 +7,6 @@ use App\Mcp\Args;
 use App\Mcp\ToolRegistry;
 use PHPUnit\Framework\TestCase;
 
-/**
- * Structural checks on the MCP tool surface. These need no database: they
- * validate that the registry wiring, names and JSON schemas are coherent, which
- * is what an MCP client reads from tools/list.
- */
 class McpToolRegistryTest extends TestCase
 {
     public function test_every_expected_tool_is_registered(): void
@@ -19,18 +14,18 @@ class McpToolRegistryTest extends TestCase
         $names = array_column(ToolRegistry::schema(), 'name');
 
         $expected = [
-            // articles
+
             'list_articles', 'get_article', 'create_article', 'update_article', 'delete_article',
-            // projects
+
             'list_projects', 'get_project', 'create_project', 'update_project', 'delete_project',
-            // categories
+
             'list_article_categories', 'create_article_category', 'update_article_category', 'delete_article_category',
             'list_project_categories', 'create_project_category', 'update_project_category', 'delete_project_category',
-            // abouts
+
             'list_abouts', 'create_skill', 'update_skill', 'create_experience', 'update_experience',
             'create_service', 'update_service', 'create_testimonial', 'update_testimonial',
             'delete_about', 'reorder_about',
-            // pages
+
             'get_home_page', 'update_home_page', 'get_sections', 'update_sections',
         ];
 
@@ -113,7 +108,6 @@ class McpToolRegistryTest extends TestCase
         $this->expectException(ContentWriteException::class);
         $this->expectExceptionMessageMatches('/requires the "id" argument/');
 
-        // Reaching the handler would hit the database; the guard must fire first.
         ToolRegistry::call('delete_article', []);
     }
 

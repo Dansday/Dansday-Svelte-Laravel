@@ -11,12 +11,8 @@ use App\Exceptions\ContentWriteException;
 
 class ToolRegistry
 {
-    /** @var array<string, array>|null */
     private static ?array $tools = null;
 
-    /**
-     * All tool definitions, keyed by tool name.
-     */
     public static function all(): array
     {
         if (self::$tools === null) {
@@ -37,10 +33,6 @@ class ToolRegistry
         return self::$tools;
     }
 
-    /**
-     * Tool list in the shape the MCP `tools/list` response expects, i.e. without
-     * the PHP handler.
-     */
     public static function schema(): array
     {
         return array_values(array_map(fn (array $t) => [
@@ -55,10 +47,6 @@ class ToolRegistry
         return isset(self::all()[$name]);
     }
 
-    /**
-     * Invoke a tool. Missing required arguments are reported rather than left to
-     * fail as a PHP error deep in a handler.
-     */
     public static function call(string $name, array $arguments): array
     {
         $tool = self::all()[$name] ?? null;

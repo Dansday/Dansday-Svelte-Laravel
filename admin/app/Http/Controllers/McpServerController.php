@@ -9,15 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 
-/**
- * Model Context Protocol endpoint (JSON-RPC 2.0 over HTTP).
- *
- * Lets an MCP client — Claude Desktop, Claude Code, or anything else that speaks
- * the protocol — read and write site content through the tools in App\Mcp.
- */
 class McpServerController extends Controller
 {
-    /** Protocol revisions this server implements. */
     private const SUPPORTED_PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 
     private const LATEST_PROTOCOL_VERSION = '2025-06-18';
@@ -30,7 +23,6 @@ class McpServerController extends Controller
             return $this->error(null, -32700, 'Parse error: expected a JSON-RPC request object.');
         }
 
-        // A JSON-RPC batch arrives as a list of request objects.
         if (array_is_list($payload)) {
             $responses = [];
             foreach ($payload as $item) {
@@ -50,15 +42,11 @@ class McpServerController extends Controller
 
         $response = $this->handleRpc($payload);
 
-        // Notifications get no body, just an acknowledgement.
         return $response === null
             ? response()->noContent(202)
             : response()->json($response);
     }
 
-    /**
-     * Route one JSON-RPC request. Returns null for notifications.
-     */
     private function handleRpc(array $request): ?array
     {
         $id     = $request['id'] ?? null;
@@ -66,11 +54,9 @@ class McpServerController extends Controller
         $params = $request['params'] ?? [];
         $params = is_array($params) ? $params : [];
 
-        // Requests carry an id; notifications do not.
         $isNotification = ! array_key_exists('id', $request) || $id === null;
 
         if ($isNotification) {
-            // Nothing to track for the lifecycle notifications we receive.
             return null;
         }
 
@@ -113,11 +99,6 @@ class McpServerController extends Controller
         ];
     }
 
-    /**
-     * Execute a tool call. Tool-level failures come back as a successful
-     * JSON-RPC response carrying isError, so the model can read the reason and
-     * correct itself instead of seeing a transport failure.
-     */
     private function callTool(array $params): array
     {
         $name = (string) ($params['name'] ?? '');
@@ -144,7 +125,6 @@ class McpServerController extends Controller
                 'isError' => false,
             ];
         } catch (ContentWriteException $e) {
-            // Expected, actionable rejection: bad input, missing row, category in use.
             return $this->toolError($e->getMessage());
         } catch (\Throwable $e) {
             Log::error('MCP tool failed', [

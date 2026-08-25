@@ -2,10 +2,6 @@
 
 namespace App\Mcp;
 
-/**
- * Small coercion helpers for tool arguments. LLM clients send numbers as
- * strings often enough that clamping here is cheaper than validating everywhere.
- */
 class Args
 {
     public static function limit(array $args, int $default = 25, int $max = 100): int

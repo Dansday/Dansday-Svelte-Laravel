@@ -7,10 +7,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-/**
- * The MCP settings page. Manages the tokens that authenticate MCP clients
- * against the endpoint served by McpServerController.
- */
 class McpController extends Controller
 {
     public function index()
@@ -22,10 +18,6 @@ class McpController extends Controller
             ->with('user', $user);
     }
 
-    /**
-     * Mint a token. The plain text is flashed once so the page can show it —
-     * only the hash is persisted.
-     */
     public function store(Request $request)
     {
         $data = ['name' => $request->input('name')];
