@@ -57,25 +57,77 @@ class ContentWriteHelpersTest extends TestCase
 
     /* ---------------------------------------------------------------- dates */
 
-    public function test_created_at_accepts_a_plain_date_and_a_full_datetime(): void
+    public static function acceptedDates(): array
     {
-        $this->assertSame('2024-03-01 00:00:00', $this->call('parseDate', [['created_at' => '2024-03-01'], 'created_at']));
-        $this->assertSame('2024-03-01 14:30:00', $this->call('parseDate', [['created_at' => '2024-03-01 14:30:00'], 'created_at']));
+        return [
+            'date only'        => ['2024-03-01', '2024-03-01 00:00:00'],
+            'date and time'    => ['2024-03-01 14:30:00', '2024-03-01 14:30:00'],
+            'no seconds'       => ['2024-03-01 14:30', '2024-03-01 14:30:00'],
+            'unpadded'         => ['2024-3-1', '2024-03-01 00:00:00'],
+            'iso separator'    => ['2024-03-01T14:30:00', '2024-03-01 14:30:00'],
+            'iso zulu'         => ['2024-03-01T14:30:00Z', '2024-03-01 14:30:00'],
+            'iso offset'       => ['2024-03-01T14:30:00+07:00', '2024-03-01 14:30:00'],
+            'surrounding space' => ['  2024-03-01  ', '2024-03-01 00:00:00'],
+        ];
+    }
+
+    /**
+     * @dataProvider acceptedDates
+     */
+    public function test_created_at_accepts_absolute_dates(string $given, string $expected): void
+    {
+        $this->assertSame($expected, $this->call('parseDate', [['created_at' => $given], 'created_at']));
     }
 
     public function test_absent_created_at_means_leave_it_alone(): void
     {
         $this->assertNull($this->call('parseDate', [[], 'created_at']));
         $this->assertNull($this->call('parseDate', [['created_at' => ''], 'created_at']));
+        $this->assertNull($this->call('parseDate', [['created_at' => '   '], 'created_at']));
         $this->assertNull($this->call('parseDate', [['created_at' => null], 'created_at']));
     }
 
-    public function test_an_unreadable_date_is_rejected_with_the_expected_format(): void
+    public static function rejectedDates(): array
+    {
+        return [
+            // Carbon::parse() reads each of these as a real date, silently and
+            // wrongly — "2024" becomes today at 20:24, "x" becomes now.
+            'bare year'        => ['2024'],
+            'single letter'    => ['x'],
+            'month name'       => ['march'],
+            'relative day'     => ['tomorrow'],
+            'relative weekday' => ['last tuesday'],
+            'relative time'    => ['yesterday 5pm'],
+            'relative month'   => ['next month'],
+            // Genuinely malformed.
+            'zero date'        => ['0000-00-00'],
+            'month 13'         => ['2026-13-45'],
+            'impossible day'   => ['2026-02-30'],
+            'not a date'       => ['not-a-date'],
+            'word'             => ['probe'],
+            'number'           => ['12'],
+            'impossible time'  => ['2024-03-01 99:99:99'],
+        ];
+    }
+
+    /**
+     * A quietly wrong publish date is worse than a rejected one.
+     *
+     * @dataProvider rejectedDates
+     */
+    public function test_ambiguous_or_relative_dates_are_rejected(string $given): void
+    {
+        $this->expectException(ContentWriteException::class);
+
+        $this->call('parseDate', [['created_at' => $given], 'created_at']);
+    }
+
+    public function test_the_rejection_message_states_the_expected_format(): void
     {
         $this->expectException(ContentWriteException::class);
         $this->expectExceptionMessageMatches('/YYYY-MM-DD/');
 
-        $this->call('parseDate', [['created_at' => 'last tuesday-ish'], 'created_at']);
+        $this->call('parseDate', [['created_at' => 'not-a-date'], 'created_at']);
     }
 
     /* --------------------------------------------------------------- images */
