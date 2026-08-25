@@ -67,6 +67,19 @@ class McpProtocolTest extends TestCase
         }
     }
 
+    public function test_tools_list_never_puts_a_json_array_where_a_schema_object_belongs(): void
+    {
+        [, , $raw] = $this->rpc(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list']);
+
+        $this->assertStringNotContainsString(
+            '"properties":[]',
+            $raw,
+            'A tool with no arguments must serialise properties as {}, not []. '
+            . 'Decoding this response with json_decode($raw, true) hides the difference, '
+            . 'so this assertion deliberately inspects the raw wire format.'
+        );
+    }
+
     public function test_ping_is_answered(): void
     {
         [$status, $body] = $this->rpc(['jsonrpc' => '2.0', 'id' => 3, 'method' => 'ping']);

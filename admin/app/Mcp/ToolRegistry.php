@@ -35,11 +35,19 @@ class ToolRegistry
 
     public static function schema(): array
     {
-        return array_values(array_map(fn (array $t) => [
-            'name'        => $t['name'],
-            'description' => $t['description'],
-            'inputSchema' => $t['inputSchema'],
-        ], self::all()));
+        return array_values(array_map(function (array $t) {
+            $inputSchema = $t['inputSchema'];
+
+            if (empty($inputSchema['properties'])) {
+                $inputSchema['properties'] = new \stdClass();
+            }
+
+            return [
+                'name'        => $t['name'],
+                'description' => $t['description'],
+                'inputSchema' => $inputSchema,
+            ];
+        }, self::all()));
     }
 
     public static function has(string $name): bool
