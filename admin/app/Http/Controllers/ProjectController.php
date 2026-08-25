@@ -50,7 +50,7 @@ class ProjectController extends Controller
             'title'       => ['required', 'string', 'max:55'],
             'short_desc'  => ['nullable', 'string', 'max:110'],
             'description' => ['required'],
-            'image'       => ['required', 'file', 'mimes:jpg,jpeg,png'],
+            'image'       => ['nullable', 'file', 'mimes:jpg,jpeg,png'],
         ]);
         if ($validate->fails()) {
             return redirect('/admin/projects/project')
@@ -60,7 +60,9 @@ class ProjectController extends Controller
         }
 
         $disk = Storage::disk('uploads');
-        $route_image = $data['image']->storeAs('img/projects', 'project_image_' . mt_rand(10, 9999) . '.' . $data['image']->guessExtension(), 'uploads');
+        $route_image = $data['image']
+            ? 'uploads/' . $data['image']->storeAs('img/projects', 'project_image_' . mt_rand(10, 9999) . '.' . $data['image']->guessExtension(), 'uploads')
+            : '';
 
         $tempFiles = $disk->files('img/temp');
         foreach ($tempFiles as $tempPath) {
@@ -75,9 +77,10 @@ class ProjectController extends Controller
         $project = new Project();
         $project->enable = ($data['enable'] == 'on') ? 1 : 0;
         $project->title = $data['title'];
-        $project->short_desc = $data['short_desc'];
+        // projects.short_desc is NOT NULL, so an omitted summary must become ''.
+        $project->short_desc = $data['short_desc'] ?? '';
         $project->description = str_replace([$disk->url('img/temp'), 'uploads/img/temp'], [$disk->url('img/projects'), 'uploads/img/projects'], $data['description']);
-        $project->image = 'uploads/' . $route_image;
+        $project->image = $route_image;
         $project->category_id = $data['category'];
         $project->save();
         EmbeddingService::embedRow('projects', $project->id);
@@ -166,7 +169,7 @@ class ProjectController extends Controller
         Project::where('id', $id)->update([
             'enable'      => ($data['enable'] == 'on') ? 1 : 0,
             'title'       => $data['title'],
-            'short_desc'  => $data['short_desc'],
+            'short_desc'  => $data['short_desc'] ?? '',
             'description' => str_replace([$disk->url('img/temp'), 'uploads/img/temp'], [$disk->url('img/projects'), 'uploads/img/projects'], $data['description']),
             'image'       => $route_image,
             'category_id' => $data['category'],
