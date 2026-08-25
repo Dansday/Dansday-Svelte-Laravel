@@ -47,7 +47,7 @@ class ExperienceController extends Controller
                 "description" => ['required', 'string', 'max:255'],
             ]);
             if($validate->fails()){
-                return redirect('/admin/experiences') 
+                return redirect('/admin/experiences')
                     -> with('error-validation', '')
                     -> with('error-modal', '')
                     -> withErrors($validate)
@@ -98,7 +98,7 @@ class ExperienceController extends Controller
                 "description" => ['required', 'string', 'max:255'],
             ]);
             if($validate->fails()){
-                return redirect('/admin/experiences/'.$id) 
+                return redirect('/admin/experiences/'.$id)
                     -> with('error-validation', '')
                     -> withErrors($validate)
                     -> withInput();
@@ -179,5 +179,4 @@ class ExperienceController extends Controller
             return redirect('/admin/experiences') -> with('no-delete', '');
         }
     }
-
 }

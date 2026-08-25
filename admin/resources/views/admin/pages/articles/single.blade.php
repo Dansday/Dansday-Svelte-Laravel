@@ -49,15 +49,6 @@
                                     @enderror
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label for="author" class="form-label">{{ __('content.author') }}</label>
-                                    <input class="form-control @error('author') is-invalid @enderror" type="text" name="author" value="{{ $post->author }}" required />
-                                    @error('author')
-                                        <div class="invalid-feedback">
-                                            {{ __('content.text_not_valid') }} {{ __('content.max_characters') }}: 55.
-                                        </div>
-                                    @enderror
-                                </div>
-                                <div class="col-md-6 mb-3">
                                     <label for="category" class="form-label">{{ __('content.category') }}</label>
                                     <select class="form-select @error('category') is-invalid @enderror" name="category">
                                         @foreach ($categories as $category)

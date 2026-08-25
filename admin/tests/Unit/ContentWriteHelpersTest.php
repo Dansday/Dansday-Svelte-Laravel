@@ -7,11 +7,6 @@ use App\Services\ContentWriteService;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
-/**
- * Input coercion and containment rules used by every content write. These are
- * the parts that decide what an AI client is allowed to put in the database, so
- * they are covered independently of the database itself.
- */
 class ContentWriteHelpersTest extends TestCase
 {
     private function call(string $method, array $args): mixed
@@ -21,8 +16,6 @@ class ContentWriteHelpersTest extends TestCase
 
         return $reflection->invokeArgs(null, $args);
     }
-
-    /* ------------------------------------------------------------- booleans */
 
     public static function booleanShapes(): array
     {
@@ -40,9 +33,6 @@ class ContentWriteHelpersTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider booleanShapes
-     */
     public function test_enable_flags_accept_the_shapes_llm_clients_send(mixed $given, bool $default, bool $expected): void
     {
         $this->assertSame($expected, $this->call('boolInput', [['enable' => $given], 'enable', $default]));
@@ -54,8 +44,6 @@ class ContentWriteHelpersTest extends TestCase
         $this->assertFalse($this->call('boolInput', [[], 'enable', false]));
         $this->assertTrue($this->call('boolInput', [['enable' => null], 'enable', true]));
     }
-
-    /* ---------------------------------------------------------------- dates */
 
     public static function acceptedDates(): array
     {
@@ -71,9 +59,6 @@ class ContentWriteHelpersTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider acceptedDates
-     */
     public function test_created_at_accepts_absolute_dates(string $given, string $expected): void
     {
         $this->assertSame($expected, $this->call('parseDate', [['created_at' => $given], 'created_at']));
@@ -90,8 +75,7 @@ class ContentWriteHelpersTest extends TestCase
     public static function rejectedDates(): array
     {
         return [
-            // Carbon::parse() reads each of these as a real date, silently and
-            // wrongly — "2024" becomes today at 20:24, "x" becomes now.
+
             'bare year'        => ['2024'],
             'single letter'    => ['x'],
             'month name'       => ['march'],
@@ -99,7 +83,7 @@ class ContentWriteHelpersTest extends TestCase
             'relative weekday' => ['last tuesday'],
             'relative time'    => ['yesterday 5pm'],
             'relative month'   => ['next month'],
-            // Genuinely malformed.
+
             'zero date'        => ['0000-00-00'],
             'month 13'         => ['2026-13-45'],
             'impossible day'   => ['2026-02-30'],
@@ -110,11 +94,6 @@ class ContentWriteHelpersTest extends TestCase
         ];
     }
 
-    /**
-     * A quietly wrong publish date is worse than a rejected one.
-     *
-     * @dataProvider rejectedDates
-     */
     public function test_ambiguous_or_relative_dates_are_rejected(string $given): void
     {
         $this->expectException(ContentWriteException::class);
@@ -129,8 +108,6 @@ class ContentWriteHelpersTest extends TestCase
 
         $this->call('parseDate', [['created_at' => 'not-a-date'], 'created_at']);
     }
-
-    /* --------------------------------------------------------------- images */
 
     public function test_images_are_optional(): void
     {
@@ -161,17 +138,12 @@ class ContentWriteHelpersTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider rejectedImagePaths
-     */
     public function test_paths_outside_the_uploads_image_tree_are_refused(string $path): void
     {
         $this->expectException(ContentWriteException::class);
 
         $this->call('normalizeImage', [$path]);
     }
-
-    /* ----------------------------------------------------------- kind maps */
 
     public function test_category_kinds_map_to_their_tables(): void
     {
@@ -201,8 +173,6 @@ class ContentWriteHelpersTest extends TestCase
         $this->call('aboutTable', ['bogus']);
     }
 
-    /* ------------------------------------------------------------------ html */
-
     public static function dangerousHtml(): array
     {
         return [
@@ -219,12 +189,6 @@ class ContentWriteHelpersTest extends TestCase
         ];
     }
 
-    /**
-     * Article bodies are rendered with {@html} on the public site, so these must
-     * not survive the write.
-     *
-     * @dataProvider dangerousHtml
-     */
     public function test_dangerous_html_is_stripped_from_bodies(string $html, string $needle): void
     {
         $this->assertStringNotContainsStringIgnoringCase(
@@ -246,18 +210,10 @@ class ContentWriteHelpersTest extends TestCase
         ];
     }
 
-    /**
-     * The whole reason this path skips the XSS middleware is that its strip_tags
-     * pass mangles escaped angle brackets in code samples.
-     *
-     * @dataProvider legitimateHtml
-     */
     public function test_legitimate_markup_survives_untouched(string $html): void
     {
         $this->assertSame($html, $this->call('sanitizeHtml', [$html]));
     }
-
-    /* -------------------------------------------------------------- strings */
 
     public function test_blank_strings_are_treated_as_absent(): void
     {

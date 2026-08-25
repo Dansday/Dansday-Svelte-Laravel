@@ -6,11 +6,6 @@ use App\Http\Controllers\McpServerController;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 
-/**
- * JSON-RPC 2.0 / MCP transport behaviour. The controller is exercised directly
- * so these run without a database: none of the methods covered here reach a
- * tool handler that queries.
- */
 class McpProtocolTest extends TestCase
 {
     private function rpc(array|string $body): array
@@ -131,8 +126,6 @@ class McpProtocolTest extends TestCase
             'params'  => ['name' => 'nope', 'arguments' => []],
         ]);
 
-        // The model should be able to read the failure and retry, so this is a
-        // successful RPC carrying isError rather than a JSON-RPC error.
         $this->assertSame(200, $status);
         $this->assertTrue($body['result']['isError']);
         $this->assertStringContainsString('tools/list', $body['result']['content'][0]['text']);

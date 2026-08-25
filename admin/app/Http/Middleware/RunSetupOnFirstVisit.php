@@ -18,7 +18,6 @@ class RunSetupOnFirstVisit
         return $next($request);
     }
 
-    /** Seed when no settings row exists. */
     protected function runSeedIfNeeded(): void
     {
         try {

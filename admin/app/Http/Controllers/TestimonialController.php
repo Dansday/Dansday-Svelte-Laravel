@@ -159,5 +159,4 @@ class TestimonialController extends Controller
             return redirect('/admin/testimonials') -> with('no-delete', '');
        }
    }
-
 }
