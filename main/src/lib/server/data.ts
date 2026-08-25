@@ -1,3 +1,4 @@
+import { makeSlug } from '$lib/slug';
 import { query, queryOne } from './db';
 
 type Row = Record<string, unknown>;
@@ -55,13 +56,6 @@ export async function fetchAbouts(): Promise<{
 	};
 }
 
-function makeSlug(name: string) {
-	return name
-		.toLowerCase()
-		.replace(/\s+/g, '-')
-		.replace(/^-+|-+$/g, '');
-}
-
 export async function fetchArticles(): Promise<Row[]> {
 	return query<Row>('SELECT * FROM articles WHERE enable = 1 ORDER BY `created_at` DESC');
 }
@@ -101,12 +95,6 @@ export async function fetchProjects(): Promise<{
 
 export async function fetchProjectBySlug(slug: string): Promise<Record<string, unknown>> {
 	const projects = await query<Row>('SELECT * FROM projects WHERE enable = 1', []);
-	function makeSlug(name: string) {
-		return name
-			.toLowerCase()
-			.replace(/\s+/g, '-')
-			.replace(/^-+|-+$/g, '');
-	}
 	const project = projects.find((p) => makeSlug(p.title as string) === slug) ?? null;
 	if (!project) throw new Error('Not found');
 	const category = await queryOne<Row>('SELECT name FROM project_categories WHERE id = ? LIMIT 1', [project.category_id as number]);
