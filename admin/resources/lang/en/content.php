@@ -39,6 +39,7 @@ return [
     'mcp_token_created'         => 'Token created. Copy it now — it is stored hashed and cannot be shown again.',
     'mcp_copy'                  => 'Copy',
     'mcp_copied'                => 'Copied',
+    'mcp_copy_failed'           => 'Press Ctrl+C',
     'mcp_status'                => 'Status',
     'mcp_active'                => 'Active',
     'mcp_revoked'               => 'Revoked',

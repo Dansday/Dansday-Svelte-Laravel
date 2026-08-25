@@ -27,7 +27,7 @@
                         <label class="form-label">{{ __('content.mcp_endpoint') }}</label>
                         <div class="input-group">
                             <input class="form-control" type="text" id="mcp-endpoint" value="{{ url('/mcp') }}" readonly />
-                            <button class="btn btn-outline-secondary mcp-copy" type="button" data-copy-target="#mcp-endpoint" data-copied-label="{{ __('content.mcp_copied') }}">
+                            <button class="btn btn-outline-secondary mcp-copy" type="button" data-copy-target="#mcp-endpoint" data-copied-label="{{ __('content.mcp_copied') }}" data-failed-label="{{ __('content.mcp_copy_failed') }}">
                                 <i class="far fa-copy"></i> {{ __('content.mcp_copy') }}
                             </button>
                         </div>
@@ -41,7 +41,7 @@
                             </p>
                             <div class="input-group">
                                 <input class="form-control font-monospace" type="text" id="mcp-new-token" value="{{ Session::get('mcp-token') }}" readonly onclick="this.select()" />
-                                <button class="btn btn-outline-secondary mcp-copy" type="button" data-copy-target="#mcp-new-token" data-copied-label="{{ __('content.mcp_copied') }}">
+                                <button class="btn btn-outline-secondary mcp-copy" type="button" data-copy-target="#mcp-new-token" data-copied-label="{{ __('content.mcp_copied') }}" data-failed-label="{{ __('content.mcp_copy_failed') }}">
                                     <i class="far fa-copy"></i> {{ __('content.mcp_copy') }}
                                 </button>
                             </div>
