@@ -1,13 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { fetchProjects } from '$lib/server/data';
 import type { PageServerLoad } from './$types';
-
-function slug(name: string) {
-	return name
-		.toLowerCase()
-		.replace(/\s+/g, '-')
-		.replace(/^-+|-+$/g, '');
-}
+import { makeSlug as slug } from '$lib/slug';
 
 export const load: PageServerLoad = async ({ parent }) => {
 	const data = await parent();

@@ -1,12 +1,6 @@
 import { fetchArticlesWithCategories } from '$lib/server/data';
 import type { LayoutServerLoad } from './$types';
-
-function slug(name: string) {
-	return name
-		.toLowerCase()
-		.replace(/\s+/g, '-')
-		.replace(/^-+|-+$/g, '');
-}
+import { makeSlug as slug } from '$lib/slug';
 
 export const load: LayoutServerLoad = async () => {
 	try {
