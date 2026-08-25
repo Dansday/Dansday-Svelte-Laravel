@@ -1,13 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { fetchSection, fetchArticlesWithCategories, fetchProjects } from '$lib/server/data';
 import type { RequestHandler } from './$types';
-
-function slug(name: string) {
-	return name
-		.toLowerCase()
-		.replace(/\s+/g, '-')
-		.replace(/^-+|-+$/g, '');
-}
+import { makeSlug as slug } from '$lib/slug';
 
 function escapeXml(unsafe: string): string {
 	return unsafe.replace(
