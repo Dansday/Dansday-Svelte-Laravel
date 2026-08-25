@@ -122,9 +122,12 @@ AI provider URLs, keys, models and prompts live in the panel under **Settings â†
 
 ### 1. Mint a token
 
+In the panel, go to **Settings â†’ MCP** and hit *New token*. The token is shown once, then only its SHA-256 hash is kept. The same table lists each token's status and when it was last used, and lets you revoke it.
+
+Or from the CLI:
+
 ```bash
 cd admin
-php artisan migrate
 php artisan mcp:token "claude-code"      # printed once, stored as a SHA-256 hash
 php artisan mcp:token --list
 php artisan mcp:token --revoke=1

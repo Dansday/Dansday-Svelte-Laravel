@@ -9,6 +9,7 @@ return [
     'categories'        => 'Categories',
     'general'           => 'General',
     'ai'                => 'AI',
+    'mcp'               => 'MCP',
     'home'              => 'Home',
     'logout'            => 'Logout',
     'pages'             => 'Pages',

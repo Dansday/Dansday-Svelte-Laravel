@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use App\Http\Controllers\McpController;
+use App\Http\Controllers\McpServerController;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 
@@ -25,7 +25,7 @@ class McpProtocolTest extends TestCase
             is_string($body) ? $body : json_encode($body)
         );
 
-        $response = (new McpController())->handle($request);
+        $response = (new McpServerController())->handle($request);
 
         return [$response->getStatusCode(), json_decode($response->getContent(), true), $response->getContent()];
     }
