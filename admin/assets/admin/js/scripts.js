@@ -226,29 +226,73 @@ $(document).ready(function () {
         }, 3000);
     }
 
-    $(document).on('click', '.mcp-copy', function () {
+    /**
+     * Copy the value of another field to the clipboard.
+     *
+     * execCommand('copy') is unreliable against a readonly input (Safari in
+     * particular refuses to select one), so the fallback copies out of a
+     * throwaway textarea instead. Both paths report real success or failure —
+     * silently claiming "Copied" when the clipboard is untouched is worse than
+     * saying nothing.
+     */
+    function copyWithFallback(text) {
+        var area = document.createElement('textarea');
+        area.value = text;
+        area.setAttribute('readonly', '');
+        // Keep it off-screen but still selectable; display:none would not copy.
+        area.style.position = 'fixed';
+        area.style.top = '-1000px';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+
+        var copied = false;
+        try {
+            area.focus();
+            area.select();
+            area.setSelectionRange(0, text.length);
+            copied = document.execCommand('copy');
+        } catch (e) {
+            copied = false;
+        }
+
+        document.body.removeChild(area);
+        return copied;
+    }
+
+    $(document).on('click', '.mcp-copy', function (e) {
+        e.preventDefault();
+
         var $btn = $(this);
-        var input = document.querySelector($btn.data('copy-target'));
+        var target = $btn.attr('data-copy-target');
+        var input = target ? document.querySelector(target) : null;
         if (!input) return;
 
         var originalHtml = $btn.html();
-        var done = function () {
-            $btn.html('<i class="fas fa-check"></i> ' + ($btn.data('copied-label') || 'Copied'));
+        var restore = function () {
             setTimeout(function () { $btn.html(originalHtml); }, 1500);
         };
+        var ok = function () {
+            $btn.html('<i class="fas fa-check"></i> ' + ($btn.attr('data-copied-label') || 'Copied'));
+            restore();
+        };
+        // Leave the value selected so the user can still copy by hand.
+        var fail = function () {
+            $btn.html('<i class="fas fa-exclamation-triangle"></i> ' + ($btn.attr('data-failed-label') || 'Press Ctrl+C'));
+            try { input.focus(); input.select(); } catch (err) {}
+            restore();
+        };
 
-        // navigator.clipboard needs a secure context, so keep the legacy path for plain HTTP.
+        var text = input.value;
+
         if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(input.value).then(done).catch(function () {
-                input.select();
-                document.execCommand('copy');
-                done();
+            navigator.clipboard.writeText(text).then(ok, function () {
+                // Permission or focus problem — try the legacy path before giving up.
+                copyWithFallback(text) ? ok() : fail();
             });
-        } else {
-            input.select();
-            document.execCommand('copy');
-            done();
+            return;
         }
+
+        copyWithFallback(text) ? ok() : fail();
     });
 
 
