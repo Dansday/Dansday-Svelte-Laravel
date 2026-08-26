@@ -11,10 +11,14 @@ import {
 	MAX_ABOUT_ROWS,
 	MAX_ACTIVITY,
 	MAX_ARTICLES,
+	MAX_EXCERPT_BUDGET,
+	MAX_EXCERPT_CHARS,
 	MAX_PROJECTS,
+	MAX_READ_CHARS,
 	MAX_TOP_REPOS,
 	buildDateFilter,
 	clampLimit,
+	excerptAround,
 	fail,
 	keyword,
 	nextStep,
@@ -27,10 +31,16 @@ const ACTIVITY_TYPES = ['commit', 'pr', 'review', 'issue'] as const;
 const COUNT_TYPES = ['article', 'project', 'skill', 'experience', 'service', 'testimonial', 'commit', 'pr', 'review', 'issue'] as const;
 
 const ARTICLES_DESCRIPTION =
-	'Search the articles published on this site — the writing, the posts, the notes. Returns the matching titles with their short summary, category and publish date, best match first. Use it for "what has he written about X", "any posts on Y", "show me the latest articles". This reads articles only: for shipped work call search_projects, for the day-to-day GitHub trail call search_activity, and if the question is only "how many" call count instead.';
+	'Search the articles published on this site — the writing, the posts, the notes. Returns the matching titles with their summary, an excerpt from the body around your keyword, the body length in characters, category and publish date, best match first. Use it for "what has he written about X", "any posts on Y", "show me the latest articles". The excerpt is a fragment, not the article: whenever the question asks what an article actually says, argues, concludes or contains, call read_article on that title before answering. This reads articles only: for shipped work call search_projects, for the day-to-day GitHub trail call search_activity, and if the question is only "how many" call count instead.';
+
+const READ_ARTICLE_DESCRIPTION =
+	'Read the full text of one article by its exact title, in order. Returns the body as plain text in numbered parts, with total_parts telling you how many there are. Call this whenever you need what an article actually says rather than that it exists — details, reasoning, code, numbers, names, quotes, conclusions. Articles on this site run to tens of thousands of characters, so a summary or an excerpt is never enough to answer a question about their content. Find the title with search_articles first, then read it here, and request the next part if the answer is not in the part you have.';
+
+const READ_PROJECT_DESCRIPTION =
+	'Read the full text of one project entry by its exact title, in order. Returns the body as plain text in numbered parts, with total_parts telling you how many there are. Call this when you need what a project write-up actually says — how it was built, what it uses, what it does — rather than just that it exists. Find the title with search_projects first, then read it here.';
 
 const PROJECTS_DESCRIPTION =
-	'Search the projects in this portfolio — the shipped work, each with its category and short summary. Use it for "what has he built", "any projects using X", "show me his work". This reads projects only: for the writing call search_articles, for commits and pull requests call search_activity, and if the question is only "how many" call count instead.';
+	'Search the projects in this portfolio — the shipped work, each with its category, summary and an excerpt from its write-up. Use it for "what has he built", "any projects using X", "show me his work". The excerpt is a fragment: when the question is about how something was built or what it contains, call read_project on that title before answering. This reads projects only: for the writing call search_articles, for commits and pull requests call search_activity, and if the question is only "how many" call count instead.';
 
 const ACTIVITY_DESCRIPTION =
 	'Search the GitHub activity trail: the individual commits, pull requests, reviews and issues, each with its repo, lines added and removed, and date. Use it for "what has he been working on lately", "any PRs about X", "what did he do in June". This returns individual events — if the question is "how many", "how active is he" or "which repo does he work on most", call get_activity_stats instead, which answers that in a few numbers rather than a long list.';
@@ -72,6 +82,7 @@ interface ContentRow {
 	id: number;
 	title: string;
 	short_desc: string | null;
+	description: string | null;
 	category_id: number | null;
 	created_at: string;
 }
@@ -80,7 +91,7 @@ async function runContentSearch(r: Retrieval, args: Record<string, any>, table: 
 	const df = buildDateFilter(args);
 	const { rows, total } = await hybridSearch<ContentRow>(r, {
 		table,
-		fields: 'id, title, short_desc, category_id, created_at',
+		fields: 'id, title, short_desc, description, category_id, created_at',
 		where: 'enable = 1',
 		ftFields: ['title', 'description'],
 		keyword: keyword(args),
@@ -94,17 +105,99 @@ async function runContentSearch(r: Retrieval, args: Record<string, any>, table: 
 		rows.map((row) => row.category_id)
 	);
 
+	const needle = keyword(args);
+	let budget = MAX_EXCERPT_BUDGET;
+	const reader = table === 'articles' ? 'read_article' : 'read_project';
+
+	const items = rows.map((row) => {
+		const body = stripHtml(row.description);
+		const allowance = Math.min(MAX_EXCERPT_CHARS, budget);
+		const excerpt = allowance > 0 ? excerptAround(body, needle, allowance) : '';
+		budget -= excerpt.length;
+
+		return {
+			title: row.title,
+			summary: stripHtml(row.short_desc),
+			category: row.category_id != null ? (categories.get(Number(row.category_id)) ?? null) : null,
+			date: row.created_at,
+			chars: body.length,
+			excerpt: excerpt || null,
+			truncated: excerpt.length < body.length
+		};
+	});
+
+	const truncatedCount = items.filter((item) => item.truncated).length;
+
 	return {
 		ok: true,
 		total,
 		showing: rows.length,
-		[table]: rows.map((row) => ({
-			title: row.title,
-			summary: stripHtml(row.short_desc),
-			category: row.category_id != null ? (categories.get(Number(row.category_id)) ?? null) : null,
-			date: row.created_at
-		})),
-		next_step: nextStep(rows.length, total, table)
+		[table]: items,
+		next_step:
+			truncatedCount > 0
+				? `${nextStep(rows.length, total, table)} ${truncatedCount} of these are longer than the excerpt shown — the excerpt is a fragment of the body, not a summary of it. If the question is about what one of them says, call ${reader} with its exact title and answer from the full text instead of guessing from the excerpt.`
+				: nextStep(rows.length, total, table)
+	};
+}
+
+async function runContentRead(args: Record<string, any>, table: 'articles' | 'projects', categoryTable: string) {
+	const id = Number(args?.id);
+	const title = String(args?.title ?? '').trim();
+
+	let rows: ContentRow[] = [];
+	if (Number.isFinite(id) && id > 0) {
+		rows = await query<ContentRow>(`SELECT id, title, short_desc, description, category_id, created_at FROM ${table} WHERE enable = 1 AND id = ?`, [id]);
+	} else if (title) {
+		rows = await query<ContentRow>(`SELECT id, title, short_desc, description, category_id, created_at FROM ${table} WHERE enable = 1 AND title = ? LIMIT 1`, [
+			title
+		]);
+		if (rows.length === 0) {
+			rows = await query<ContentRow>(
+				`SELECT id, title, short_desc, description, category_id, created_at FROM ${table} WHERE enable = 1 AND title LIKE ? ORDER BY CHAR_LENGTH(title) ASC LIMIT 1`,
+				[`%${title}%`]
+			);
+		}
+	} else {
+		return fail('missing_title', {
+			hint: `Pass the exact title of the ${table === 'articles' ? 'article' : 'project'} to read, as returned by search_${table}.`
+		});
+	}
+
+	const row = rows[0];
+	if (!row) return fail('not_found', { searched: title || id, hint: `No ${table} entry matches that. Call search_${table} to get the exact titles.` });
+
+	const body = stripHtml(row.description);
+	if (!body) return fail('empty_body', { title: row.title });
+
+	const parts: string[] = [];
+	let cursor = 0;
+	while (cursor < body.length) {
+		let end = Math.min(body.length, cursor + MAX_READ_CHARS);
+		if (end < body.length) {
+			const brk = body.lastIndexOf('\n', end);
+			if (brk > cursor + MAX_READ_CHARS / 2) end = brk;
+		}
+		parts.push(body.slice(cursor, end).trim());
+		cursor = end;
+	}
+
+	const requested = Number(args?.part);
+	const part = Number.isFinite(requested) && requested >= 1 ? Math.min(Math.floor(requested), parts.length) : 1;
+	const categories = await categoryNames(categoryTable, [row.category_id]);
+
+	return {
+		ok: true,
+		title: row.title,
+		category: row.category_id != null ? (categories.get(Number(row.category_id)) ?? null) : null,
+		date: row.created_at,
+		chars: body.length,
+		part,
+		total_parts: parts.length,
+		text: parts[part - 1],
+		next_step:
+			part < parts.length
+				? `This is part ${part} of ${parts.length}. Answer from it if the answer is here. If it is not, call this tool again with the same title and part ${part + 1}. Do not guess at what the remaining parts say.`
+				: `This is the last of ${parts.length} part${parts.length === 1 ? '' : 's'}. You now have the whole text — answer from it and do not call this tool again for this title.`
 	};
 }
 
@@ -323,6 +416,10 @@ export function buildTerminalTools(section: Section): OpenAI.Chat.ChatCompletion
 			...DATE_PARAMS,
 			limit: limitParam(MAX_ARTICLES, DEFAULT_ARTICLES)
 		});
+		add('read_article', READ_ARTICLE_DESCRIPTION, {
+			title: { type: 'string', description: 'The exact article title, as returned by search_articles.' },
+			part: { type: 'integer', description: 'Which part of the body to read, starting at 1. Leave it out for part 1.' }
+		});
 	}
 
 	if (sectionOn(section, 'projects_enable')) {
@@ -330,6 +427,10 @@ export function buildTerminalTools(section: Section): OpenAI.Chat.ChatCompletion
 			keyword: keywordParam('project titles and descriptions'),
 			...DATE_PARAMS,
 			limit: limitParam(MAX_PROJECTS, DEFAULT_PROJECTS)
+		});
+		add('read_project', READ_PROJECT_DESCRIPTION, {
+			title: { type: 'string', description: 'The exact project title, as returned by search_projects.' },
+			part: { type: 'integer', description: 'Which part of the body to read, starting at 1. Leave it out for part 1.' }
 		});
 	}
 
@@ -368,7 +469,12 @@ export function buildDataNote(tools: OpenAI.Chat.ChatCompletionTool[]): string {
 	const names = tools.map((tool) => (tool as { function: { name: string } }).function.name);
 	if (names.length === 0) return '';
 
-	return `[System] Everything you know about this site comes from your tools, one area at a time: ${names.join(', ')}. Call only the ones the question actually needs — each returns the newest or closest matches for its own area and nothing else, so do not call them all to answer one question. Never answer from memory about what is on this site, and never invent a title, a repo, a date or a number that a tool did not give you. If a tool comes back empty, say plainly that there is nothing matching rather than filling the gap yourself.`;
+	const readers = names.filter((name) => name.startsWith('read_'));
+	const readNote = readers.length
+		? ` The search_ tools tell you what exists and give you an excerpt; ${readers.join(' and ')} give you the full text. An excerpt is a fragment of a long document, so if the question is about what something says, argues or contains, read it before you answer rather than stretching the excerpt to cover the gap.`
+		: '';
+
+	return `[System] Everything you know about this site comes from your tools, one area at a time: ${names.join(', ')}.${readNote} Call only the ones the question actually needs — each returns the newest or closest matches for its own area and nothing else, so do not call them all to answer one question. Never answer from memory about what is on this site, and never invent a title, a repo, a date or a number that a tool did not give you. If a tool comes back empty, say plainly that there is nothing matching rather than filling the gap yourself.`;
 }
 
 export async function runTerminalTool(name: string, args: Record<string, any>, section: Section, retrieval: Retrieval): Promise<string> {
@@ -378,6 +484,10 @@ export async function runTerminalTool(name: string, args: Record<string, any>, s
 				return runContentSearch(retrieval, args, 'articles', 'article_categories', MAX_ARTICLES, DEFAULT_ARTICLES);
 			case 'search_projects':
 				return runContentSearch(retrieval, args, 'projects', 'project_categories', MAX_PROJECTS, DEFAULT_PROJECTS);
+			case 'read_article':
+				return runContentRead(args, 'articles', 'article_categories');
+			case 'read_project':
+				return runContentRead(args, 'projects', 'project_categories');
 			case 'search_activity':
 				return runActivitySearch(retrieval, args);
 			case 'get_activity_stats':
