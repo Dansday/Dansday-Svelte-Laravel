@@ -193,7 +193,7 @@ Token handling and the HTML sanitising rules are in [SECURITY.md](SECURITY.md#mc
 
 ### Connecting
 
-Open `/admin/linkedin/redirect` in a browser while signed in to the panel, approve the consent screen, and the callback stores the token. There is no settings page — the two routes are the whole surface.
+Open `/admin/linkedin/connect` in a browser while signed in to the panel, approve the consent screen, and the callback stores the token. There is no settings page — the two routes are the whole surface.
 
 `get_linkedin_status` reports who it posts as and how long the token has left. When it is not connected it returns a `connect_url` instead; an MCP tool cannot open a browser, so the flow is always: tool refuses → you open the URL → you call the tool again.
 

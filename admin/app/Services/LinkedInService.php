@@ -38,7 +38,7 @@ class LinkedInService
 
     public static function connectUrl(): string
     {
-        return rtrim((string) config('app.url'), '/').'/admin/linkedin/redirect';
+        return rtrim((string) config('app.url'), '/').'/admin/linkedin/connect';
     }
 
     public static function publicSiteUrl(): string

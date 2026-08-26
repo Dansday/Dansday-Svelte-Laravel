@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 class LinkedInController extends Controller
 {
-    public function redirect(Request $request)
+    public function connect(Request $request)
     {
         if (! LinkedInService::isConfigured()) {
             return response('LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET are not set in the environment.', 500);

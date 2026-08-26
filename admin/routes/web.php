@@ -87,7 +87,7 @@ Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
 });
 
 Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
-    Route::get('admin/linkedin/redirect', [App\Http\Controllers\LinkedInController::class, 'redirect']);
+    Route::get('admin/linkedin/connect', [App\Http\Controllers\LinkedInController::class, 'connect']);
     Route::get('admin/linkedin/callback', [App\Http\Controllers\LinkedInController::class, 'callback']);
 });
 
