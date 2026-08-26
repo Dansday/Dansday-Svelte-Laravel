@@ -110,7 +110,7 @@ class LinkedInService
             'connected'  => true,
             'as'         => $person,
             'expires_at' => $expiresAt?->toDateTimeString(),
-            'days_left'  => $expiresAt ? max(0, now()->diffInDays($expiresAt, false)) : null,
+            'days_left'  => $expiresAt ? max(0, (int) floor(now()->diffInDays($expiresAt, false))) : null,
             'scopes'     => self::SCOPES,
         ];
     }
