@@ -111,6 +111,7 @@ The panel seeds itself on first visit. Register the first user at `/register`.
 | `REDIS_SOCKET`                                            | admin   | Use instead of host/port on socket-based hosting |
 | `BASE_URL`                                                | main    | Public site origin, for canonical URLs          |
 | `ADMIN_PUBLIC_URL`                                        | main    | Where uploaded images are served from           |
+| `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET`           | admin   | LinkedIn app credentials — see [LinkedIn](#linkedin) |
 
 AI provider URLs, keys, models and prompts live in the panel under **Settings → AI**, stored in the database.
 
@@ -163,6 +164,7 @@ Clients that require OAuth rather than a static bearer token need a bridge such 
 | Project categories | `list_project_categories`, `create_project_category`, `update_project_category`, `delete_project_category`                                                                                    |
 | Abouts             | `list_abouts`, `create_skill`, `update_skill`, `create_experience`, `update_experience`, `create_service`, `update_service`, `create_testimonial`, `update_testimonial`, `delete_about`, `reorder_about` |
 | Pages              | `get_home_page`, `update_home_page`, `get_sections`, `update_sections`                                                                                                                        |
+| LinkedIn           | `get_linkedin_status`, `post_article_to_linkedin`                                                                                                                                             |
 
 - Bodies are **HTML**. Creating an article or project needs an existing category — call `list_*_categories` first.
 - **`created_at` is writable** on create and update. That is how posts get backdated.
@@ -172,6 +174,37 @@ Clients that require OAuth rather than a static bearer token need a bridge such 
 - Disabled sections are excluded from AI recall as well as the site.
 
 Token handling and the HTML sanitising rules are in [SECURITY.md](SECURITY.md#mcp-tokens).
+
+---
+
+## LinkedIn
+
+`post_article_to_linkedin` shares a published article to your **personal** LinkedIn feed as a text post with the article URL appended. You write the commentary; the tool never rewrites or summarises it.
+
+### Setup
+
+1. Create an app at [linkedin.com/developers/apps](https://www.linkedin.com/developers/apps) and associate it with a LinkedIn Page you administer.
+2. **Products** — add both. Each is self-serve, no review:
+   - **Share on LinkedIn** → `w_member_social`, permission to post
+   - **Sign In with LinkedIn using OpenID Connect** → `openid profile`, used once to read your member id
+3. **Auth → Authorized redirect URLs** — add `https://<your-admin-host>/admin/linkedin/callback`, exactly.
+4. Set `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET` in the admin environment, then deploy so the migration runs.
+
+### Connecting
+
+Open `/admin/linkedin/redirect` in a browser while signed in to the panel, approve the consent screen, and the callback stores the token. There is no settings page — the two routes are the whole surface.
+
+`get_linkedin_status` reports who it posts as and how long the token has left. When it is not connected it returns a `connect_url` instead; an MCP tool cannot open a browser, so the flow is always: tool refuses → you open the URL → you call the tool again.
+
+### Notes
+
+- **Access tokens last 2 months** and LinkedIn's refresh tokens are approval-gated, so reconnecting is a manual re-click roughly every 60 days.
+- Posts are authored as `urn:li:person:{id}` — the app name appears only on the consent screen, never on the post.
+- Posting as a **company page** needs `w_organization_social` from the Community Management API, which is not self-serve. Not supported.
+- Create only. There is no update or delete, and no way to list what was posted: reading your own posts needs `r_member_social`, which is a closed permission.
+- The article must be published, because the URL is derived from its title with the same slug rules as the public site. **Retitling an article changes its URL and breaks any link already posted.**
+- Commentary plus the URL is capped at 3,000 characters. Over that, the tool returns `too_long` with the overage rather than truncating.
+- The article link is built from `APP_URL` with a leading `admin.` stripped, so `https://admin.example.com` yields `https://example.com/articles/{slug}`.
 
 ---
 
