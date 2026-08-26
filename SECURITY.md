@@ -58,6 +58,16 @@ The MCP endpoint grants full write access to site content, including deletes. Tr
 - Tokens are stored as SHA-256 hashes, so a database read does not hand over usable tokens — but it does reveal the AI provider keys above.
 - The endpoint bypasses the panel's `XSS` middleware by design, because that middleware's `strip_tags` pass mangles escaped angle brackets in code samples. Article and project bodies are instead stripped of `script`, `style`, `iframe`, `object`, `embed` and `form` elements, inline `on*` handlers and `javascript:` URLs before they are stored. Anything else you write through MCP is rendered as raw HTML on the public site, so do not hand a token to a client you would not trust with that.
 
+### LinkedIn credentials
+
+Connecting LinkedIn stores an OAuth access token in `page_setting`, alongside your member URN. That token can publish to your personal feed for the two months it stays valid.
+
+- `LINKEDIN_CLIENT_SECRET` belongs in the environment, never in the database or the repository.
+- The token is stored in plaintext in `page_setting`, so a database read hands over the ability to post as you. Same blast radius as the AI provider keys in the same row.
+- Anyone holding an MCP token can call `post_article_to_linkedin` and publish under your name. `confirm=true` guards against accident, not against a hostile client.
+- Revoke access from LinkedIn's side under **Settings → Data privacy → Permitted services**; clearing the three `linkedin_*` columns only stops this app from using the token, it does not invalidate it.
+- The OAuth callback sits behind the panel's `auth` middleware and checks a session `state` value, so the code exchange cannot be driven by a third party.
+
 ### Uploads
 
 The `admin/public/uploads` tree is user content served as-is. Deletes are constrained to an allowlist of prefixes (`uploads_path_safe_to_delete`), and MCP image paths are rejected unless they resolve under `uploads/img/`. Do not widen either without understanding that both guard against path traversal.

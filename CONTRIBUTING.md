@@ -46,7 +46,7 @@ The admin panel seeds itself on first visit when no settings row exists, so a fr
 | `main/src/lib/components`  | Shared Svelte components and layout                                       |
 | `main/src/lib/server`      | Server-only data access — MySQL, Redis, query helpers                     |
 | `admin/app/Http`           | Admin controllers and middleware                                          |
-| `admin/app/Services`       | AI generation, embeddings, similar content, shared content writes         |
+| `admin/app/Services`       | AI generation, embeddings, similar content, shared content writes, LinkedIn |
 | `admin/app/Mcp`            | MCP tool definitions and the registry behind `POST /mcp`                  |
 | `admin/app/Models`         | Eloquent models; note several map to singular table names (`skill`, …)    |
 | `admin/resources/views`    | Blade templates for the panel                                             |
