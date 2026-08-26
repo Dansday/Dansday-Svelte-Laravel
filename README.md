@@ -47,6 +47,7 @@ A portfolio site that looks like a terminal, and the Laravel panel that runs it.
 - Social links, analytics ID and site metadata in one place
 - Panel translations for **18 locales**
 - **MCP server** — see [MCP server](#mcp-server)
+- **LinkedIn sharing** — publish an article, then post it to your feed from the same client. See [LinkedIn](#linkedin)
 
 ### AI
 
@@ -119,7 +120,7 @@ AI provider URLs, keys, models and prompts live in the panel under **Settings �
 
 ## MCP server
 
-`POST /mcp` speaks [Model Context Protocol](https://modelcontextprotocol.io), so an AI client can write an article, backdate it, reorganise categories or reorder the about page.
+`POST /mcp` speaks [Model Context Protocol](https://modelcontextprotocol.io), so an AI client can write an article, backdate it, reorganise categories, reorder the about page, or share a published article to LinkedIn.
 
 ### 1. Mint a token
 
@@ -215,7 +216,7 @@ Open `/admin/linkedin/redirect` in a browser while signed in to the panel, appro
 | `main/src/routes`     | Public pages and API routes                               |
 | `main/src/lib/server` | Server-only data access — MySQL, Redis, query helpers     |
 | `admin/app/Http`      | Panel controllers and middleware                          |
-| `admin/app/Services`  | AI generation, embeddings, content writes                 |
+| `admin/app/Services`  | AI generation, embeddings, content writes, LinkedIn        |
 | `admin/app/Mcp`       | MCP tool definitions and registry                         |
 | `admin/routes`        | `web.php`, `mcp.php`, `console.php`                       |
 
