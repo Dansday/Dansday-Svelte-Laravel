@@ -87,6 +87,11 @@ Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
 });
 
 Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
+    Route::get('admin/linkedin/redirect', [App\Http\Controllers\LinkedInController::class, 'redirect']);
+    Route::get('admin/linkedin/callback', [App\Http\Controllers\LinkedInController::class, 'callback']);
+});
+
+Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
     Route::get('admin/mcp', [App\Http\Controllers\McpController::class, 'index']);
     Route::post('admin/mcp/tokens', [App\Http\Controllers\McpController::class, 'store']);
     Route::put('admin/mcp/tokens/{id}', [App\Http\Controllers\McpController::class, 'revoke']);

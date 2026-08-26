@@ -5,6 +5,7 @@ namespace App\Mcp;
 use App\Mcp\Tools\AboutTools;
 use App\Mcp\Tools\ArticleTools;
 use App\Mcp\Tools\CategoryTools;
+use App\Mcp\Tools\LinkedInTools;
 use App\Mcp\Tools\PageTools;
 use App\Mcp\Tools\ProjectTools;
 use App\Exceptions\ContentWriteException;
@@ -22,6 +23,7 @@ class ToolRegistry
                 CategoryTools::definitions(),
                 AboutTools::definitions(),
                 PageTools::definitions(),
+                LinkedInTools::definitions(),
             );
 
             self::$tools = [];
