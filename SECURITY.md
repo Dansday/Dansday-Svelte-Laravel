@@ -64,10 +64,10 @@ Connecting LinkedIn stores an OAuth access token in `page_setting`, alongside yo
 
 - `LINKEDIN_CLIENT_SECRET` belongs in the environment, never in the database or the repository.
 - The token is stored in plaintext in `page_setting`, so a database read hands over the ability to post as you. Same blast radius as the AI provider keys in the same row.
-- Anyone holding an MCP token can call `post_article_to_linkedin` and publish under your name. `confirm=true` guards against accident, not against a hostile client.
+- Anyone holding an MCP token can call `post_to_linkedin` and publish under your name. `confirm=true` guards against accident, not against a hostile client.
 - Revoke access from LinkedIn's side under **Settings → Data privacy → Permitted services**; clearing the three `linkedin_*` columns only stops this app from using the token, it does not invalidate it.
 - The OAuth callback sits behind the panel's `auth` middleware and checks a session `state` value, so the code exchange cannot be driven by a third party.
 
 ### Uploads
 
-The `admin/public/uploads` tree is user content served as-is. Deletes are constrained to an allowlist of prefixes (`uploads_path_safe_to_delete`), and MCP image paths are rejected unless they resolve under `uploads/img/`. Do not widen either without understanding that both guard against path traversal.
+The `admin/public/uploads` tree is user content served as-is. `POST /mcp/uploads` writes into it with only an MCP token, so that token is enough to place a file on your public web root — it is restricted to JPG and PNG under 8MB, with a random 24-character filename, but treat it as a write path when you decide who gets a token. Deletes are constrained to an allowlist of prefixes (`uploads_path_safe_to_delete`), and MCP image paths are rejected unless they resolve under `uploads/img/`. Do not widen either without understanding that both guard against path traversal.

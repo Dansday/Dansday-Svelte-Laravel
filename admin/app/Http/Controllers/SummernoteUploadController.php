@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SummernoteUploadController extends Controller
 {
@@ -22,7 +23,7 @@ class SummernoteUploadController extends Controller
         }
 
         $code = $request->input('code', 'img');
-        $name = $code . '_' . mt_rand(100, 9999) . '.' . $ext;
+        $name = $code . '_' . Str::random(24) . '.' . $ext;
         $path = $file->storeAs('img/temp', $name, 'uploads');
 
         return response(Storage::disk('uploads')->url($path), 200, [

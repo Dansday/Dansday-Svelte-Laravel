@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class LinkedInService
@@ -23,6 +24,10 @@ class LinkedInService
     private const USERINFO_URL = 'https://api.linkedin.com/v2/userinfo';
 
     private const POSTS_URL = 'https://api.linkedin.com/rest/posts';
+
+    private const IMAGES_URL = 'https://api.linkedin.com/rest/images';
+
+    public const MAX_ALT_TEXT = 4086;
 
     private const API_VERSION = '202608';
 
@@ -196,6 +201,7 @@ class LinkedInService
         return [
             'title' => (string) $article->title,
             'url'   => self::publicSiteUrl().'/articles/'.$slug,
+            'image' => (string) ($article->image ?? ''),
         ];
     }
 
@@ -208,7 +214,78 @@ class LinkedInService
         return trim($value, '-');
     }
 
-    public static function share(string $commentary, string $visibility = 'PUBLIC'): array
+    private static function readImage(string $source): array
+    {
+        $source = trim($source);
+
+        if ($source === '') {
+            throw new ContentWriteException('No image source given.');
+        }
+
+        if (str_starts_with($source, 'http://') || str_starts_with($source, 'https://')) {
+            $response = Http::timeout(30)->get($source);
+
+            if (! $response->successful()) {
+                throw new ContentWriteException("Could not download the image from {$source} (HTTP {$response->status()}).");
+            }
+
+            return [$response->body(), $response->header('Content-Type') ?: 'application/octet-stream'];
+        }
+
+        $path = uploads_path_for_disk($source);
+        $disk = Storage::disk('uploads');
+
+        if ($path === '' || ! $disk->exists($path)) {
+            throw new ContentWriteException("No uploaded file at \"{$source}\". Upload it to /mcp/uploads first.");
+        }
+
+        $mime = mime_content_type($disk->path($path));
+
+        return [$disk->get($path), $mime ?: 'application/octet-stream'];
+    }
+
+    public static function uploadImage(string $source): array
+    {
+        $general = self::settings();
+        $token = trim((string) $general->linkedin_access_token);
+
+        [$bytes, $mime] = self::readImage($source);
+
+        $init = Http::withToken($token)
+            ->withHeaders([
+                'X-Restli-Protocol-Version' => '2.0.0',
+                'LinkedIn-Version'          => self::API_VERSION,
+            ])
+            ->timeout(30)
+            ->post(self::IMAGES_URL.'?action=initializeUpload', [
+                'initializeUploadRequest' => ['owner' => trim((string) $general->linkedin_person_urn)],
+            ]);
+
+        if (! $init->successful()) {
+            Log::warning('LinkedIn image initializeUpload failed: HTTP '.$init->status().' '.substr($init->body(), 0, 300));
+
+            return ['ok' => false, 'reason' => 'image_init_failed', 'status' => $init->status(), 'response' => substr($init->body(), 0, 300)];
+        }
+
+        $uploadUrl = (string) $init->json('value.uploadUrl');
+        $urn = (string) $init->json('value.image');
+
+        if ($uploadUrl === '' || $urn === '') {
+            return ['ok' => false, 'reason' => 'image_init_incomplete', 'message' => 'LinkedIn did not return an upload URL and image URN.'];
+        }
+
+        $put = Http::withToken($token)->withBody($bytes, $mime)->timeout(120)->put($uploadUrl);
+
+        if (! $put->successful()) {
+            Log::warning('LinkedIn image upload failed: HTTP '.$put->status().' '.substr($put->body(), 0, 300));
+
+            return ['ok' => false, 'reason' => 'image_upload_failed', 'status' => $put->status(), 'response' => substr($put->body(), 0, 300)];
+        }
+
+        return ['ok' => true, 'image' => $urn, 'bytes' => strlen($bytes)];
+    }
+
+    public static function share(string $commentary, string $visibility = 'PUBLIC', ?array $media = null): array
     {
         $status = self::status();
 
@@ -235,7 +312,7 @@ class LinkedInService
                 ],
                 'lifecycleState'            => 'PUBLISHED',
                 'isReshareDisabledByAuthor' => false,
-            ]);
+            ] + ($media ? ['content' => ['media' => $media]] : []));
 
         if ($response->status() === 401) {
             return [
