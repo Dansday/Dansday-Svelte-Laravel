@@ -47,7 +47,7 @@ A portfolio site that looks like a terminal, and the Laravel panel that runs it.
 - Social links, analytics ID and site metadata in one place
 - Panel translations for **18 locales**
 - **MCP server** — see [MCP server](#mcp-server)
-- **LinkedIn sharing** — publish an article, then post it to your feed from the same client. See [LinkedIn](#linkedin)
+- **LinkedIn posting** — share a published article, or post standalone text, with an optional image. See [LinkedIn](#linkedin)
 
 ### AI
 
@@ -120,7 +120,7 @@ AI provider URLs, keys, models and prompts live in the panel under **Settings �
 
 ## MCP server
 
-`POST /mcp` speaks [Model Context Protocol](https://modelcontextprotocol.io), so an AI client can write an article, backdate it, reorganise categories, reorder the about page, or share a published article to LinkedIn.
+`POST /mcp` speaks [Model Context Protocol](https://modelcontextprotocol.io), so an AI client can write an article, backdate it, reorganise categories, reorder the about page, or post to LinkedIn.
 
 ### 1. Mint a token
 
@@ -155,6 +155,18 @@ claude mcp add --transport http dansday https://admin.example.com/mcp \
 
 Clients that require OAuth rather than a static bearer token need a bridge such as `mcp-remote` to inject the header.
 
+### Uploading images
+
+Tool calls carry JSON, not binary, so images go over a sibling endpoint using the same token:
+
+```bash
+curl -sS https://admin.example.com/mcp/uploads \
+  -H "Authorization: Bearer mcp_live_..." \
+  -F file=@cover.png -F kind=article
+```
+
+`kind` is `article`, `project` or `inline`, which picks the folder. The returned `path` goes straight into an `image` field, or into an `img src` for inline body images. JPG and PNG, 8MB ceiling.
+
 ### Tools
 
 | Area               | Tools                                                                                                                                                                                       |
@@ -165,7 +177,7 @@ Clients that require OAuth rather than a static bearer token need a bridge such 
 | Project categories | `list_project_categories`, `create_project_category`, `update_project_category`, `delete_project_category`                                                                                    |
 | Abouts             | `list_abouts`, `create_skill`, `update_skill`, `create_experience`, `update_experience`, `create_service`, `update_service`, `create_testimonial`, `update_testimonial`, `delete_about`, `reorder_about` |
 | Pages              | `get_home_page`, `update_home_page`, `get_sections`, `update_sections`                                                                                                                        |
-| LinkedIn           | `get_linkedin_status`, `post_article_to_linkedin`                                                                                                                                             |
+| LinkedIn           | `get_linkedin_status`, `post_to_linkedin`                                                                                                                                             |
 
 - Bodies are **HTML**. Creating an article or project needs an existing category — call `list_*_categories` first.
 - **`created_at` is writable** on create and update. That is how posts get backdated.
@@ -180,7 +192,7 @@ Token handling and the HTML sanitising rules are in [SECURITY.md](SECURITY.md#mc
 
 ## LinkedIn
 
-`post_article_to_linkedin` shares a published article to your **personal** LinkedIn feed as a text post with the article URL appended. You write the commentary; the tool never rewrites or summarises it.
+`post_to_linkedin` posts to your **personal** LinkedIn feed. Pass an `article_id` to append a published article's URL, or leave it out to post something written in the conversation. An image is optional either way. You write the commentary; the tool never rewrites or summarises it.
 
 ### Setup
 
@@ -205,6 +217,7 @@ Open `/admin/linkedin/connect` in a browser while signed in to the panel, approv
 - Create only. There is no update or delete, and no way to list what was posted: reading your own posts needs `r_member_social`, which is a closed permission.
 - The article must be published, because the URL is derived from its title with the same slug rules as the public site. **Retitling an article changes its URL and breaks any link already posted.**
 - Commentary plus the URL is capped at 3,000 characters. Over that, the tool returns `too_long` with the overage rather than truncating.
+- Pass `image` to attach a picture — an uploads path from `POST /mcp/uploads`, an absolute URL, or the literal `article` to reuse the article's own cover. `alt_text` is optional and should stay under 120 characters. Uploads go through LinkedIn's Images API, which `w_member_social` covers; that scope is write-only, so the upload cannot be polled for readiness before the post goes out.
 - The article link is built from `APP_URL` with a leading `admin.` stripped, so `https://admin.example.com` yields `https://example.com/articles/{slug}`.
 
 ---

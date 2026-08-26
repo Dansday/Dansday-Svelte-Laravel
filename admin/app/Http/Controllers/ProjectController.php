@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Services\EmbeddingService;
+use Illuminate\Support\Str;
 
 class ProjectController extends Controller
 {
@@ -61,7 +62,7 @@ class ProjectController extends Controller
 
         $disk = Storage::disk('uploads');
         $route_image = $data['image']
-            ? 'uploads/' . $data['image']->storeAs('img/projects', 'project_image_' . mt_rand(10, 9999) . '.' . $data['image']->guessExtension(), 'uploads')
+            ? 'uploads/' . $data['image']->storeAs('img/projects', 'project_image_' . Str::random(24) . '.' . $data['image']->guessExtension(), 'uploads')
             : '';
 
         $tempFiles = $disk->files('img/temp');
@@ -144,7 +145,7 @@ class ProjectController extends Controller
                     $disk->delete($p);
                 }
             }
-            $route_image = 'uploads/' . $data['image']->storeAs('img/projects', 'project_image_' . mt_rand(10, 9999) . '.' . $data['image']->guessExtension(), 'uploads');
+            $route_image = 'uploads/' . $data['image']->storeAs('img/projects', 'project_image_' . Str::random(24) . '.' . $data['image']->guessExtension(), 'uploads');
         } elseif ($data['image_current'] == '' || $data['image_current'] === null) {
             $proj = Project::find($id);
             if ($proj && $proj->image != '' && uploads_path_safe_to_delete($proj->image)) {
