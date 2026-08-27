@@ -66,7 +66,7 @@ export async function fetchArticlesWithCategories(): Promise<{
 }> {
 	const [articles, articles_categories] = await Promise.all([
 		query<Row>('SELECT * FROM articles WHERE enable = 1 ORDER BY `created_at` DESC'),
-		query<Row>('SELECT * FROM article_categories ORDER BY id ASC')
+		query<Row>('SELECT * FROM article_categories ORDER BY name ASC')
 	]);
 	return { articles, articles_categories };
 }
@@ -88,7 +88,7 @@ export async function fetchProjects(): Promise<{
 }> {
 	const [projects, projects_categories] = await Promise.all([
 		query<Row>('SELECT * FROM projects WHERE enable = 1 ORDER BY `created_at` DESC'),
-		query<Row>('SELECT * FROM project_categories ORDER BY id ASC')
+		query<Row>('SELECT * FROM project_categories ORDER BY name ASC')
 	]);
 	return { projects, projects_categories };
 }
