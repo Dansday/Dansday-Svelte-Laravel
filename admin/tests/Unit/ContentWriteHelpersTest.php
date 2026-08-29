@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Exceptions\ContentWriteException;
 use App\Services\ContentWriteService;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
@@ -33,6 +34,7 @@ class ContentWriteHelpersTest extends TestCase
         ];
     }
 
+    #[DataProvider('booleanShapes')]
     public function test_enable_flags_accept_the_shapes_llm_clients_send(mixed $given, bool $default, bool $expected): void
     {
         $this->assertSame($expected, $this->call('boolInput', [['enable' => $given], 'enable', $default]));
@@ -59,6 +61,7 @@ class ContentWriteHelpersTest extends TestCase
         ];
     }
 
+    #[DataProvider('acceptedDates')]
     public function test_created_at_accepts_absolute_dates(string $given, string $expected): void
     {
         $this->assertSame($expected, $this->call('parseDate', [['created_at' => $given], 'created_at']));
@@ -94,6 +97,7 @@ class ContentWriteHelpersTest extends TestCase
         ];
     }
 
+    #[DataProvider('rejectedDates')]
     public function test_ambiguous_or_relative_dates_are_rejected(string $given): void
     {
         $this->expectException(ContentWriteException::class);
@@ -138,6 +142,7 @@ class ContentWriteHelpersTest extends TestCase
         ];
     }
 
+    #[DataProvider('rejectedImagePaths')]
     public function test_paths_outside_the_uploads_image_tree_are_refused(string $path): void
     {
         $this->expectException(ContentWriteException::class);
@@ -189,6 +194,7 @@ class ContentWriteHelpersTest extends TestCase
         ];
     }
 
+    #[DataProvider('dangerousHtml')]
     public function test_dangerous_html_is_stripped_from_bodies(string $html, string $needle): void
     {
         $this->assertStringNotContainsStringIgnoringCase(
@@ -210,6 +216,7 @@ class ContentWriteHelpersTest extends TestCase
         ];
     }
 
+    #[DataProvider('legitimateHtml')]
     public function test_legitimate_markup_survives_untouched(string $html): void
     {
         $this->assertSame($html, $this->call('sanitizeHtml', [$html]));
