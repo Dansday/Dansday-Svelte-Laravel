@@ -4,6 +4,10 @@ namespace App\Services;
 
 use App\Exceptions\ContentWriteException;
 use App\Models\General;
+use App\Models\LinkedInComment;
+use App\Models\LinkedInPost;
+use App\Support\SafeUrlFetcher;
+use GuzzleHttp\Psr7\Utils;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -27,7 +31,37 @@ class LinkedInService
 
     private const IMAGES_URL = 'https://api.linkedin.com/rest/images';
 
+    private const DOCUMENTS_URL = 'https://api.linkedin.com/rest/documents';
+
+    private const VIDEOS_URL = 'https://api.linkedin.com/rest/videos';
+
+    private const SOCIAL_ACTIONS_URL = 'https://api.linkedin.com/rest/socialActions';
+
+    private const REACTIONS_URL = 'https://api.linkedin.com/rest/reactions';
+
     public const MAX_ALT_TEXT = 4086;
+
+    public const MAX_IMAGES = 20;
+
+    public const MIN_MULTI_IMAGES = 2;
+
+    public const MAX_TITLE = 400;
+
+    public const MAX_COMMENT = 1250;
+
+    public const EXPIRY_WARNING_DAYS = 14;
+
+    public const REACTIONS = ['LIKE', 'PRAISE', 'APPRECIATION', 'EMPATHY', 'INTEREST', 'ENTERTAINMENT'];
+
+    public const MAX_IMAGE_BYTES = 8388608;
+
+    public const MAX_DOCUMENT_BYTES = 104857600;
+
+    public const MAX_VIDEO_BYTES = 209715200;
+
+    public const DOCUMENT_EXTENSIONS = ['pdf', 'doc', 'docx', 'ppt', 'pptx'];
+
+    public const VIDEO_EXTENSIONS = ['mp4', 'mov'];
 
     private const API_VERSION = '202608';
 
@@ -111,13 +145,296 @@ class LinkedInService
             ];
         }
 
-        return [
-            'connected'  => true,
-            'as'         => $person,
-            'expires_at' => $expiresAt?->toDateTimeString(),
-            'days_left'  => $expiresAt ? max(0, (int) floor(now()->diffInDays($expiresAt, false))) : null,
-            'scopes'     => self::SCOPES,
+        $daysLeft = $expiresAt ? max(0, (int) floor(now()->diffInDays($expiresAt, false))) : null;
+        $expiringSoon = $daysLeft !== null && $daysLeft <= self::EXPIRY_WARNING_DAYS;
+
+        return array_filter([
+            'connected'      => true,
+            'as'             => $person,
+            'expires_at'     => $expiresAt?->toDateTimeString(),
+            'days_left'      => $daysLeft,
+            'expiring_soon'  => $expiringSoon,
+            'warning'        => $expiringSoon
+                ? 'This LinkedIn token expires in '.$daysLeft.' day'.($daysLeft === 1 ? '' : 's').'. Reconnect before then or posting will start failing: open connect_url in a browser while signed in to the admin panel.'
+                : null,
+            'connect_url'    => $expiringSoon ? self::connectUrl() : null,
+            'scopes'         => self::SCOPES,
+        ], fn ($value) => $value !== null);
+    }
+
+    public static function comment(string $urn, string $text, ?string $parentComment = null, ?int $postId = null): array
+    {
+        $status = self::status();
+
+        if (empty($status['connected'])) {
+            return $status;
+        }
+
+        $general = self::settings();
+        $person = trim((string) $general->linkedin_person_urn);
+
+        $body = [
+            'actor'   => $person,
+            'object'  => $urn,
+            'message' => ['text' => $text],
         ];
+
+        if ($parentComment !== null && $parentComment !== '') {
+            $body['parentComment'] = $parentComment;
+        }
+
+        $response = Http::withToken(trim((string) $general->linkedin_access_token))
+            ->withHeaders(self::apiHeaders())
+            ->timeout(30)
+            ->post(self::SOCIAL_ACTIONS_URL.'/'.rawurlencode($urn).'/comments', $body);
+
+        if (! $response->successful()) {
+            Log::warning('LinkedIn comment failed: HTTP '.$response->status().' '.substr($response->body(), 0, 300));
+
+            return [
+                'ok'       => false,
+                'reason'   => 'comment_failed',
+                'status'   => $response->status(),
+                'response' => substr($response->body(), 0, 300),
+                'post_urn' => $urn,
+            ];
+        }
+
+        $commentUrn = (string) ($response->json('$URN') ?: $response->header('x-restli-id') ?: '');
+        $record = $commentUrn !== '' ? self::recordComment($commentUrn, $urn, $text, $parentComment, $postId) : null;
+
+        return [
+            'ok'          => true,
+            'commented'   => true,
+            'post_urn'    => $urn,
+            'comment_urn' => $commentUrn ?: null,
+            'comment_id'  => $record?->id,
+            'is_reply'    => $parentComment !== null && $parentComment !== '',
+            'characters'  => mb_strlen($text),
+        ];
+    }
+
+    private static function recordComment(string $urn, string $postUrn, string $text, ?string $parent, ?int $postId): ?LinkedInComment
+    {
+        try {
+            return LinkedInComment::updateOrCreate(
+                ['urn' => $urn],
+                [
+                    'post_urn'           => $postUrn,
+                    'linkedin_post_id'   => $postId,
+                    'parent_comment_urn' => $parent ?: null,
+                    'text'               => $text,
+                ]
+            );
+        } catch (\Throwable $e) {
+            Log::warning('LinkedIn comment posted but could not be recorded locally: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    public static function findComment(?int $id, ?string $urn): LinkedInComment
+    {
+        if ($id) {
+            $comment = LinkedInComment::find($id);
+
+            if (! $comment) {
+                throw new ContentWriteException("No recorded LinkedIn comment with id {$id}. Call list_linkedin_comments to see what is on record.");
+            }
+
+            return $comment;
+        }
+
+        $urn = trim((string) $urn);
+
+        if ($urn === '') {
+            throw new ContentWriteException('Pass either id or urn to identify the comment.');
+        }
+
+        $comment = LinkedInComment::where('urn', $urn)->first();
+
+        if (! $comment) {
+            throw new ContentWriteException(
+                "\"{$urn}\" is not a recorded LinkedIn comment. Only comments made through this server are on record, because LinkedIn does not let this app read comments back."
+            );
+        }
+
+        return $comment;
+    }
+
+    public static function editComment(LinkedInComment $comment, string $text): array
+    {
+        $status = self::status();
+
+        if (empty($status['connected'])) {
+            return $status;
+        }
+
+        if ($comment->isDeleted()) {
+            return [
+                'ok'      => false,
+                'reason'  => 'already_deleted',
+                'message' => 'That comment was deleted on '.$comment->deleted_at->toDateTimeString().'.',
+            ];
+        }
+
+        $response = Http::withToken(trim((string) self::settings()->linkedin_access_token))
+            ->withHeaders(self::apiHeaders() + ['X-RestLi-Method' => 'PARTIAL_UPDATE'])
+            ->timeout(30)
+            ->post(self::commentUrl($comment), [
+                'patch' => ['$set' => ['message' => ['text' => $text]]],
+            ]);
+
+        if (! $response->successful() && $response->status() !== 204) {
+            Log::warning('LinkedIn comment edit failed: HTTP '.$response->status().' '.substr($response->body(), 0, 300));
+
+            return [
+                'ok'          => false,
+                'reason'      => 'comment_edit_failed',
+                'status'      => $response->status(),
+                'response'    => substr($response->body(), 0, 300),
+                'comment_urn' => $comment->urn,
+            ];
+        }
+
+        $comment->forceFill(['text' => $text, 'edited_at' => now()])->save();
+
+        return [
+            'ok'          => true,
+            'edited'      => true,
+            'comment_id'  => $comment->id,
+            'comment_urn' => $comment->urn,
+            'characters'  => mb_strlen($text),
+        ];
+    }
+
+    public static function deleteComment(LinkedInComment $comment): array
+    {
+        $status = self::status();
+
+        if (empty($status['connected'])) {
+            return $status;
+        }
+
+        if ($comment->isDeleted()) {
+            return [
+                'ok'      => false,
+                'reason'  => 'already_deleted',
+                'message' => 'That comment was already deleted on '.$comment->deleted_at->toDateTimeString().'.',
+            ];
+        }
+
+        $person = trim((string) self::settings()->linkedin_person_urn);
+
+        $response = Http::withToken(trim((string) self::settings()->linkedin_access_token))
+            ->withHeaders(self::apiHeaders())
+            ->timeout(30)
+            ->delete(self::commentUrl($comment).'?actor='.rawurlencode($person));
+
+        if ($response->status() === 404) {
+            $comment->forceFill(['deleted_at' => now()])->save();
+
+            return [
+                'ok'          => false,
+                'reason'      => 'not_found',
+                'message'     => 'LinkedIn has no such comment. It was probably deleted there already; the local record is now marked deleted too.',
+                'comment_urn' => $comment->urn,
+            ];
+        }
+
+        if (! $response->successful() && $response->status() !== 204) {
+            Log::warning('LinkedIn comment delete failed: HTTP '.$response->status().' '.substr($response->body(), 0, 300));
+
+            return [
+                'ok'          => false,
+                'reason'      => 'comment_delete_failed',
+                'status'      => $response->status(),
+                'response'    => substr($response->body(), 0, 300),
+                'comment_urn' => $comment->urn,
+            ];
+        }
+
+        $comment->forceFill(['deleted_at' => now()])->save();
+
+        return ['ok' => true, 'deleted' => true, 'comment_id' => $comment->id, 'comment_urn' => $comment->urn];
+    }
+
+    private static function commentUrl(LinkedInComment $comment): string
+    {
+        return self::SOCIAL_ACTIONS_URL.'/'.rawurlencode($comment->post_urn).'/comments/'.rawurlencode($comment->urn);
+    }
+
+    public static function react(string $urn, ?string $reaction): array
+    {
+        $status = self::status();
+
+        if (empty($status['connected'])) {
+            return $status;
+        }
+
+        $general = self::settings();
+        $person = trim((string) $general->linkedin_person_urn);
+        $token = trim((string) $general->linkedin_access_token);
+
+        $removed = self::removeReaction($token, $person, $urn);
+
+        if ($reaction === null) {
+            return $removed['ok']
+                ? ['ok' => true, 'reaction' => null, 'removed' => true, 'entity_urn' => $urn]
+                : $removed + ['entity_urn' => $urn];
+        }
+
+        $response = Http::withToken($token)
+            ->withHeaders(self::apiHeaders())
+            ->timeout(30)
+            ->post(self::REACTIONS_URL.'?actor='.rawurlencode($person), [
+                'root'         => $urn,
+                'reactionType' => $reaction,
+            ]);
+
+        if (! $response->successful() && $response->status() !== 201 && $response->status() !== 204) {
+            Log::warning('LinkedIn reaction failed: HTTP '.$response->status().' '.substr($response->body(), 0, 300));
+
+            return [
+                'ok'         => false,
+                'reason'     => 'reaction_failed',
+                'status'     => $response->status(),
+                'response'   => substr($response->body(), 0, 300),
+                'entity_urn' => $urn,
+            ];
+        }
+
+        return ['ok' => true, 'reaction' => $reaction, 'entity_urn' => $urn];
+    }
+
+    private static function removeReaction(string $token, string $person, string $urn): array
+    {
+        $key = '(actor:'.rawurlencode($person).',entity:'.rawurlencode($urn).')';
+
+        $response = Http::withToken($token)
+            ->withHeaders(self::apiHeaders())
+            ->timeout(30)
+            ->delete(self::REACTIONS_URL.'/'.$key);
+
+        if ($response->successful() || in_array($response->status(), [204, 404], true)) {
+            return ['ok' => true];
+        }
+
+        Log::warning('LinkedIn reaction removal failed: HTTP '.$response->status().' '.substr($response->body(), 0, 300));
+
+        return [
+            'ok'       => false,
+            'reason'   => 'reaction_remove_failed',
+            'status'   => $response->status(),
+            'response' => substr($response->body(), 0, 300),
+        ];
+    }
+
+    public static function thumbnailFor(string $source): ?string
+    {
+        $uploaded = self::uploadImage($source);
+
+        return empty($uploaded['ok']) ? null : $uploaded['image'];
     }
 
     public static function exchangeCode(string $code): array
@@ -199,9 +516,10 @@ class LinkedInService
         }
 
         return [
-            'title' => (string) $article->title,
-            'url'   => self::publicSiteUrl().'/articles/'.$slug,
-            'image' => (string) ($article->image ?? ''),
+            'title'   => (string) $article->title,
+            'url'     => self::publicSiteUrl().'/articles/'.$slug,
+            'image'   => (string) ($article->image ?? ''),
+            'summary' => trim((string) ($article->short_desc ?? '')),
         ];
     }
 
@@ -214,6 +532,26 @@ class LinkedInService
         return trim($value, '-');
     }
 
+    private static function apiHeaders(): array
+    {
+        return [
+            'X-Restli-Protocol-Version' => '2.0.0',
+            'LinkedIn-Version'          => self::API_VERSION,
+        ];
+    }
+
+    private static function confineToDisk(string $absolute, string $root): string
+    {
+        $real = realpath($absolute);
+        $base = realpath($root);
+
+        if ($real === false || $base === false || ! str_starts_with($real, rtrim($base, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR)) {
+            throw new ContentWriteException('That path resolves outside its storage directory and was refused.');
+        }
+
+        return $real;
+    }
+
     private static function readImage(string $source): array
     {
         $source = trim($source);
@@ -223,25 +561,81 @@ class LinkedInService
         }
 
         if (str_starts_with($source, 'http://') || str_starts_with($source, 'https://')) {
-            $response = Http::timeout(30)->get($source);
-
-            if (! $response->successful()) {
-                throw new ContentWriteException("Could not download the image from {$source} (HTTP {$response->status()}).");
-            }
-
-            return [$response->body(), $response->header('Content-Type') ?: 'application/octet-stream'];
+            return SafeUrlFetcher::fetch($source, self::MAX_IMAGE_BYTES);
         }
 
         $path = uploads_path_for_disk($source);
         $disk = Storage::disk('uploads');
 
-        if ($path === '' || ! $disk->exists($path)) {
-            throw new ContentWriteException("No uploaded file at \"{$source}\". Upload it to /mcp/uploads first.");
+        if ($path === '' || ! str_starts_with($path, 'img/') || ! $disk->exists($path)) {
+            throw new ContentWriteException("No uploaded image at \"{$source}\". Upload it to /mcp/uploads first.");
         }
 
-        $mime = mime_content_type($disk->path($path));
+        $file = self::confineToDisk($disk->path($path), public_path('uploads'));
+        $size = filesize($file);
 
-        return [$disk->get($path), $mime ?: 'application/octet-stream'];
+        if ($size === false || $size <= 0) {
+            throw new ContentWriteException("\"{$source}\" is empty.");
+        }
+
+        if ($size > self::MAX_IMAGE_BYTES) {
+            throw new ContentWriteException("\"{$source}\" is larger than the ".round(self::MAX_IMAGE_BYTES / 1048576)."MB image limit.");
+        }
+
+        $mime = mime_content_type($file);
+
+        return [(string) file_get_contents($file), $mime ?: 'application/octet-stream'];
+    }
+
+    private static function readMediaFile(string $source, array $extensions, int $maxBytes, string $label): array
+    {
+        $source = trim($source);
+
+        if ($source === '') {
+            throw new ContentWriteException("No {$label} source given.");
+        }
+
+        if (str_starts_with($source, 'http://') || str_starts_with($source, 'https://')) {
+            throw new ContentWriteException(
+                "A {$label} cannot be pulled from a URL. Upload it to /mcp/uploads with kind={$label} and pass the returned path."
+            );
+        }
+
+        if (! media_path_is_allowed($source)) {
+            throw new ContentWriteException(
+                "\"{$source}\" is not a {$label} upload path. Upload it to /mcp/uploads with kind={$label} and pass the path it returns."
+            );
+        }
+
+        $path = media_path_for_disk($source);
+        $disk = Storage::disk('media');
+
+        if (! $disk->exists($path)) {
+            throw new ContentWriteException("No uploaded {$label} at \"{$source}\". Upload it to /mcp/uploads first.");
+        }
+
+        $file = self::confineToDisk($disk->path($path), storage_path('app/media'));
+        $extension = strtolower((string) pathinfo($file, PATHINFO_EXTENSION));
+
+        if (! in_array($extension, $extensions, true)) {
+            throw new ContentWriteException(
+                "\"{$source}\" is a .{$extension} file. Accepted ".$label." types are: ".implode(', ', $extensions).'.'
+            );
+        }
+
+        $size = filesize($file);
+
+        if ($size === false || $size <= 0) {
+            throw new ContentWriteException("\"{$source}\" is empty.");
+        }
+
+        if ($size > $maxBytes) {
+            throw new ContentWriteException(
+                "\"{$source}\" is ".round($size / 1048576, 1)."MB, over the ".round($maxBytes / 1048576)."MB {$label} limit."
+            );
+        }
+
+        return [$file, $size, mime_content_type($file) ?: 'application/octet-stream'];
     }
 
     public static function uploadImage(string $source): array
@@ -252,10 +646,7 @@ class LinkedInService
         [$bytes, $mime] = self::readImage($source);
 
         $init = Http::withToken($token)
-            ->withHeaders([
-                'X-Restli-Protocol-Version' => '2.0.0',
-                'LinkedIn-Version'          => self::API_VERSION,
-            ])
+            ->withHeaders(self::apiHeaders())
             ->timeout(30)
             ->post(self::IMAGES_URL.'?action=initializeUpload', [
                 'initializeUploadRequest' => ['owner' => trim((string) $general->linkedin_person_urn)],
@@ -285,7 +676,190 @@ class LinkedInService
         return ['ok' => true, 'image' => $urn, 'bytes' => strlen($bytes)];
     }
 
-    public static function share(string $commentary, string $visibility = 'PUBLIC', ?array $media = null): array
+    public static function uploadDocument(string $source): array
+    {
+        $general = self::settings();
+        $token = trim((string) $general->linkedin_access_token);
+
+        [$file, $size, $mime] = self::readMediaFile(
+            $source,
+            self::DOCUMENT_EXTENSIONS,
+            self::MAX_DOCUMENT_BYTES,
+            'document'
+        );
+
+        $init = Http::withToken($token)
+            ->withHeaders(self::apiHeaders())
+            ->timeout(30)
+            ->post(self::DOCUMENTS_URL.'?action=initializeUpload', [
+                'initializeUploadRequest' => ['owner' => trim((string) $general->linkedin_person_urn)],
+            ]);
+
+        if (! $init->successful()) {
+            Log::warning('LinkedIn document initializeUpload failed: HTTP '.$init->status().' '.substr($init->body(), 0, 300));
+
+            return ['ok' => false, 'reason' => 'document_init_failed', 'status' => $init->status(), 'response' => substr($init->body(), 0, 300)];
+        }
+
+        $uploadUrl = (string) $init->json('value.uploadUrl');
+        $urn = (string) $init->json('value.document');
+
+        if ($uploadUrl === '' || $urn === '') {
+            return ['ok' => false, 'reason' => 'document_init_incomplete', 'message' => 'LinkedIn did not return an upload URL and document URN.'];
+        }
+
+        $handle = fopen($file, 'rb');
+
+        if ($handle === false) {
+            throw new ContentWriteException('Could not open the uploaded document for reading.');
+        }
+
+        try {
+            $put = Http::withToken($token)
+                ->withBody(Utils::streamFor($handle), $mime)
+                ->timeout(600)
+                ->put($uploadUrl);
+        } finally {
+            if (is_resource($handle)) {
+                fclose($handle);
+            }
+        }
+
+        if (! $put->successful()) {
+            Log::warning('LinkedIn document upload failed: HTTP '.$put->status().' '.substr($put->body(), 0, 300));
+
+            return ['ok' => false, 'reason' => 'document_upload_failed', 'status' => $put->status(), 'response' => substr($put->body(), 0, 300)];
+        }
+
+        return ['ok' => true, 'document' => $urn, 'bytes' => $size];
+    }
+
+    public static function uploadVideo(string $source): array
+    {
+        $general = self::settings();
+        $token = trim((string) $general->linkedin_access_token);
+
+        [$file, $size] = self::readMediaFile(
+            $source,
+            self::VIDEO_EXTENSIONS,
+            self::MAX_VIDEO_BYTES,
+            'video'
+        );
+
+        $init = Http::withToken($token)
+            ->withHeaders(self::apiHeaders())
+            ->timeout(30)
+            ->post(self::VIDEOS_URL.'?action=initializeUpload', [
+                'initializeUploadRequest' => [
+                    'owner'           => trim((string) $general->linkedin_person_urn),
+                    'fileSizeBytes'   => $size,
+                    'uploadCaptions'  => false,
+                    'uploadThumbnail' => false,
+                ],
+            ]);
+
+        if (! $init->successful()) {
+            Log::warning('LinkedIn video initializeUpload failed: HTTP '.$init->status().' '.substr($init->body(), 0, 300));
+
+            return ['ok' => false, 'reason' => 'video_init_failed', 'status' => $init->status(), 'response' => substr($init->body(), 0, 300)];
+        }
+
+        $urn = (string) $init->json('value.video');
+        $uploadToken = (string) $init->json('value.uploadToken');
+        $instructions = $init->json('value.uploadInstructions');
+
+        if ($urn === '' || ! is_array($instructions) || $instructions === []) {
+            return ['ok' => false, 'reason' => 'video_init_incomplete', 'message' => 'LinkedIn did not return upload instructions and a video URN.'];
+        }
+
+        $handle = fopen($file, 'rb');
+
+        if ($handle === false) {
+            throw new ContentWriteException('Could not open the uploaded video for reading.');
+        }
+
+        $parts = [];
+
+        try {
+            $outcome = self::uploadVideoParts($handle, $token, $instructions, $parts);
+        } finally {
+            if (is_resource($handle)) {
+                fclose($handle);
+            }
+        }
+
+        if ($outcome !== null) {
+            return $outcome;
+        }
+
+        $finalize = Http::withToken($token)
+            ->withHeaders(self::apiHeaders())
+            ->timeout(60)
+            ->post(self::VIDEOS_URL.'?action=finalizeUpload', [
+                'finalizeUploadRequest' => [
+                    'video'           => $urn,
+                    'uploadToken'     => $uploadToken,
+                    'uploadedPartIds' => $parts,
+                ],
+            ]);
+
+        if (! $finalize->successful()) {
+            Log::warning('LinkedIn video finalizeUpload failed: HTTP '.$finalize->status().' '.substr($finalize->body(), 0, 300));
+
+            return ['ok' => false, 'reason' => 'video_finalize_failed', 'status' => $finalize->status(), 'response' => substr($finalize->body(), 0, 300)];
+        }
+
+        return ['ok' => true, 'video' => $urn, 'bytes' => $size, 'parts' => count($parts)];
+    }
+
+    private static function uploadVideoParts($handle, string $token, array $instructions, array &$parts): ?array
+    {
+        foreach ($instructions as $index => $instruction) {
+            $url = (string) ($instruction['uploadUrl'] ?? '');
+            $first = (int) ($instruction['firstByte'] ?? 0);
+            $last = (int) ($instruction['lastByte'] ?? 0);
+            $length = $last - $first + 1;
+
+            if ($url === '' || $length <= 0) {
+                return ['ok' => false, 'reason' => 'video_instruction_invalid', 'message' => 'LinkedIn returned an unusable upload instruction for part '.$index.'.'];
+            }
+
+            if (fseek($handle, $first) !== 0) {
+                return ['ok' => false, 'reason' => 'video_read_failed', 'message' => 'Could not seek to byte '.$first.' of the video.'];
+            }
+
+            $chunk = fread($handle, $length);
+
+            if ($chunk === false || $chunk === '') {
+                return ['ok' => false, 'reason' => 'video_read_failed', 'message' => 'Could not read part '.$index.' of the video.'];
+            }
+
+            $put = Http::withToken($token)
+                ->withBody($chunk, 'application/octet-stream')
+                ->timeout(600)
+                ->put($url);
+
+            unset($chunk);
+
+            if (! $put->successful()) {
+                Log::warning('LinkedIn video part upload failed: HTTP '.$put->status().' '.substr($put->body(), 0, 300));
+
+                return ['ok' => false, 'reason' => 'video_upload_failed', 'part' => $index, 'status' => $put->status(), 'response' => substr($put->body(), 0, 300)];
+            }
+
+            $etag = (string) ($put->header('ETag') ?: $put->header('etag'));
+
+            if ($etag === '') {
+                return ['ok' => false, 'reason' => 'video_etag_missing', 'message' => 'LinkedIn did not return an ETag for part '.$index.'.'];
+            }
+
+            $parts[] = trim($etag, '"');
+        }
+
+        return null;
+    }
+
+    public static function share(string $commentary, string $visibility = 'PUBLIC', ?array $content = null, array $meta = []): array
     {
         $status = self::status();
 
@@ -296,10 +870,7 @@ class LinkedInService
         $general = self::settings();
 
         $response = Http::withToken(trim((string) $general->linkedin_access_token))
-            ->withHeaders([
-                'X-Restli-Protocol-Version' => '2.0.0',
-                'LinkedIn-Version'          => self::API_VERSION,
-            ])
+            ->withHeaders(self::apiHeaders())
             ->timeout(30)
             ->post(self::POSTS_URL, [
                 'author'                    => trim((string) $general->linkedin_person_urn),
@@ -312,7 +883,7 @@ class LinkedInService
                 ],
                 'lifecycleState'            => 'PUBLISHED',
                 'isReshareDisabledByAuthor' => false,
-            ] + ($media ? ['content' => ['media' => $media]] : []));
+            ] + ($content ? ['content' => $content] : []));
 
         if ($response->status() === 401) {
             return [
@@ -336,12 +907,165 @@ class LinkedInService
         }
 
         $urn = $response->header('x-restli-id');
+        $record = $urn ? self::record($urn, $commentary, $visibility, $meta) : null;
 
         return [
             'ok'         => true,
             'post_urn'   => $urn ?: null,
             'post_url'   => $urn ? 'https://www.linkedin.com/feed/update/'.$urn.'/' : null,
+            'post_id'    => $record?->id,
             'visibility' => $visibility,
+            'characters' => mb_strlen($commentary),
+        ];
+    }
+
+    private static function record(string $urn, string $commentary, string $visibility, array $meta): ?LinkedInPost
+    {
+        try {
+            return LinkedInPost::updateOrCreate(
+                ['urn' => $urn],
+                [
+                    'article_id' => $meta['article_id'] ?? null,
+                    'media_type' => $meta['media_type'] ?? 'text',
+                    'visibility' => $visibility,
+                    'commentary' => $commentary,
+                    'posted_at'  => now(),
+                ]
+            );
+        } catch (\Throwable $e) {
+            Log::warning('LinkedIn post published but could not be recorded locally: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    public static function findPost(?int $id, ?string $urn): LinkedInPost
+    {
+        if ($id) {
+            $post = LinkedInPost::find($id);
+
+            if (! $post) {
+                throw new ContentWriteException("No recorded LinkedIn post with id {$id}. Call list_linkedin_posts to see what is on record.");
+            }
+
+            return $post;
+        }
+
+        $urn = trim((string) $urn);
+
+        if ($urn === '') {
+            throw new ContentWriteException('Pass either id or urn to identify the post.');
+        }
+
+        $post = LinkedInPost::where('urn', $urn)->first();
+
+        if (! $post) {
+            throw new ContentWriteException("\"{$urn}\" is not a recorded LinkedIn post. Only posts made through this tool are on record.");
+        }
+
+        return $post;
+    }
+
+    public static function deletePost(LinkedInPost $post): array
+    {
+        $status = self::status();
+
+        if (empty($status['connected'])) {
+            return $status;
+        }
+
+        if ($post->isDeleted()) {
+            return [
+                'ok'         => false,
+                'reason'     => 'already_deleted',
+                'message'    => 'That post was already deleted on '.$post->deleted_at->toDateTimeString().'.',
+                'post_urn'   => $post->urn,
+            ];
+        }
+
+        $response = Http::withToken(trim((string) self::settings()->linkedin_access_token))
+            ->withHeaders(self::apiHeaders())
+            ->timeout(30)
+            ->delete(self::POSTS_URL.'/'.rawurlencode($post->urn));
+
+        if ($response->status() === 404) {
+            $post->forceFill(['deleted_at' => now()])->save();
+
+            return [
+                'ok'       => false,
+                'reason'   => 'not_found',
+                'message'  => 'LinkedIn has no such post. It was probably deleted there already; the local record is now marked deleted too.',
+                'post_urn' => $post->urn,
+            ];
+        }
+
+        if (! $response->successful() && $response->status() !== 204) {
+            Log::warning('LinkedIn post delete failed: HTTP '.$response->status().' '.substr($response->body(), 0, 300));
+
+            return [
+                'ok'       => false,
+                'reason'   => 'delete_failed',
+                'status'   => $response->status(),
+                'response' => substr($response->body(), 0, 300),
+                'post_urn' => $post->urn,
+            ];
+        }
+
+        $post->forceFill(['deleted_at' => now()])->save();
+
+        return [
+            'ok'         => true,
+            'deleted'    => true,
+            'post_urn'   => $post->urn,
+            'post_id'    => $post->id,
+            'article_id' => $post->article_id,
+        ];
+    }
+
+    public static function editPost(LinkedInPost $post, string $commentary): array
+    {
+        $status = self::status();
+
+        if (empty($status['connected'])) {
+            return $status;
+        }
+
+        if ($post->isDeleted()) {
+            return [
+                'ok'       => false,
+                'reason'   => 'already_deleted',
+                'message'  => 'That post was deleted on '.$post->deleted_at->toDateTimeString().', so there is nothing to edit.',
+                'post_urn' => $post->urn,
+            ];
+        }
+
+        $response = Http::withToken(trim((string) self::settings()->linkedin_access_token))
+            ->withHeaders(self::apiHeaders() + ['X-RestLi-Method' => 'PARTIAL_UPDATE'])
+            ->timeout(30)
+            ->post(self::POSTS_URL.'/'.rawurlencode($post->urn), [
+                'patch' => ['$set' => ['commentary' => $commentary]],
+            ]);
+
+        if (! $response->successful() && $response->status() !== 204) {
+            Log::warning('LinkedIn post edit failed: HTTP '.$response->status().' '.substr($response->body(), 0, 300));
+
+            return [
+                'ok'       => false,
+                'reason'   => 'edit_failed',
+                'status'   => $response->status(),
+                'response' => substr($response->body(), 0, 300),
+                'post_urn' => $post->urn,
+            ];
+        }
+
+        $post->forceFill(['commentary' => $commentary, 'edited_at' => now()])->save();
+
+        return [
+            'ok'         => true,
+            'edited'     => true,
+            'post_urn'   => $post->urn,
+            'post_id'    => $post->id,
+            'post_url'   => $post->url(),
             'characters' => mb_strlen($commentary),
         ];
     }

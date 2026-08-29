@@ -32,33 +32,47 @@ A portfolio site that looks like a terminal, and the Laravel panel that runs it.
 
 ## Features
 
-### Public site (`main`)
+### Public site
 
-- **Articles and projects** with categories, per-item visibility and SEO metadata
-- **About page** built from skills, experience, services and testimonials — each reorderable
-- **Terminal** page that answers questions from your own content using semantic search
-- **Contribute** page backed by cached GitHub activity
-- Sitemap and `robots.txt` generated from live content
+- **Articles and projects** - categories, per-item visibility and SEO metadata, sorted server side.
+- **About page** - built from skills, experience, services and testimonials, each reorderable.
+- **Terminal** - answers questions from your own content using semantic search.
+- **Contribute** - live GitHub stats: commits, PRs, reviews, issues and a contribution heatmap per year.
+- **Sitemap and `robots.txt`** - generated from live content.
 
-### Admin panel (`admin`)
+### Panel
 
-- Full CRUD for every section of the site, WYSIWYG bodies, optional images
-- Section toggles that show or hide whole blocks of the site
-- Social links, analytics ID and site metadata in one place
-- Panel translations for **18 locales**
-- **MCP server** — see [MCP server](#mcp-server)
-- **LinkedIn posting** — share a published article, or post standalone text, with an optional image. See [LinkedIn](#linkedin)
+- **Full CRUD** - every section of the site, WYSIWYG bodies, optional images.
+- **Section toggles** - show or hide whole blocks of the site. Anything switched off disappears from AI recall too.
+- **Settings** - site metadata, analytics ID and social links in one place.
+- **Multi-language** - panel translations for 18 locales.
+
+### MCP server
+
+- **47 tools over `POST /mcp`** - articles, projects, categories, the about page and site sections, all readable and writable by an AI client. Bodies are HTML, and `created_at` is writable so posts can be backdated.
+- **Per-client tokens** - minted in the panel or with `php artisan mcp:token`. Shown once, stored as a SHA-256 hash, revoked one at a time.
+- **File uploads** - `POST /mcp/uploads` takes JPG and PNG to 8MB for site images, PDF, DOC, DOCX, PPT and PPTX to 100MB, and MP4 or MOV to 200MB. The type comes from sniffing the file, never its name. LinkedIn media is stored outside the web root.
+- **Embeddings stay in sync** - every write updates the index, so AI recall never goes stale.
+
+### LinkedIn
+
+- **Posts to your personal feed** - one image, 2-20 as a swipeable set, a PDF or slide deck as a carousel, or a video. You write the commentary; nothing is rewritten or summarised.
+- **Link placement** - `body`, `card` for a real preview with its own title, description and thumbnail, `first_comment` to keep reach since LinkedIn suppresses posts carrying an outbound link, or `none`.
+- **Full lifecycle** - edit the text, delete the post, comment, reply, and react with any of the six reaction types. Comments cannot be read back, so replying needs the comment's urn copied from LinkedIn.
+- **Scheduling** - queue a post for later and a worker publishes it. Arguments are validated when you schedule; media uploads at publish time.
+- **Panel page** - the connection, token expiry with a warning inside 14 days, the queue, and everything published.
 
 ### AI
 
-- **Article and project generation** against any OpenAI-compatible endpoint, with tool calling so the model searches your existing work before writing
-- **Hybrid retrieval** — MySQL full-text (BM25) fused with embedding similarity via reciprocal rank fusion
-- A background **embedding worker** keeps the index current
-- Provider, model, prompts and reasoning effort are set in the panel, not `.env`
+- **Article and project generation** - against any OpenAI-compatible endpoint, with tool calling so the model searches your existing work before writing.
+- **Hybrid retrieval** - MySQL full-text (BM25) fused with embedding similarity via reciprocal rank fusion.
+- **Embedding worker** - keeps the index current in the background.
 
 ---
 
 ## Tech stack
+
+Versions match `composer.json` and `package.json` at release.
 
 | Area               | Technologies                                                                                     |
 | ------------------ | ------------------------------------------------------------------------------------------------ |
@@ -75,176 +89,19 @@ A portfolio site that looks like a terminal, and the Laravel panel that runs it.
 
 ---
 
-## Getting started
-
-MySQL and Redis are **not** in the Compose stack — point the environment variables at your own.
-
-```bash
-cp .env.example .env   # set DB_* and REDIS_*
-make up                # build and start both services
-make down              # stop
-```
-
-The admin container runs `php artisan migrate --force` on start. Both services expect a reverse proxy in front, routing by domain or path.
-
-### Local development
-
-```bash
-make install                    # deps for both apps, copies .env files
-
-cd admin && composer setup      # key:generate, migrate, npm build
-composer dev                    # serve + queue + logs + vite
-
-cd ../main && npm run dev       # http://localhost:5173
-```
-
-The panel seeds itself on first visit. Register the first user at `/register`.
-
----
-
 ## Configuration
 
-| Variable                                                  | Used by | What it does                                    |
-| --------------------------------------------------------- | ------- | ----------------------------------------------- |
-| `APP_KEY`                                                 | admin   | Laravel encryption key — generate, never share  |
-| `DB_HOST` / `DB_DATABASE` / `DB_USERNAME` / `DB_PASSWORD`  | both    | Shared MySQL connection                         |
-| `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD`             | admin   | Cache, queues and sessions                      |
-| `REDIS_SOCKET`                                            | admin   | Use instead of host/port on socket-based hosting |
-| `BASE_URL`                                                | main    | Public site origin, for canonical URLs          |
-| `ADMIN_PUBLIC_URL`                                        | main    | Where uploaded images are served from           |
-| `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET`           | admin   | LinkedIn app credentials — see [LinkedIn](#linkedin) |
-
-AI provider URLs, keys, models and prompts live in the panel under **Settings → AI**, stored in the database.
-
----
-
-## MCP server
-
-`POST /mcp` speaks [Model Context Protocol](https://modelcontextprotocol.io), so an AI client can write an article, backdate it, reorganise categories, reorder the about page, or post to LinkedIn.
-
-### 1. Mint a token
-
-In the panel, go to **Settings → MCP** and hit *New token*. The token is shown once, then only its SHA-256 hash is kept. The same table lists each token's status and when it was last used, and lets you revoke it.
-
-Or from the CLI:
-
-```bash
-cd admin
-php artisan mcp:token "claude-code"      # printed once, stored as a SHA-256 hash
-php artisan mcp:token --list
-php artisan mcp:token --revoke=1
-```
-
-### 2. Check it is reachable
-
-```bash
-curl -sS https://admin.example.com/mcp \
-  -H "Authorization: Bearer mcp_live_..." \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
-```
-
-> The endpoint sits at the domain root, not under `/admin`. If your proxy routes the panel by path prefix, add a `/mcp` rule or move the route in `admin/routes/mcp.php`.
-
-### 3. Connect a client
-
-```bash
-claude mcp add --transport http dansday https://admin.example.com/mcp \
-  --header "Authorization: Bearer mcp_live_..."
-```
-
-Clients that require OAuth rather than a static bearer token need a bridge such as `mcp-remote` to inject the header.
-
-### Uploading images
-
-Tool calls carry JSON, not binary, so images go over a sibling endpoint using the same token:
-
-```bash
-curl -sS https://admin.example.com/mcp/uploads \
-  -H "Authorization: Bearer mcp_live_..." \
-  -F file=@cover.png -F kind=article
-```
-
-`kind` is `article`, `project` or `inline`, which picks the folder. The returned `path` goes straight into an `image` field, or into an `img src` for inline body images. JPG and PNG, 8MB ceiling.
-
-### Tools
-
-| Area               | Tools                                                                                                                                                                                       |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Articles           | `list_articles`, `get_article`, `create_article`, `update_article`, `delete_article`                                                                                                          |
-| Projects           | `list_projects`, `get_project`, `create_project`, `update_project`, `delete_project`                                                                                                          |
-| Article categories | `list_article_categories`, `create_article_category`, `update_article_category`, `delete_article_category`                                                                                    |
-| Project categories | `list_project_categories`, `create_project_category`, `update_project_category`, `delete_project_category`                                                                                    |
-| Abouts             | `list_abouts`, `create_skill`, `update_skill`, `create_experience`, `update_experience`, `create_service`, `update_service`, `create_testimonial`, `update_testimonial`, `delete_about`, `reorder_about` |
-| Pages              | `get_home_page`, `update_home_page`, `get_sections`, `update_sections`                                                                                                                        |
-| LinkedIn           | `get_linkedin_status`, `post_to_linkedin`                                                                                                                                             |
-
-- Bodies are **HTML**. Creating an article or project needs an existing category — call `list_*_categories` first.
-- **`created_at` is writable** on create and update. That is how posts get backdated.
-- **Images are optional.** Pass an absolute URL or a path under `uploads/img/`; anything else is rejected. Binary upload is not on the tool surface — upload in the panel, reference the path.
-- Every write keeps the **embeddings index** in sync.
-- Deleting a category is refused while any article or project still uses it.
-- Disabled sections are excluded from AI recall as well as the site.
-
-Token handling and the HTML sanitising rules are in [SECURITY.md](SECURITY.md#mcp-tokens).
-
----
-
-## LinkedIn
-
-`post_to_linkedin` posts to your **personal** LinkedIn feed. Pass an `article_id` to append a published article's URL, or leave it out to post something written in the conversation. An image is optional either way. You write the commentary; the tool never rewrites or summarises it.
-
-### Setup
-
-1. Create an app at [linkedin.com/developers/apps](https://www.linkedin.com/developers/apps) and associate it with a LinkedIn Page you administer.
-2. **Products** — add both. Each is self-serve, no review:
-   - **Share on LinkedIn** → `w_member_social`, permission to post
-   - **Sign In with LinkedIn using OpenID Connect** → `openid profile`, used once to read your member id
-3. **Auth → Authorized redirect URLs** — add `https://<your-admin-host>/admin/linkedin/callback`, exactly.
-4. Set `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET` in the admin environment, then deploy so the migration runs.
-
-### Connecting
-
-Open `/admin/linkedin/connect` in a browser while signed in to the panel, approve the consent screen, and the callback stores the token. There is no settings page — the two routes are the whole surface.
-
-`get_linkedin_status` reports who it posts as and how long the token has left. When it is not connected it returns a `connect_url` instead; an MCP tool cannot open a browser, so the flow is always: tool refuses → you open the URL → you call the tool again.
-
-### Notes
-
-- **Access tokens last 2 months** and LinkedIn's refresh tokens are approval-gated, so reconnecting is a manual re-click roughly every 60 days.
-- Posts are authored as `urn:li:person:{id}` — the app name appears only on the consent screen, never on the post.
-- Posting as a **company page** needs `w_organization_social` from the Community Management API, which is not self-serve. Not supported.
-- Create only. There is no update or delete, and no way to list what was posted: reading your own posts needs `r_member_social`, which is a closed permission.
-- The article must be published, because the URL is derived from its title with the same slug rules as the public site. **Retitling an article changes its URL and breaks any link already posted.**
-- Commentary plus the URL is capped at 3,000 characters. Over that, the tool returns `too_long` with the overage rather than truncating.
-- Pass `image` to attach a picture — an uploads path from `POST /mcp/uploads`, an absolute URL, or the literal `article` to reuse the article's own cover. `alt_text` is optional and should stay under 120 characters. Uploads go through LinkedIn's Images API, which `w_member_social` covers; that scope is write-only, so the upload cannot be polled for readiness before the post goes out.
-- The article link is built from `APP_URL` with a leading `admin.` stripped, so `https://admin.example.com` yields `https://example.com/articles/{slug}`.
-
----
-
-## Project layout
-
-| Path                  | What lives there                                          |
-| --------------------- | --------------------------------------------------------- |
-| `main/src/routes`     | Public pages and API routes                               |
-| `main/src/lib/server` | Server-only data access — MySQL, Redis, query helpers     |
-| `admin/app/Http`      | Panel controllers and middleware                          |
-| `admin/app/Services`  | AI generation, embeddings, content writes, LinkedIn        |
-| `admin/app/Mcp`       | MCP tool definitions and registry                         |
-| `admin/routes`        | `web.php`, `mcp.php`, `console.php`                       |
-
-Fuller table and the review checklist: [CONTRIBUTING.md](CONTRIBUTING.md#project-layout).
-
----
-
-## Contributing
-
-Issues and pull requests welcome — [CONTRIBUTING.md](CONTRIBUTING.md). By taking part you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
+- Copy **`.env.example`** to **`.env`** and set the database and Redis values. MySQL and Redis are not in the Compose stack — point them at your own. Then `make up`.
+- **`APP_URL` must be the admin host exactly.** The LinkedIn callback is derived from it, and article links are built from it with a leading `admin.` stripped.
+- **AI providers, models and prompts** are configured in the panel, not `.env`, and stored per site in the database. Each needs its URL, model and key before it switches on.
+- **MCP** lives at the domain root, not under `/admin`, so a path-prefix proxy needs its own `/mcp` rule. Mint a token in the panel, then point a client at it with `claude mcp add --transport http dansday https://<admin-host>/mcp --header "Authorization: Bearer mcp_live_..."`.
+- **LinkedIn** needs an app at [linkedin.com/developers/apps](https://www.linkedin.com/developers/apps) with the **Share on LinkedIn** and **Sign In with LinkedIn using OpenID Connect** products, both self-serve. Register `https://<admin-host>/admin/linkedin/callback`, set `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET`, then connect from the panel. Tokens last two months and cannot refresh themselves.
+- **Scheduled LinkedIn posts** need `php artisan linkedin:work` running. It runs under supervisord in the Docker image; without it, nothing publishes.
 
 ## Security
 
-Found a vulnerability? Email **security@dansday.com** instead of opening an issue — [SECURITY.md](SECURITY.md).
+Found a vulnerability? Email **security@dansday.com** instead of opening an issue. See [SECURITY.md](SECURITY.md).
 
-## License
+---
 
-[MIT](LICENSE) · Author: Akbar Yudhanto · Version: 2.4.0
+MIT · Author: Akbar Yudhanto · Version: 2.4.0

@@ -10,6 +10,7 @@ return [
     'general'           => 'General',
     'ai'                => 'AI',
     'mcp'               => 'MCP',
+    'linkedin'          => 'LinkedIn',
     'home'              => 'Home',
     'logout'            => 'Logout',
     'pages'             => 'Pages',
