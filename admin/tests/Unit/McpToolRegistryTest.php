@@ -27,6 +27,13 @@ class McpToolRegistryTest extends TestCase
             'delete_about', 'reorder_about',
 
             'get_home_page', 'update_home_page', 'get_sections', 'update_sections',
+
+            'get_linkedin_status', 'post_to_linkedin',
+            'list_linkedin_posts', 'delete_linkedin_post', 'edit_linkedin_post',
+            'comment_on_linkedin_post',
+            'react_to_linkedin_post', 'reply_to_linkedin_comment',
+            'list_linkedin_comments', 'edit_linkedin_comment', 'delete_linkedin_comment',
+            'schedule_linkedin_post', 'list_linkedin_scheduled', 'cancel_linkedin_scheduled',
         ];
 
         foreach ($expected as $tool) {
@@ -108,6 +115,65 @@ class McpToolRegistryTest extends TestCase
                 'id',
                 $tools[$name]['inputSchema']['required'] ?? [],
                 "Tool \"{$name}\" must require an id so it cannot act on an unspecified row."
+            );
+        }
+    }
+
+    public function test_post_to_linkedin_declares_every_media_mode(): void
+    {
+        $tools = collect(ToolRegistry::schema())->keyBy('name');
+        $properties = $tools['post_to_linkedin']['inputSchema']['properties'];
+
+        foreach (['image', 'images', 'document', 'video'] as $mode) {
+            $this->assertArrayHasKey($mode, $properties, "post_to_linkedin cannot attach a {$mode}.");
+        }
+
+        $this->assertSame('array', $properties['images']['type']);
+        $this->assertArrayHasKey('items', $properties['images'], 'images must describe its entries or a client cannot build one.');
+        $this->assertContains('confirm', $tools['post_to_linkedin']['inputSchema']['required']);
+    }
+
+    public function test_post_to_linkedin_rejects_two_media_modes_at_once(): void
+    {
+        $this->expectException(ContentWriteException::class);
+
+        ToolRegistry::call('post_to_linkedin', [
+            'commentary' => 'Hello',
+            'confirm'    => true,
+            'document'   => 'media/linkedin/documents/document_abc.pdf',
+            'video'      => 'media/linkedin/videos/video_abc.mp4',
+        ]);
+    }
+
+    public function test_post_to_linkedin_refuses_without_confirmation(): void
+    {
+        $this->expectException(ContentWriteException::class);
+
+        ToolRegistry::call('post_to_linkedin', ['commentary' => 'Hello', 'confirm' => false]);
+    }
+
+    public function test_post_mutations_require_explicit_confirmation(): void
+    {
+        foreach (['delete_linkedin_post', 'edit_linkedin_post'] as $tool) {
+            try {
+                ToolRegistry::call($tool, ['commentary' => 'x', 'confirm' => false, 'id' => 1]);
+                $this->fail("Tool \"{$tool}\" acted on a public post without confirm=true.");
+            } catch (ContentWriteException $e) {
+                $this->assertStringContainsString('confirm=true', $e->getMessage());
+            }
+        }
+    }
+
+    public function test_every_outward_facing_linkedin_tool_declares_confirm(): void
+    {
+        $tools = collect(ToolRegistry::schema())->keyBy('name');
+
+        foreach (['post_to_linkedin', 'delete_linkedin_post', 'edit_linkedin_post', 'comment_on_linkedin_post', 'schedule_linkedin_post',
+                     'react_to_linkedin_post', 'reply_to_linkedin_comment', 'edit_linkedin_comment', 'delete_linkedin_comment'] as $name) {
+            $this->assertContains(
+                'confirm',
+                $tools[$name]['inputSchema']['required'] ?? [],
+                "Tool \"{$name}\" changes what the public sees and must require confirm."
             );
         }
     }

@@ -93,7 +93,7 @@ RUN mkdir -p /etc/caddy && cat > /etc/caddy/Caddyfile <<'CADDYEOF'
 }
 CADDYEOF
 
-RUN printf "memory_limit=512M\nmax_execution_time=600\n" > /usr/local/etc/php/conf.d/custom.ini
+RUN printf "memory_limit=512M\nmax_execution_time=600\nupload_max_filesize=200M\npost_max_size=210M\nmax_file_uploads=25\n" > /usr/local/etc/php/conf.d/custom.ini
 
 COPY docker/supervisord.conf /etc/supervisord.conf
 COPY docker/admin-entrypoint.sh /usr/local/bin/admin-entrypoint.sh

@@ -87,6 +87,9 @@ Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
 });
 
 Route::namespace('Admin')->middleware(['auth', 'XSS'])->group(function () {
+    Route::get('admin/linkedin', [App\Http\Controllers\LinkedInController::class, 'index']);
+    Route::post('admin/linkedin/disconnect', [App\Http\Controllers\LinkedInController::class, 'disconnect']);
+    Route::delete('admin/linkedin/scheduled/{id}', [App\Http\Controllers\LinkedInController::class, 'cancelScheduled']);
     Route::get('admin/linkedin/connect', [App\Http\Controllers\LinkedInController::class, 'connect']);
     Route::get('admin/linkedin/callback', [App\Http\Controllers\LinkedInController::class, 'callback']);
 });
