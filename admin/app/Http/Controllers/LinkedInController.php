@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LinkedInPost;
 use App\Models\LinkedInScheduledPost;
+use App\Models\User;
 use App\Services\LinkedInService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -13,6 +14,7 @@ class LinkedInController extends Controller
     public function index()
     {
         return view('admin.pages.linkedin')
+            ->with('user', User::find(1))
             ->with('status', LinkedInService::status())
             ->with('configured', LinkedInService::isConfigured())
             ->with('scheduled', LinkedInScheduledPost::orderByRaw("status = 'pending' DESC")->orderBy('publish_at')->take(25)->get())
