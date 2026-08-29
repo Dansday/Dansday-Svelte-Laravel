@@ -2,12 +2,46 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\LinkedInPost;
+use App\Models\LinkedInScheduledPost;
 use App\Services\LinkedInService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class LinkedInController extends Controller
 {
+    public function index()
+    {
+        return view('admin.pages.linkedin')
+            ->with('status', LinkedInService::status())
+            ->with('configured', LinkedInService::isConfigured())
+            ->with('scheduled', LinkedInScheduledPost::orderByRaw("status = 'pending' DESC")->orderBy('publish_at')->take(25)->get())
+            ->with('posts', LinkedInPost::orderByDesc('posted_at')->orderByDesc('id')->take(25)->get());
+    }
+
+    public function disconnect()
+    {
+        LinkedInService::disconnect();
+
+        return redirect('/admin/linkedin')->with('ok-update', '');
+    }
+
+    public function cancelScheduled($id)
+    {
+        $row = LinkedInScheduledPost::find($id);
+
+        if (! $row || ! $row->isPending()) {
+            return redirect('/admin/linkedin')->with('no-delete', '');
+        }
+
+        $row->forceFill([
+            'status'       => LinkedInScheduledPost::CANCELLED,
+            'cancelled_at' => now(),
+        ])->save();
+
+        return redirect('/admin/linkedin')->with('ok-update', '');
+    }
+
     public function connect(Request $request)
     {
         if (! LinkedInService::isConfigured()) {

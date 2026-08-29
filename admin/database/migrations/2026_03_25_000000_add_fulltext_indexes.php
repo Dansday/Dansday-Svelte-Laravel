@@ -28,8 +28,10 @@ return new class extends Migration
             $table->fullText(['title', 'description'], 'service_fulltext');
         });
 
-        Schema::table('testimonial', function (Blueprint $table) {
-            $table->fullText(['name', 'company', 'description'], 'testimonial_fulltext');
+        $testimonialBody = Schema::hasColumn('testimonial', 'description') ? 'description' : 'text';
+
+        Schema::table('testimonial', function (Blueprint $table) use ($testimonialBody) {
+            $table->fullText(['name', 'company', $testimonialBody], 'testimonial_fulltext');
         });
 
         Schema::table('skill', function (Blueprint $table) {

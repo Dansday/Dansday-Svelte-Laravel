@@ -49,6 +49,7 @@ The admin panel seeds itself on first visit when no settings row exists, so a fr
 | `admin/app/Services`       | AI generation, embeddings, similar content, shared content writes, LinkedIn |
 | `admin/app/Mcp`            | MCP tool definitions and the registry behind `POST /mcp`                  |
 | `admin/app/Models`         | Eloquent models; note several map to singular table names (`skill`, …)    |
+| `admin/app/Support`        | Standalone helpers with no framework ties — `SafeUrlFetcher`              |
 | `admin/resources/views`    | Blade templates for the panel                                             |
 | `admin/resources/sass`     | Panel SCSS                                                                |
 | `admin/resources/lang`     | Panel translations, 18 locales                                            |
