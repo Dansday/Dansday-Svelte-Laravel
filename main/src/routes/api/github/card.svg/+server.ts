@@ -6,7 +6,7 @@ const HEIGHT = 195;
 const COLORS = {
 	bg: '#070707',
 	border: '#262626',
-	title: '#F97316',
+	title: '#E60000',
 	label: '#A4A4A4',
 	value: '#C1C1C1',
 	muted: '#868686'
