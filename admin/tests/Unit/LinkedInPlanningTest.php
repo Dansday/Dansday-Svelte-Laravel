@@ -25,7 +25,6 @@ class LinkedInPlanningTest extends TestCase
         return [
             'body'          => ['body'],
             'card'          => ['card'],
-            'first comment' => ['first_comment'],
             'none'          => ['none'],
         ];
     }
@@ -48,10 +47,10 @@ class LinkedInPlanningTest extends TestCase
         $this->plan(['link_placement' => 'card']);
     }
 
-    public function test_a_first_comment_link_needs_an_article(): void
+    public function test_first_comment_placement_is_no_longer_accepted(): void
     {
         $this->expectException(ContentWriteException::class);
-        $this->plan(['link_placement' => 'first_comment']);
+        $this->plan(['article_id' => 3, 'link_placement' => 'first_comment']);
     }
 
     public static function conflictingMedia(): array
@@ -69,20 +68,6 @@ class LinkedInPlanningTest extends TestCase
     {
         $this->expectException(ContentWriteException::class);
         $this->plan(['article_id' => 3, 'link_placement' => 'card'] + $media);
-    }
-
-    public function test_a_free_text_first_comment_needs_no_article(): void
-    {
-        $plan = $this->plan(['first_comment' => 'More detail in the thread.']);
-
-        $this->assertSame('More detail in the thread.', $plan['first_comment']);
-        $this->assertSame('body', $plan['placement']);
-    }
-
-    public function test_an_over_long_first_comment_is_refused(): void
-    {
-        $this->expectException(ContentWriteException::class);
-        $this->plan(['first_comment' => str_repeat('a', 1251)]);
     }
 
     public function test_empty_commentary_is_refused(): void
@@ -197,61 +182,4 @@ class LinkedInPlanningTest extends TestCase
         ]);
     }
 
-    public function test_a_reply_refuses_a_bad_parent_urn(): void
-    {
-        $this->expectException(ContentWriteException::class);
-
-        ToolRegistry::call('reply_to_linkedin_comment', [
-            'parent_comment_urn' => 'comment-42',
-            'post_urn'           => 'urn:li:share:123',
-            'comment'            => 'Thanks',
-            'confirm'            => true,
-        ]);
-    }
-
-    public function test_a_reply_needs_to_know_which_post_it_is_on(): void
-    {
-        $this->expectException(ContentWriteException::class);
-
-        ToolRegistry::call('reply_to_linkedin_comment', [
-            'parent_comment_urn' => 'urn:li:comment:(urn:li:activity:1,2)',
-            'comment'            => 'Thanks',
-            'confirm'            => true,
-        ]);
-    }
-
-    public function test_an_over_long_reply_is_refused(): void
-    {
-        $this->expectException(ContentWriteException::class);
-
-        ToolRegistry::call('reply_to_linkedin_comment', [
-            'parent_comment_urn' => 'urn:li:comment:(urn:li:activity:1,2)',
-            'post_urn'           => 'urn:li:share:123',
-            'comment'            => str_repeat('a', 1251),
-            'confirm'            => true,
-        ]);
-    }
-
-    public function test_replying_requires_confirmation(): void
-    {
-        $this->expectException(ContentWriteException::class);
-
-        ToolRegistry::call('reply_to_linkedin_comment', [
-            'parent_comment_urn' => 'urn:li:comment:(urn:li:activity:1,2)',
-            'post_urn'           => 'urn:li:share:123',
-            'comment'            => 'Thanks',
-            'confirm'            => false,
-        ]);
-    }
-
-    public function test_commenting_requires_confirmation(): void
-    {
-        $this->expectException(ContentWriteException::class);
-
-        ToolRegistry::call('comment_on_linkedin_post', [
-            'comment' => 'Link below',
-            'confirm' => false,
-            'id'      => 1,
-        ]);
-    }
 }

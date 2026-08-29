@@ -30,9 +30,7 @@ class McpToolRegistryTest extends TestCase
 
             'get_linkedin_status', 'post_to_linkedin',
             'list_linkedin_posts', 'delete_linkedin_post', 'edit_linkedin_post',
-            'comment_on_linkedin_post',
-            'react_to_linkedin_post', 'reply_to_linkedin_comment',
-            'list_linkedin_comments', 'edit_linkedin_comment', 'delete_linkedin_comment',
+            'react_to_linkedin_post',
             'schedule_linkedin_post', 'list_linkedin_scheduled', 'cancel_linkedin_scheduled',
         ];
 
@@ -168,8 +166,7 @@ class McpToolRegistryTest extends TestCase
     {
         $tools = collect(ToolRegistry::schema())->keyBy('name');
 
-        foreach (['post_to_linkedin', 'delete_linkedin_post', 'edit_linkedin_post', 'comment_on_linkedin_post', 'schedule_linkedin_post',
-                     'react_to_linkedin_post', 'reply_to_linkedin_comment', 'edit_linkedin_comment', 'delete_linkedin_comment'] as $name) {
+        foreach (['post_to_linkedin', 'delete_linkedin_post', 'edit_linkedin_post', 'schedule_linkedin_post', 'react_to_linkedin_post'] as $name) {
             $this->assertContains(
                 'confirm',
                 $tools[$name]['inputSchema']['required'] ?? [],

@@ -57,8 +57,8 @@ A portfolio site that looks like a terminal, and the Laravel panel that runs it.
 ### LinkedIn
 
 - **Posts to your personal feed** - one image, 2-20 as a swipeable set, a PDF or slide deck as a carousel, or a video. You write the commentary; nothing is rewritten or summarised.
-- **Link placement** - `body`, `card` for a real preview with its own title, description and thumbnail, `first_comment` to keep reach since LinkedIn suppresses posts carrying an outbound link, or `none`.
-- **Full lifecycle** - edit the text, delete the post, comment, reply, and react with any of the six reaction types. Comments cannot be read back, so replying needs the comment's urn copied from LinkedIn.
+- **Link placement** - `body`, `card` for a real preview with its own title, description and thumbnail, or `none`. LinkedIn suppresses reach on posts carrying an outbound link, and the usual workaround — dropping it in the first comment — is not possible: commenting through the API needs partner access, which is not self-serve.
+- **Post lifecycle** - edit the text of a live post, delete it, or react with any of the six reaction types.
 - **Scheduling** - queue a post for later and a worker publishes it. Arguments are validated when you schedule; media uploads at publish time.
 - **Panel page** - the connection, token expiry with a warning inside 14 days, the queue, and everything published.
 

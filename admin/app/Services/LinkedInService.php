@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Exceptions\ContentWriteException;
 use App\Models\General;
-use App\Models\LinkedInComment;
 use App\Models\LinkedInPost;
 use App\Support\SafeUrlFetcher;
 use GuzzleHttp\Psr7\Utils;
@@ -35,8 +34,6 @@ class LinkedInService
 
     private const VIDEOS_URL = 'https://api.linkedin.com/rest/videos';
 
-    private const SOCIAL_ACTIONS_URL = 'https://api.linkedin.com/rest/socialActions';
-
     private const REACTIONS_URL = 'https://api.linkedin.com/rest/reactions';
 
     public const MAX_ALT_TEXT = 4086;
@@ -46,8 +43,6 @@ class LinkedInService
     public const MIN_MULTI_IMAGES = 2;
 
     public const MAX_TITLE = 400;
-
-    public const MAX_COMMENT = 1250;
 
     public const EXPIRY_WARNING_DAYS = 14;
 
@@ -160,208 +155,6 @@ class LinkedInService
             'connect_url'    => $expiringSoon ? self::connectUrl() : null,
             'scopes'         => self::SCOPES,
         ], fn ($value) => $value !== null);
-    }
-
-    public static function comment(string $urn, string $text, ?string $parentComment = null, ?int $postId = null): array
-    {
-        $status = self::status();
-
-        if (empty($status['connected'])) {
-            return $status;
-        }
-
-        $general = self::settings();
-        $person = trim((string) $general->linkedin_person_urn);
-
-        $body = [
-            'actor'   => $person,
-            'object'  => $urn,
-            'message' => ['text' => $text],
-        ];
-
-        if ($parentComment !== null && $parentComment !== '') {
-            $body['parentComment'] = $parentComment;
-        }
-
-        $response = Http::withToken(trim((string) $general->linkedin_access_token))
-            ->withHeaders(self::apiHeaders())
-            ->timeout(30)
-            ->post(self::SOCIAL_ACTIONS_URL.'/'.rawurlencode($urn).'/comments', $body);
-
-        if (! $response->successful()) {
-            Log::warning('LinkedIn comment failed: HTTP '.$response->status().' '.substr($response->body(), 0, 300));
-
-            return [
-                'ok'       => false,
-                'reason'   => 'comment_failed',
-                'status'   => $response->status(),
-                'response' => substr($response->body(), 0, 300),
-                'post_urn' => $urn,
-            ];
-        }
-
-        $commentUrn = (string) ($response->json('$URN') ?: $response->header('x-restli-id') ?: '');
-        $record = $commentUrn !== '' ? self::recordComment($commentUrn, $urn, $text, $parentComment, $postId) : null;
-
-        return [
-            'ok'          => true,
-            'commented'   => true,
-            'post_urn'    => $urn,
-            'comment_urn' => $commentUrn ?: null,
-            'comment_id'  => $record?->id,
-            'is_reply'    => $parentComment !== null && $parentComment !== '',
-            'characters'  => mb_strlen($text),
-        ];
-    }
-
-    private static function recordComment(string $urn, string $postUrn, string $text, ?string $parent, ?int $postId): ?LinkedInComment
-    {
-        try {
-            return LinkedInComment::updateOrCreate(
-                ['urn' => $urn],
-                [
-                    'post_urn'           => $postUrn,
-                    'linkedin_post_id'   => $postId,
-                    'parent_comment_urn' => $parent ?: null,
-                    'text'               => $text,
-                ]
-            );
-        } catch (\Throwable $e) {
-            Log::warning('LinkedIn comment posted but could not be recorded locally: '.$e->getMessage());
-
-            return null;
-        }
-    }
-
-    public static function findComment(?int $id, ?string $urn): LinkedInComment
-    {
-        if ($id) {
-            $comment = LinkedInComment::find($id);
-
-            if (! $comment) {
-                throw new ContentWriteException("No recorded LinkedIn comment with id {$id}. Call list_linkedin_comments to see what is on record.");
-            }
-
-            return $comment;
-        }
-
-        $urn = trim((string) $urn);
-
-        if ($urn === '') {
-            throw new ContentWriteException('Pass either id or urn to identify the comment.');
-        }
-
-        $comment = LinkedInComment::where('urn', $urn)->first();
-
-        if (! $comment) {
-            throw new ContentWriteException(
-                "\"{$urn}\" is not a recorded LinkedIn comment. Only comments made through this server are on record, because LinkedIn does not let this app read comments back."
-            );
-        }
-
-        return $comment;
-    }
-
-    public static function editComment(LinkedInComment $comment, string $text): array
-    {
-        $status = self::status();
-
-        if (empty($status['connected'])) {
-            return $status;
-        }
-
-        if ($comment->isDeleted()) {
-            return [
-                'ok'      => false,
-                'reason'  => 'already_deleted',
-                'message' => 'That comment was deleted on '.$comment->deleted_at->toDateTimeString().'.',
-            ];
-        }
-
-        $response = Http::withToken(trim((string) self::settings()->linkedin_access_token))
-            ->withHeaders(self::apiHeaders() + ['X-RestLi-Method' => 'PARTIAL_UPDATE'])
-            ->timeout(30)
-            ->post(self::commentUrl($comment), [
-                'patch' => ['$set' => ['message' => ['text' => $text]]],
-            ]);
-
-        if (! $response->successful() && $response->status() !== 204) {
-            Log::warning('LinkedIn comment edit failed: HTTP '.$response->status().' '.substr($response->body(), 0, 300));
-
-            return [
-                'ok'          => false,
-                'reason'      => 'comment_edit_failed',
-                'status'      => $response->status(),
-                'response'    => substr($response->body(), 0, 300),
-                'comment_urn' => $comment->urn,
-            ];
-        }
-
-        $comment->forceFill(['text' => $text, 'edited_at' => now()])->save();
-
-        return [
-            'ok'          => true,
-            'edited'      => true,
-            'comment_id'  => $comment->id,
-            'comment_urn' => $comment->urn,
-            'characters'  => mb_strlen($text),
-        ];
-    }
-
-    public static function deleteComment(LinkedInComment $comment): array
-    {
-        $status = self::status();
-
-        if (empty($status['connected'])) {
-            return $status;
-        }
-
-        if ($comment->isDeleted()) {
-            return [
-                'ok'      => false,
-                'reason'  => 'already_deleted',
-                'message' => 'That comment was already deleted on '.$comment->deleted_at->toDateTimeString().'.',
-            ];
-        }
-
-        $person = trim((string) self::settings()->linkedin_person_urn);
-
-        $response = Http::withToken(trim((string) self::settings()->linkedin_access_token))
-            ->withHeaders(self::apiHeaders())
-            ->timeout(30)
-            ->delete(self::commentUrl($comment).'?actor='.rawurlencode($person));
-
-        if ($response->status() === 404) {
-            $comment->forceFill(['deleted_at' => now()])->save();
-
-            return [
-                'ok'          => false,
-                'reason'      => 'not_found',
-                'message'     => 'LinkedIn has no such comment. It was probably deleted there already; the local record is now marked deleted too.',
-                'comment_urn' => $comment->urn,
-            ];
-        }
-
-        if (! $response->successful() && $response->status() !== 204) {
-            Log::warning('LinkedIn comment delete failed: HTTP '.$response->status().' '.substr($response->body(), 0, 300));
-
-            return [
-                'ok'          => false,
-                'reason'      => 'comment_delete_failed',
-                'status'      => $response->status(),
-                'response'    => substr($response->body(), 0, 300),
-                'comment_urn' => $comment->urn,
-            ];
-        }
-
-        $comment->forceFill(['deleted_at' => now()])->save();
-
-        return ['ok' => true, 'deleted' => true, 'comment_id' => $comment->id, 'comment_urn' => $comment->urn];
-    }
-
-    private static function commentUrl(LinkedInComment $comment): string
-    {
-        return self::SOCIAL_ACTIONS_URL.'/'.rawurlencode($comment->post_urn).'/comments/'.rawurlencode($comment->urn);
     }
 
     public static function react(string $urn, ?string $reaction): array

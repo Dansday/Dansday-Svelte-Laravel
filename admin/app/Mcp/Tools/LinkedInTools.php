@@ -4,7 +4,6 @@ namespace App\Mcp\Tools;
 
 use App\Exceptions\ContentWriteException;
 use App\Mcp\Args;
-use App\Models\LinkedInComment;
 use App\Models\LinkedInPost;
 use App\Models\LinkedInScheduledPost;
 use App\Services\LinkedInService;
@@ -23,21 +22,6 @@ class LinkedInTools
                 'handler'     => fn () => LinkedInService::status(),
             ],
             [
-                'name'        => 'comment_on_linkedin_post',
-                'description' => 'Add a comment to one of your own LinkedIn posts, identified by the id or urn from list_linkedin_posts. The usual reason is to put a link in the first comment rather than the post body, which avoids the reach penalty LinkedIn applies to posts with outbound links. post_to_linkedin can do that in one step with link_placement="first_comment"; this tool is for adding one afterwards.',
-                'inputSchema' => [
-                    'type'       => 'object',
-                    'properties' => [
-                        'id'      => ['type' => 'integer', 'description' => 'Local record id from list_linkedin_posts.'],
-                        'urn'     => ['type' => 'string', 'description' => 'The post URN, if you have that rather than the id.'],
-                        'comment' => ['type' => 'string', 'description' => 'The comment text, up to 1250 characters.'],
-                        'confirm' => ['type' => 'boolean', 'description' => 'Must be true. The comment is public and immediate.'],
-                    ],
-                    'required'   => ['comment', 'confirm'],
-                ],
-                'handler'     => fn (array $a) => self::comment($a),
-            ],
-            [
                 'name'        => 'react_to_linkedin_post',
                 'description' => 'React to a post or a comment on LinkedIn. Works on anything you can see, not just your own content — pass the urn of someone else\'s post to react to it. Reaction types are LIKE, PRAISE, APPRECIATION, EMPATHY, INTEREST and ENTERTAINMENT; pass "none" to take your reaction back. Setting a new reaction replaces whatever you had before.',
                 'inputSchema' => [
@@ -53,66 +37,6 @@ class LinkedInTools
                 'handler'     => fn (array $a) => self::react($a),
             ],
             [
-                'name'        => 'reply_to_linkedin_comment',
-                'description' => 'Reply to a comment on LinkedIn. Because LinkedIn does not let this app read comments, you have to supply the comment urn yourself — open the comment on LinkedIn and copy it from the permalink. The post urn is needed too, and can come from list_linkedin_posts when the post is yours.',
-                'inputSchema' => [
-                    'type'       => 'object',
-                    'properties' => [
-                        'post_id'            => ['type' => 'integer', 'description' => 'Local record id of your post the comment sits on.'],
-                        'post_urn'           => ['type' => 'string', 'description' => 'Urn of the post the comment sits on, if it did not come from this server.'],
-                        'parent_comment_urn' => ['type' => 'string', 'description' => 'Urn of the comment being replied to, e.g. urn:li:comment:(urn:li:activity:123,456).'],
-                        'comment'            => ['type' => 'string', 'description' => 'The reply text, up to 1250 characters.'],
-                        'confirm'            => ['type' => 'boolean', 'description' => 'Must be true. The reply is public and immediate.'],
-                    ],
-                    'required'   => ['parent_comment_urn', 'comment', 'confirm'],
-                ],
-                'handler'     => fn (array $a) => self::reply($a),
-            ],
-            [
-                'name'        => 'list_linkedin_comments',
-                'description' => 'List the comments and replies this server has posted, newest first. LinkedIn does not let this app read comments back, so this is a local record only — it does not show what other people wrote, and it does not show comments you made from the LinkedIn app. Use it to find the id that edit_linkedin_comment and delete_linkedin_comment need.',
-                'inputSchema' => [
-                    'type'       => 'object',
-                    'properties' => [
-                        'post_urn'        => ['type' => 'string', 'description' => 'Only comments on this post.'],
-                        'replies_only'    => ['type' => 'boolean', 'description' => 'Only replies to other comments. Default false.'],
-                        'include_deleted' => ['type' => 'boolean', 'description' => 'Include comments already deleted. Default false.'],
-                        'limit'           => ['type' => 'integer', 'description' => 'Max rows to return (1-100). Default 25.'],
-                        'offset'          => ['type' => 'integer', 'description' => 'Rows to skip, for paging. Default 0.'],
-                    ],
-                ],
-                'handler'     => fn (array $a) => self::listComments($a),
-            ],
-            [
-                'name'        => 'edit_linkedin_comment',
-                'description' => 'Replace the text of a comment this server posted, identified by the id or urn from list_linkedin_comments. Only comments on record can be edited.',
-                'inputSchema' => [
-                    'type'       => 'object',
-                    'properties' => [
-                        'id'      => ['type' => 'integer', 'description' => 'Local record id from list_linkedin_comments.'],
-                        'urn'     => ['type' => 'string', 'description' => 'The comment urn, if you have that rather than the id.'],
-                        'comment' => ['type' => 'string', 'description' => 'The replacement text, in full.'],
-                        'confirm' => ['type' => 'boolean', 'description' => 'Must be true. The change is public and immediate.'],
-                    ],
-                    'required'   => ['comment', 'confirm'],
-                ],
-                'handler'     => fn (array $a) => self::editComment($a),
-            ],
-            [
-                'name'        => 'delete_linkedin_comment',
-                'description' => 'Permanently delete a comment this server posted, identified by the id or urn from list_linkedin_comments. This cannot be undone.',
-                'inputSchema' => [
-                    'type'       => 'object',
-                    'properties' => [
-                        'id'      => ['type' => 'integer', 'description' => 'Local record id from list_linkedin_comments.'],
-                        'urn'     => ['type' => 'string', 'description' => 'The comment urn, if you have that rather than the id.'],
-                        'confirm' => ['type' => 'boolean', 'description' => 'Must be true. Guards against deleting a public comment by accident.'],
-                    ],
-                    'required'   => ['confirm'],
-                ],
-                'handler'     => fn (array $a) => self::deleteComment($a),
-            ],
-            [
                 'name'        => 'schedule_linkedin_post',
                 'description' => 'Queue a post to go out later instead of now. Takes the same arguments as post_to_linkedin plus publish_at. The arguments are validated immediately — a bad category, an over-long commentary or a missing upload is reported now rather than silently failing at publish time — but images, documents and video are uploaded when the post actually goes out, so the files must still be there. A worker publishes due posts; if it is not running, nothing is sent.',
                 'inputSchema' => [
@@ -121,10 +45,9 @@ class LinkedInTools
                         'publish_at'       => ['type' => 'string', 'description' => 'When to publish, as an absolute local datetime: YYYY-MM-DD HH:MM:SS or YYYY-MM-DD HH:MM. Must be in the future. Relative values like "tomorrow" are rejected.'],
                         'commentary'       => ['type' => 'string', 'description' => 'The post text, in your own words.'],
                         'article_id'       => ['type' => 'integer', 'description' => 'Optional id of a published article to link to.'],
-                        'link_placement'   => ['type' => 'string', 'description' => 'body, card, first_comment or none. Same meaning as in post_to_linkedin.'],
+                        'link_placement'   => ['type' => 'string', 'description' => 'body, card or none. Same meaning as in post_to_linkedin.'],
                         'link_title'       => ['type' => 'string', 'description' => 'Headline override for link_placement="card".'],
                         'link_description' => ['type' => 'string', 'description' => 'Summary override for link_placement="card".'],
-                        'first_comment'    => ['type' => 'string', 'description' => 'Text to post as a comment straight after publishing.'],
                         'visibility'       => ['type' => 'string', 'description' => 'PUBLIC or CONNECTIONS. Defaults to PUBLIC.'],
                         'image'            => ['type' => 'string', 'description' => 'A single image, as in post_to_linkedin.'],
                         'alt_text'         => ['type' => 'string', 'description' => 'Alt text for the single image.'],
@@ -226,10 +149,9 @@ class LinkedInTools
                     'properties' => [
                         'commentary'       => ['type' => 'string', 'description' => 'The post text, in your own words. Do not paste the article URL into it — link_placement decides where that goes.'],
                         'article_id'       => ['type' => 'integer', 'description' => 'Optional id of a published article to link to. Omit to post standalone content.'],
-                        'link_placement'   => ['type' => 'string', 'description' => 'Where the article URL goes. "body" (default) appends it to the text. "card" attaches a proper link preview with its own title, description and thumbnail, and keeps the URL out of the text entirely — it cannot be combined with an image, document or video. "first_comment" posts clean text and drops the link in the first comment, which avoids the reach penalty LinkedIn applies to outbound links. "none" mentions no URL at all. Ignored without article_id.'],
+                        'link_placement'   => ['type' => 'string', 'description' => 'Where the article URL goes. "body" (default) appends it to the text. "card" attaches a proper link preview with its own title, description and thumbnail, and keeps the URL out of the text entirely — it cannot be combined with an image, document or video. "none" mentions no URL at all. Ignored without article_id.'],
                         'link_title'       => ['type' => 'string', 'description' => 'Overrides the headline shown on the link card. Defaults to the article title. Only used with link_placement="card".'],
                         'link_description' => ['type' => 'string', 'description' => 'Overrides the summary shown on the link card. Defaults to the article summary. Only used with link_placement="card".'],
-                        'first_comment'    => ['type' => 'string', 'description' => 'Optional text posted as a comment on your own post immediately after publishing. With link_placement="first_comment" the article URL is appended to it.'],
                         'visibility'     => ['type' => 'string', 'description' => 'PUBLIC (anyone) or CONNECTIONS (first-degree only). Defaults to PUBLIC.'],
                         'image'          => ['type' => 'string', 'description' => 'A single image: an uploads path from POST /mcp/uploads, or an absolute URL. Pass "article" to reuse the linked article\'s cover image, which needs article_id. Mutually exclusive with images, document and video.'],
                         'alt_text'       => ['type' => 'string', 'description' => 'Alt text for the single image, for screen readers. Keep it under 120 characters.'],
@@ -285,19 +207,12 @@ class LinkedInTools
             throw new ContentWriteException('commentary is empty. Write the post text yourself.');
         }
 
-        $firstComment = trim((string) ($args['first_comment'] ?? ''));
-
-        if ($firstComment !== '' && mb_strlen($firstComment) > LinkedInService::MAX_COMMENT) {
-            throw new ContentWriteException('first_comment is longer than '.LinkedInService::MAX_COMMENT.' characters.');
-        }
-
         return [
             'visibility'    => $visibility,
             'mode'          => $mode,
             'placement'     => $placement,
             'article_id'    => $articleId,
             'commentary'    => $commentary,
-            'first_comment' => $firstComment,
         ];
     }
 
@@ -362,28 +277,7 @@ class LinkedInTools
             $result += ['article_id' => null];
         }
 
-        $comment = self::firstCommentText($plan, $article);
-
-        if ($comment !== '' && ! empty($result['post_urn'])) {
-            $posted = LinkedInService::comment($result['post_urn'], $comment, null, $result['post_id'] ?? null);
-
-            $result['first_comment'] = empty($posted['ok'])
-                ? ['ok' => false, 'reason' => $posted['reason'] ?? 'comment_failed', 'message' => 'The post went out, but the first comment did not. Retry it with comment_on_linkedin_post.']
-                : ['ok' => true, 'text' => $comment];
-        }
-
         return $result;
-    }
-
-    private static function firstCommentText(array $plan, ?array $article): string
-    {
-        $text = $plan['first_comment'];
-
-        if ($plan['placement'] === 'first_comment' && $article) {
-            $text = $text === '' ? $article['url'] : $text."\n\n".$article['url'];
-        }
-
-        return $text;
     }
 
     private static function selectPlacement(array $args, ?string $mode, bool $hasArticle): string
@@ -394,11 +288,11 @@ class LinkedInTools
             $placement = 'body';
         }
 
-        if (! in_array($placement, ['body', 'card', 'first_comment', 'none'], true)) {
-            throw new ContentWriteException('link_placement must be one of: body, card, first_comment, none.');
+        if (! in_array($placement, ['body', 'card', 'none'], true)) {
+            throw new ContentWriteException('link_placement must be one of: body, card, none.');
         }
 
-        if (in_array($placement, ['card', 'first_comment'], true) && ! $hasArticle) {
+        if ($placement === 'card' && ! $hasArticle) {
             throw new ContentWriteException("link_placement=\"{$placement}\" needs an article_id, since there is otherwise no link to place.");
         }
 
@@ -437,40 +331,6 @@ class LinkedInTools
         return ['content' => ['article' => $card], 'type' => 'link_card'];
     }
 
-    private static function comment(array $args): array
-    {
-        if (($args['confirm'] ?? false) !== true) {
-            throw new ContentWriteException('Refusing to comment: pass confirm=true once the user has agreed to publish this comment.');
-        }
-
-        $post = LinkedInService::findPost(
-            isset($args['id']) && $args['id'] !== '' ? (int) $args['id'] : null,
-            $args['urn'] ?? null
-        );
-
-        if ($post->isDeleted()) {
-            return [
-                'ok'      => false,
-                'reason'  => 'already_deleted',
-                'message' => 'That post was deleted on '.$post->deleted_at->toDateTimeString().', so it cannot be commented on.',
-            ];
-        }
-
-        $text = trim((string) $args['comment']);
-
-        if ($text === '') {
-            throw new ContentWriteException('comment is empty. Write the comment text yourself.');
-        }
-
-        if (mb_strlen($text) > LinkedInService::MAX_COMMENT) {
-            throw new ContentWriteException(
-                'A LinkedIn comment is capped at '.LinkedInService::MAX_COMMENT.' characters, got '.mb_strlen($text).'.'
-            );
-        }
-
-        return LinkedInService::comment($post->urn, $text, null, $post->id) + ['post_id' => $post->id];
-    }
-
     private static function schedule(array $args): array
     {
         if (($args['confirm'] ?? false) !== true) {
@@ -486,7 +346,7 @@ class LinkedInTools
 
         $payload = Arr::only($args, [
             'commentary', 'article_id', 'visibility', 'link_placement', 'link_title', 'link_description',
-            'first_comment', 'image', 'alt_text', 'images', 'document', 'document_title', 'video', 'video_title',
+            'image', 'alt_text', 'images', 'document', 'document_title', 'video', 'video_title',
         ]);
 
         $scheduled = LinkedInScheduledPost::create([
@@ -649,125 +509,6 @@ class LinkedInTools
         }
 
         return LinkedInService::react(self::entityUrn($args), $reaction);
-    }
-
-    private static function reply(array $args): array
-    {
-        if (($args['confirm'] ?? false) !== true) {
-            throw new ContentWriteException('Refusing to reply: pass confirm=true once the user has agreed to publish this reply.');
-        }
-
-        $parent = self::assertUrn((string) $args['parent_comment_urn'], 'parent_comment_urn');
-
-        $postId = null;
-        $postUrn = trim((string) ($args['post_urn'] ?? ''));
-
-        if (isset($args['post_id']) && $args['post_id'] !== '') {
-            $post = LinkedInService::findPost((int) $args['post_id'], null);
-            $postId = $post->id;
-            $postUrn = $post->urn;
-        }
-
-        if ($postUrn === '') {
-            throw new ContentWriteException('Pass post_id for one of your own posts, or post_urn for the post the comment sits on.');
-        }
-
-        $postUrn = self::assertUrn($postUrn, 'post_urn');
-        $text = trim((string) $args['comment']);
-
-        if ($text === '') {
-            throw new ContentWriteException('comment is empty. Write the reply text yourself.');
-        }
-
-        if (mb_strlen($text) > LinkedInService::MAX_COMMENT) {
-            throw new ContentWriteException(
-                'A LinkedIn comment is capped at '.LinkedInService::MAX_COMMENT.' characters, got '.mb_strlen($text).'.'
-            );
-        }
-
-        return LinkedInService::comment($postUrn, $text, $parent, $postId);
-    }
-
-    private static function listComments(array $args): array
-    {
-        $query = LinkedInComment::query()->orderByDesc('created_at')->orderByDesc('id');
-
-        if (empty($args['include_deleted'])) {
-            $query->live();
-        }
-
-        if (! empty($args['replies_only'])) {
-            $query->whereNotNull('parent_comment_urn');
-        }
-
-        if (! empty($args['post_urn'])) {
-            $query->where('post_urn', trim((string) $args['post_urn']));
-        }
-
-        $total = (clone $query)->count();
-        $limit = Args::limit($args);
-        $offset = Args::offset($args);
-
-        $rows = $query->skip($offset)->take($limit)->get()->map(fn (LinkedInComment $row) => array_filter([
-            'id'                 => $row->id,
-            'urn'                => $row->urn,
-            'post_urn'           => $row->post_urn,
-            'linkedin_post_id'   => $row->linkedin_post_id,
-            'parent_comment_urn' => $row->parent_comment_urn,
-            'is_reply'           => $row->isReply(),
-            'text'               => $row->text,
-            'created_at'         => $row->created_at?->toDateTimeString(),
-            'edited_at'          => $row->edited_at?->toDateTimeString(),
-            'deleted_at'         => $row->deleted_at?->toDateTimeString(),
-        ], fn ($value) => $value !== null && $value !== false))->all();
-
-        return [
-            'comments' => $rows,
-            'total'    => $total,
-            'limit'    => $limit,
-            'offset'   => $offset,
-            'note'     => 'Only comments this server posted. LinkedIn does not let this app read comments, so nothing written by anyone else appears here.',
-        ];
-    }
-
-    private static function editComment(array $args): array
-    {
-        if (($args['confirm'] ?? false) !== true) {
-            throw new ContentWriteException('Refusing to edit: pass confirm=true once the user has agreed to change this public comment.');
-        }
-
-        $comment = LinkedInService::findComment(
-            isset($args['id']) && $args['id'] !== '' ? (int) $args['id'] : null,
-            $args['urn'] ?? null
-        );
-
-        $text = trim((string) $args['comment']);
-
-        if ($text === '') {
-            throw new ContentWriteException('comment is empty. Write the replacement text yourself.');
-        }
-
-        if (mb_strlen($text) > LinkedInService::MAX_COMMENT) {
-            throw new ContentWriteException(
-                'A LinkedIn comment is capped at '.LinkedInService::MAX_COMMENT.' characters, got '.mb_strlen($text).'.'
-            );
-        }
-
-        return LinkedInService::editComment($comment, $text);
-    }
-
-    private static function deleteComment(array $args): array
-    {
-        if (($args['confirm'] ?? false) !== true) {
-            throw new ContentWriteException('Refusing to delete: pass confirm=true once the user has agreed to remove this comment.');
-        }
-
-        $comment = LinkedInService::findComment(
-            isset($args['id']) && $args['id'] !== '' ? (int) $args['id'] : null,
-            $args['urn'] ?? null
-        );
-
-        return LinkedInService::deleteComment($comment);
     }
 
     private static function listPosts(array $args): array
