@@ -42,7 +42,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: mbstring, pdo_mysql, gd, zip, fileinfo, intl
+          extensions: pdo_mysql, zip, gd, xml, mbstring, redis, opentelemetry, opcache, fileinfo
           coverage: none
 
       - name: Cache Composer packages
